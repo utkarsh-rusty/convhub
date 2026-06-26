@@ -17,3 +17,24 @@ class AIRequestStatus(str, enum.Enum):
     PENDING = "pending"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class ConversationParticipantRole(str, enum.Enum):
+    OWNER = "owner"
+    MEMBER = "member"
+
+
+class CreditTransactionType(str, enum.Enum):
+    ALLOCATION = "allocation"
+    USAGE = "usage"
+    BORROW = "borrow"
+    LEND = "lend"
+    ADJUSTMENT = "adjustment"
+
+
+class RoutingPolicyType(str, enum.Enum):
+    OWNER_FIRST = "owner_first"
+    BALANCED = "balanced"
+    LOWEST_USAGE = "lowest_usage"
+    CHEAPEST = "cheapest"
+    PRIORITY = "priority"

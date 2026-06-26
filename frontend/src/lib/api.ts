@@ -3,15 +3,28 @@ import { toast } from "sonner";
 
 import { authStorage } from "@/lib/auth-storage";
 import {
+  aiAccountResponseSchema,
+  aiAccountTestResponseSchema,
+  budgetResponseSchema,
+  creditTransactionListResponseSchema,
+  routingSettingsResponseSchema,
+  invitationResponseSchema,
+  acceptInvitationResponseSchema,
+  conversationParticipantResponseSchema,
   conversationResponseSchema,
   messageResponseSchema,
   tokenResponseSchema,
   userResponseSchema,
+  workspaceMemberResponseSchema,
   workspaceResponseSchema,
+  type AIAccountResponse,
+  type AIProviderName,
+  type BudgetResponse,
   type ConversationResponse,
   type MessageResponse,
   type TokenResponse,
   type UserResponse,
+  type RoutingSettingsResponse,
   type WorkspaceResponse,
 } from "@/types/api";
 
@@ -133,6 +146,26 @@ export const workspaceApi = {
     const { data } = await api.post("/workspaces", payload);
     return workspaceResponseSchema.parse(data);
   },
+
+  async listMembers(workspaceId: string) {
+    const { data } = await api.get(`/workspaces/${workspaceId}/members`);
+    return workspaceMemberResponseSchema.array().parse(data);
+  },
+
+  async invite(
+    workspaceId: string,
+    payload: { email: string; role?: "owner" | "admin" | "member" },
+  ) {
+    const { data } = await api.post(`/workspaces/${workspaceId}/invite`, payload);
+    return invitationResponseSchema.parse(data);
+  },
+};
+
+export const invitationApi = {
+  async accept(token: string) {
+    const { data } = await api.post(`/invitations/${token}/accept`);
+    return acceptInvitationResponseSchema.parse(data);
+  },
 };
 
 export const conversationApi = {
@@ -155,6 +188,20 @@ export const conversationApi = {
     const { data } = await api.patch(`/conversations/${conversationId}`, payload);
     return conversationResponseSchema.parse(data);
   },
+
+  async listParticipants(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/participants`);
+    return conversationParticipantResponseSchema.array().parse(data);
+  },
+
+  async addParticipants(conversationId: string, payload: { user_ids: string[] }) {
+    const { data } = await api.post(`/conversations/${conversationId}/participants`, payload);
+    return conversationParticipantResponseSchema.array().parse(data);
+  },
+
+  async removeParticipant(conversationId: string, userId: string) {
+    await api.delete(`/conversations/${conversationId}/participants/${userId}`);
+  },
 };
 
 export const messageApi = {
@@ -169,4 +216,62 @@ export const messageApi = {
   },
 };
 
-export type { ConversationResponse, MessageResponse, UserResponse, WorkspaceResponse };
+export const chatApi = {
+  async send(payload: { conversation_id: string; content: string }) {
+    const { data } = await api.post("/chat/send", payload);
+    return messageResponseSchema.parse(data);
+  },
+};
+
+export const aiAccountApi = {
+  async list() {
+    const { data } = await api.get("/ai-accounts");
+    return aiAccountResponseSchema.array().parse(data);
+  },
+
+  async create(payload: {
+    provider: AIProviderName;
+    display_name: string;
+    api_key?: string;
+    is_active?: boolean;
+    priority?: number;
+  }) {
+    const { data } = await api.post("/ai-accounts", payload);
+    return aiAccountResponseSchema.parse(data);
+  },
+
+  async remove(accountId: string) {
+    await api.delete(`/ai-accounts/${accountId}`);
+  },
+
+  async test(accountId: string) {
+    const { data } = await api.post(`/ai-accounts/${accountId}/test`);
+    return aiAccountTestResponseSchema.parse(data);
+  },
+};
+
+export const budgetApi = {
+  async getMyBudget(workspaceId: string) {
+    const { data } = await api.get(`/workspaces/${workspaceId}/budget/me`);
+    return budgetResponseSchema.parse(data);
+  },
+
+  async listHistory(workspaceId: string, params?: { limit?: number; offset?: number }) {
+    const { data } = await api.get(`/workspaces/${workspaceId}/credits/history`, { params });
+    return creditTransactionListResponseSchema.parse(data);
+  },
+};
+
+export const routingApi = {
+  async getSettings(workspaceId: string) {
+    const { data } = await api.get(`/workspaces/${workspaceId}/routing`);
+    return routingSettingsResponseSchema.parse(data);
+  },
+
+  async updateSettings(workspaceId: string, routing_policy: RoutingSettingsResponse["routing_policy"]) {
+    const { data } = await api.patch(`/workspaces/${workspaceId}/routing`, { routing_policy });
+    return routingSettingsResponseSchema.parse(data);
+  },
+};
+
+export type { AIAccountResponse, BudgetResponse, ConversationResponse, MessageResponse, RoutingSettingsResponse, UserResponse, WorkspaceResponse };

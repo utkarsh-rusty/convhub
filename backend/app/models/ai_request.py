@@ -11,10 +11,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.types import pg_enum
-from app.models.enums import AIRequestStatus
+from app.models.enums import AIRequestStatus, RoutingPolicyType
 from app.models.mixins import UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.ai_account import AIAccount
     from app.models.conversation import Conversation
     from app.models.message import Message
 
@@ -54,8 +55,21 @@ class AIRequest(UUIDPrimaryKeyMixin, Base):
     output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     estimated_cost: Mapped[Decimal | None] = mapped_column(Numeric(12, 6), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    selected_account_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("ai_accounts.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    selected_policy: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    routing_policy: Mapped[RoutingPolicyType | None] = mapped_column(
+        pg_enum(RoutingPolicyType, name="routing_policy_type"),
+        nullable=True,
+    )
+    routing_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    routing_score: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
 
     conversation: Mapped[Conversation] = relationship(lazy="selectin")
+    selected_account: Mapped[AIAccount | None] = relationship(lazy="selectin")
     user_message: Mapped[Message] = relationship(
         foreign_keys=[user_message_id],
         lazy="selectin",
