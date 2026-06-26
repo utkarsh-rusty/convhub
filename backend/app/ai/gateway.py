@@ -23,6 +23,7 @@ from app.resource_management.budget_service import BudgetService
 from app.resource_management.credit_calculator import calculate_credits
 from app.resource_management.credit_policy import CreditPolicy
 from app.resource_management.exceptions import InsufficientCreditsError
+from app.resource_sharing.engine import BorrowEngine, BorrowReservation
 from app.routing.context import RoutingContext
 from app.routing.engine import RoutingEngine
 
@@ -35,6 +36,7 @@ class AIGateway:
         ai_account_service: AIAccountService,
         budget_service: BudgetService,
         routing_engine: RoutingEngine,
+        borrow_engine: BorrowEngine,
         prompt_builder: PromptBuilder | None = None,
         credit_policy: CreditPolicy | None = None,
     ) -> None:
@@ -43,6 +45,7 @@ class AIGateway:
         self.ai_account_service = ai_account_service
         self.budget_service = budget_service
         self.routing_engine = routing_engine
+        self.borrow_engine = borrow_engine
         self.prompt_builder = prompt_builder or PromptBuilder()
         self.credit_policy = credit_policy or CreditPolicy()
 
@@ -68,6 +71,38 @@ class AIGateway:
             base_system_prompt=self.settings.ai_system_prompt,
             author_names=author_names,
         )
+
+        reserved_cost = Decimal("0")
+        borrow_reservation: BorrowReservation | None = None
+
+        if user_message.author_id is not None:
+            borrower_budget = await self.budget_service.reset_if_needed(
+                conversation.workspace_id,
+                user_message.author_id,
+            )
+            preliminary_estimate = self.credit_policy.estimate_request_cost(
+                self.settings.ai_provider,
+                self.settings.ai_model,
+                prompt_context,
+            )
+
+            if preliminary_estimate > Decimal("0"):
+                if borrower_budget.remaining_credits == Decimal("0"):
+                    if not budget_settings.allow_credit_borrowing:
+                        raise HTTPException(
+                            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                            detail="Insufficient credits for this request",
+                        )
+                    borrow_reservation = await self.borrow_engine.reserve_shared_credits(
+                        conversation.workspace_id,
+                        user_message.author_id,
+                        preliminary_estimate,
+                    )
+                    if borrow_reservation is None:
+                        raise HTTPException(
+                            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                            detail="Insufficient credits for this request",
+                        )
 
         routing_context = RoutingContext(
             workspace=workspace,
@@ -95,12 +130,7 @@ class AIGateway:
                 detail="Local models are disabled for this workspace",
             )
 
-        reserved_cost = Decimal("0")
         if user_message.author_id is not None:
-            await self.budget_service.reset_if_needed(
-                conversation.workspace_id,
-                user_message.author_id,
-            )
             estimated_cost = self.credit_policy.estimate_request_cost(
                 provider_name,
                 model_name,
@@ -112,10 +142,26 @@ class AIGateway:
                     user_message.author_id,
                     estimated_cost,
                 ):
-                    raise HTTPException(
-                        status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                        detail="Insufficient credits for this request",
-                    )
+                    if (
+                        borrow_reservation is None
+                        and budget_settings.allow_credit_borrowing
+                    ):
+                        borrow_reservation = await self.borrow_engine.reserve_shared_credits(
+                            conversation.workspace_id,
+                            user_message.author_id,
+                            estimated_cost,
+                        )
+                    if not await self.budget_service.has_available_credits(
+                        conversation.workspace_id,
+                        user_message.author_id,
+                        estimated_cost,
+                    ):
+                        if borrow_reservation is not None:
+                            await self.borrow_engine.release_borrow(borrow_reservation)
+                        raise HTTPException(
+                            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                            detail="Insufficient credits for this request",
+                        )
                 reserved_cost = estimated_cost
 
         try:
@@ -217,6 +263,9 @@ class AIGateway:
                         ai_request_id=ai_request.id,
                     )
 
+            if borrow_reservation is not None:
+                await self.borrow_engine.record_borrow(ai_request.id, borrow_reservation)
+
             await self.db.commit()
             await self.db.refresh(assistant_message)
             return MessageResponse(
@@ -229,6 +278,8 @@ class AIGateway:
                 provider=provider_name,
             )
         except HTTPException:
+            if borrow_reservation is not None:
+                await self.borrow_engine.release_borrow(borrow_reservation)
             if user_message.author_id is not None and reserved_cost > Decimal("0"):
                 await self._refund_reserved_credits(
                     conversation.workspace_id,
@@ -238,6 +289,8 @@ class AIGateway:
                 )
             raise
         except InsufficientCreditsError as exc:
+            if borrow_reservation is not None:
+                await self.borrow_engine.release_borrow(borrow_reservation)
             completed_at = datetime.now(UTC)
             ai_request.status = AIRequestStatus.FAILED
             ai_request.completed_at = completed_at
@@ -248,6 +301,8 @@ class AIGateway:
                 detail="Insufficient credits for this request",
             ) from exc
         except Exception as exc:
+            if borrow_reservation is not None:
+                await self.borrow_engine.release_borrow(borrow_reservation)
             if user_message.author_id is not None and reserved_cost > Decimal("0"):
                 await self._refund_reserved_credits(
                     conversation.workspace_id,

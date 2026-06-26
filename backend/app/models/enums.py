@@ -38,3 +38,7 @@ class RoutingPolicyType(str, enum.Enum):
     LOWEST_USAGE = "lowest_usage"
     CHEAPEST = "cheapest"
     PRIORITY = "priority"
+
+
+class BorrowStrategyType(str, enum.Enum):
+    HIGHEST_REMAINING = "highest_remaining"

@@ -12,6 +12,8 @@ from app.models.invitation import Invitation
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
+from app.resource_management.budget_service import BudgetService
+from app.resource_sharing.preference_service import LendingPreferenceService
 from app.workspaces.schemas import (
     AcceptInvitationResponse,
     InvitationCreate,
@@ -55,6 +57,10 @@ class WorkspaceService:
         )
         self.db.add(workspace)
         self.db.add(membership)
+        await self.db.flush()
+        await BudgetService(self.db).create_workspace_budget_settings(workspace.id)
+        await BudgetService(self.db).create_budget(workspace.id, user.id)
+        await LendingPreferenceService(self.db).create_preference(workspace.id, user.id)
 
         try:
             await self.db.commit()
@@ -233,6 +239,8 @@ class WorkspaceService:
         )
         invitation.accepted_at = datetime.now(UTC)
         self.db.add(membership)
+        await BudgetService(self.db).create_budget(invitation.workspace_id, user.id)
+        await LendingPreferenceService(self.db).create_preference(invitation.workspace_id, user.id)
 
         try:
             await self.db.commit()

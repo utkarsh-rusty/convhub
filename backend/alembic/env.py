@@ -12,12 +12,16 @@ from app.models import (  # noqa: F401 — register models with metadata
     AIAccount,
     AIRequest,
     Conversation,
+    ConversationParticipant,
+    CreditTransaction,
     Invitation,
     Message,
     Project,
     RefreshToken,
     User,
+    UserBudget,
     Workspace,
+    WorkspaceBudgetSettings,
     WorkspaceMember,
 )
 

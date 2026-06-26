@@ -8,6 +8,8 @@ import {
   budgetResponseSchema,
   creditTransactionListResponseSchema,
   routingSettingsResponseSchema,
+  lendingPreferenceResponseSchema,
+  workspaceSharingOverviewSchema,
   invitationResponseSchema,
   acceptInvitationResponseSchema,
   conversationParticipantResponseSchema,
@@ -271,6 +273,31 @@ export const routingApi = {
   async updateSettings(workspaceId: string, routing_policy: RoutingSettingsResponse["routing_policy"]) {
     const { data } = await api.patch(`/workspaces/${workspaceId}/routing`, { routing_policy });
     return routingSettingsResponseSchema.parse(data);
+  },
+};
+
+export const sharingApi = {
+  async getMyPreferences(workspaceId: string) {
+    const { data } = await api.get(`/workspaces/${workspaceId}/sharing/me`);
+    return lendingPreferenceResponseSchema.parse(data);
+  },
+
+  async updateMyPreferences(
+    workspaceId: string,
+    payload: {
+      auto_share_enabled?: boolean;
+      monthly_share_limit?: string;
+      minimum_reserved_credits?: string;
+      priority?: number;
+    },
+  ) {
+    const { data } = await api.patch(`/workspaces/${workspaceId}/sharing/me`, payload);
+    return lendingPreferenceResponseSchema.parse(data);
+  },
+
+  async getWorkspaceOverview(workspaceId: string) {
+    const { data } = await api.get(`/workspaces/${workspaceId}/sharing`);
+    return workspaceSharingOverviewSchema.parse(data);
   },
 };
 

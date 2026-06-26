@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { conversationApi, showApiError } from "@/lib/api";
 import { useWorkspace } from "@/context/workspace-context";
 import { RenameConversationDialog } from "@/components/conversation/rename-conversation-dialog";
+import { ParticipantAvatarStack } from "@/components/conversation/participant-avatar-stack";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,6 +24,8 @@ export function ConversationSidebar() {
     queryKey: ["conversations", activeWorkspaceId],
     queryFn: conversationApi.list,
     enabled: Boolean(activeWorkspaceId),
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   const createMutation = useMutation({
@@ -98,9 +101,14 @@ function ConversationSidebarItem({
       >
         <NavLink
           to={`/c/${conversation.id}`}
-          className="min-w-0 flex-1 truncate text-sm hover:text-[var(--color-foreground)]"
+          className="flex min-w-0 flex-1 items-center gap-2 truncate text-sm hover:text-[var(--color-foreground)]"
         >
-          {conversation.title}
+          <ParticipantAvatarStack
+            participants={conversation.participants}
+            max={2}
+            className="shrink-0"
+          />
+          <span className="truncate">{conversation.title}</span>
         </NavLink>
         <Button
           variant="ghost"

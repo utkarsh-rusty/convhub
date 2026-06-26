@@ -2,26 +2,26 @@ from decimal import Decimal
 
 from anthropic import AsyncAnthropic
 
-from app.ai.providers.base import AIProvider, AIResponse, ChatMessage
+from app.ai.prompt_builder import PromptContext
+from app.ai.providers.base import AIProvider, AIResponse
 
 
 class AnthropicProvider(AIProvider):
-    def __init__(self, api_key: str, model: str) -> None:
-        self._model = model
+    def __init__(self, api_key: str) -> None:
         self._client = AsyncAnthropic(api_key=api_key)
 
     async def generate(
         self,
-        messages: list[ChatMessage],
-        system_prompt: str | None,
+        prompt_context: PromptContext,
+        model: str,
     ) -> AIResponse:
         response = await self._client.messages.create(
-            model=self._model,
+            model=model,
             max_tokens=1024,
-            system=system_prompt or "",
+            system=prompt_context.system_prompt,
             messages=[
                 {"role": message.role, "content": message.content}
-                for message in messages
+                for message in prompt_context.chat_messages
                 if message.role in {"user", "assistant"}
             ],
         )

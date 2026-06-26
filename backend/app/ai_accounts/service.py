@@ -4,8 +4,10 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.prompt_builder import PromptBuilder, PromptContext
 from app.ai.providers.base import ChatMessage
 from app.ai.providers.factory import create_provider
+from app.ai.providers.ollama import OllamaProvider
 from app.ai_accounts.schemas import (
     AIAccountCreate,
     AIAccountResponse,
@@ -34,7 +36,8 @@ class AIAccountService:
         ctx: WorkspaceContext,
         data: AIAccountCreate,
     ) -> AIAccountResponse:
-        encrypted_credentials = self.encryption.encrypt({"api_key": data.api_key})
+        api_key = data.api_key or ""
+        encrypted_credentials = self.encryption.encrypt({"api_key": api_key})
 
         account = AIAccount(
             workspace_id=ctx.workspace_id,
@@ -44,6 +47,7 @@ class AIAccountService:
             is_active=data.is_active,
             monthly_budget=data.monthly_budget,
             priority=data.priority,
+            default_model=data.default_model,
         )
         self.db.add(account)
         await self.db.commit()
@@ -71,6 +75,8 @@ class AIAccountService:
             account.monthly_budget = data.monthly_budget
         if data.priority is not None:
             account.priority = data.priority
+        if data.default_model is not None:
+            account.default_model = data.default_model or None
         if data.api_key is not None:
             account.encrypted_credentials = self.encryption.encrypt({"api_key": data.api_key})
 
@@ -84,22 +90,53 @@ class AIAccountService:
 
     async def test_account(self, account: AIAccount) -> AIAccountTestResponse:
         try:
-            credentials = self.encryption.decrypt(account.encrypted_credentials)
+            credentials = (
+                None if account.provider == "ollama" else self.encryption.decrypt(account.encrypted_credentials)
+            )
+            model = self.resolve_model(account.provider, account)
             provider = create_provider(
                 provider_name=account.provider,
-                model=self.settings.ai_model,
                 credentials=credentials,
                 settings=self.settings,
                 allow_dev_fallback=False,
             )
-            await provider.generate(
-                messages=[ChatMessage(role="user", content="Reply with the word OK.")],
-                system_prompt=None,
-            )
+            if isinstance(provider, OllamaProvider):
+                await provider.test_connection()
+            else:
+                test_context = PromptContext(
+                    system_prompt="",
+                    chat_messages=[ChatMessage(role="user", content="Reply with the word OK.")],
+                    metadata={},
+                )
+                await provider.generate(test_context, model)
         except Exception as exc:
             return AIAccountTestResponse(success=False, message=str(exc))
 
         return AIAccountTestResponse(success=True, message="Connection successful")
+
+    def resolve_model(self, provider_name: str, account: AIAccount | None = None) -> str:
+        if account is not None and account.default_model:
+            return account.default_model
+        if provider_name == "ollama":
+            return self.settings.ollama_model
+        if provider_name == "mock":
+            return "mock"
+        return self.settings.ai_model
+
+    async def resolve_primary_active_account(
+        self,
+        workspace_id: UUID,
+    ) -> AIAccount | None:
+        result = await self.db.execute(
+            select(AIAccount)
+            .where(
+                AIAccount.workspace_id == workspace_id,
+                AIAccount.is_active.is_(True),
+            )
+            .order_by(AIAccount.priority.asc(), AIAccount.created_at.asc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
 
     async def resolve_active_account(
         self,
@@ -119,6 +156,9 @@ class AIAccountService:
         return result.scalar_one_or_none()
 
     async def get_decrypted_credentials(self, account: AIAccount) -> dict[str, str]:
+        if account.provider == "ollama":
+            return {}
+
         try:
             return self.encryption.decrypt(account.encrypted_credentials)
         except ValueError as exc:

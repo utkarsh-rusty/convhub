@@ -1,5 +1,11 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.ai.prompt_builder import PromptContext
 
 
 @dataclass(frozen=True)
@@ -21,7 +27,7 @@ class AIProvider(ABC):
     @abstractmethod
     async def generate(
         self,
-        messages: list[ChatMessage],
-        system_prompt: str | None,
+        prompt_context: PromptContext,
+        model: str,
     ) -> AIResponse:
-        """Generate an assistant reply from conversation history."""
+        """Generate an assistant reply from a provider-ready prompt context."""

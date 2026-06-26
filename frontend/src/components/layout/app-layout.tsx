@@ -1,22 +1,22 @@
+import { useLocation } from "react-router-dom";
 import { Outlet } from "react-router-dom";
 import { LogOut } from "lucide-react";
 
 import { WorkspaceSelector } from "@/components/workspace/workspace-selector";
 import { CreateWorkspaceDialog } from "@/components/workspace/create-workspace-dialog";
 import { ConversationSidebar } from "@/components/conversation/conversation-sidebar";
+import { AppNav } from "@/components/layout/app-nav";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/auth-context";
+import { getInitials } from "@/lib/utils";
 
 export function AppLayout() {
   const { user, logout } = useAuth();
-  const initials = user?.name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const location = useLocation();
+  const showConversationSidebar =
+    location.pathname === "/" || location.pathname.startsWith("/c/");
 
   return (
     <div className="flex h-screen bg-[var(--color-background)] text-[var(--color-foreground)]">
@@ -37,7 +37,14 @@ export function AppLayout() {
 
         <Separator />
 
-        <ConversationSidebar />
+        <AppNav />
+
+        {showConversationSidebar && (
+          <>
+            <Separator />
+            <ConversationSidebar />
+          </>
+        )}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -51,7 +58,7 @@ export function AppLayout() {
               <p className="text-xs text-[var(--color-muted-foreground)]">{user?.email}</p>
             </div>
             <Avatar>
-              <AvatarFallback>{initials}</AvatarFallback>
+              <AvatarFallback>{user ? getInitials(user.name) : "?"}</AvatarFallback>
             </Avatar>
             <Button variant="ghost" size="icon" onClick={logout} aria-label="Log out">
               <LogOut className="h-4 w-4" />

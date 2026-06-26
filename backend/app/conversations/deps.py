@@ -8,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
 from app.auth.deps import get_current_user
 from app.models.conversation import Conversation
+from app.models.conversation_participant import ConversationParticipant
+from app.models.enums import ConversationParticipantRole
 from app.models.user import User
 from app.models.workspace_member import WorkspaceMember
 
@@ -59,5 +61,44 @@ async def get_conversation(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Conversation not found",
+        )
+    return conversation
+
+
+async def get_participant_conversation(
+    conversation: Conversation = Depends(get_conversation),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    db: AsyncSession = Depends(get_db),
+) -> Conversation:
+    result = await db.execute(
+        select(ConversationParticipant).where(
+            ConversationParticipant.conversation_id == conversation.id,
+            ConversationParticipant.user_id == ctx.user.id,
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not a participant in this conversation",
+        )
+    return conversation
+
+
+async def require_conversation_owner(
+    conversation: Conversation = Depends(get_conversation),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    db: AsyncSession = Depends(get_db),
+) -> Conversation:
+    result = await db.execute(
+        select(ConversationParticipant).where(
+            ConversationParticipant.conversation_id == conversation.id,
+            ConversationParticipant.user_id == ctx.user.id,
+            ConversationParticipant.role == ConversationParticipantRole.OWNER,
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only conversation owners can manage participants",
         )
     return conversation

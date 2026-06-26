@@ -38,5 +38,6 @@ class AIAccount(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         default=Decimal("0"),
     )
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    default_model: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     workspace: Mapped[Workspace] = relationship(back_populates="ai_accounts", lazy="selectin")

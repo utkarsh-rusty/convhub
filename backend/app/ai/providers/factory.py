@@ -1,12 +1,12 @@
 from app.ai.providers.anthropic import AnthropicProvider
 from app.ai.providers.base import AIProvider
 from app.ai.providers.mock import MockProvider
+from app.ai.providers.ollama import OllamaProvider
 from app.core.config import Settings
 
 
 def create_provider(
     provider_name: str,
-    model: str,
     credentials: dict[str, str] | None,
     settings: Settings,
     *,
@@ -23,6 +23,9 @@ def create_provider(
         if not api_key:
             raise ValueError("No Anthropic credentials configured for this workspace")
 
-        return AnthropicProvider(api_key=api_key, model=model)
+        return AnthropicProvider(api_key=api_key)
+
+    if provider_name == "ollama":
+        return OllamaProvider(base_url=settings.ollama_base_url)
 
     raise ValueError(f"Unsupported AI provider: {provider_name}")

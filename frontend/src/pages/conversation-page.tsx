@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, useParams } from "react-router-dom";
 
-import { conversationApi, messageApi } from "@/lib/api";
+import { conversationApi, messageApi, workspaceApi } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspace } from "@/context/workspace-context";
+import { ConversationHeader } from "@/components/conversation/conversation-header";
 import { MessageComposer } from "@/components/messages/message-composer";
 import { MessageList } from "@/components/messages/message-list";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,13 +19,28 @@ export function ConversationPage() {
     queryKey: ["conversation", conversationId],
     queryFn: () => conversationApi.get(conversationId!),
     enabled: Boolean(conversationId && activeWorkspaceId),
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery({
     queryKey: ["messages", conversationId],
     queryFn: () => messageApi.list(conversationId!),
     enabled: Boolean(conversationId && activeWorkspaceId),
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
   });
+
+  const { data: members = [] } = useQuery({
+    queryKey: ["workspace-members", activeWorkspaceId],
+    queryFn: () => workspaceApi.listMembers(activeWorkspaceId!),
+    enabled: Boolean(activeWorkspaceId),
+  });
+
+  const memberNames = useMemo(
+    () => Object.fromEntries(members.map((member) => [member.user_id, member.name])),
+    [members],
+  );
 
   if (!workspacesLoading && workspaces.length === 0) {
     return (
@@ -57,14 +74,8 @@ export function ConversationPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="border-b border-[var(--color-border)] px-6 py-4">
-        <h2 className="text-lg font-semibold">{conversation.title}</h2>
-        <p className="text-xs text-[var(--color-muted-foreground)]">
-          Last active {new Date(conversation.last_activity_at).toLocaleString()}
-        </p>
-      </div>
-
-      <MessageList messages={messages} currentUserId={user?.id} />
+      <ConversationHeader conversation={conversation} />
+      <MessageList messages={messages} currentUserId={user?.id} memberNames={memberNames} />
       <MessageComposer conversationId={conversation.id} />
     </div>
   );

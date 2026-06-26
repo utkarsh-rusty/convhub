@@ -4,9 +4,17 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
-from app.conversations.deps import WorkspaceContext, get_conversation, get_workspace_context
+from app.conversations.deps import (
+    WorkspaceContext,
+    get_conversation,
+    get_participant_conversation,
+    get_workspace_context,
+    require_conversation_owner,
+)
 from app.conversations.schemas import (
     ConversationCreate,
+    ConversationParticipantCreate,
+    ConversationParticipantResponse,
     ConversationResponse,
     ConversationUpdate,
     MessageCreate,
@@ -40,12 +48,12 @@ async def list_conversations(
     ctx: WorkspaceContext = Depends(get_workspace_context),
     service: ConversationService = Depends(get_conversation_service),
 ) -> list[ConversationResponse]:
-    return await service.list_conversations(ctx.workspace_id)
+    return await service.list_conversations(ctx.workspace_id, ctx.user.id)
 
 
 @conversations_router.get("/{conversation_id}", response_model=ConversationResponse)
 async def get_conversation_detail(
-    conversation: Conversation = Depends(get_conversation),
+    conversation: Conversation = Depends(get_participant_conversation),
     service: ConversationService = Depends(get_conversation_service),
 ) -> ConversationResponse:
     return await service.get_conversation(conversation)
@@ -54,7 +62,7 @@ async def get_conversation_detail(
 @conversations_router.patch("/{conversation_id}", response_model=ConversationResponse)
 async def update_conversation(
     data: ConversationUpdate,
-    conversation: Conversation = Depends(get_conversation),
+    conversation: Conversation = Depends(get_participant_conversation),
     service: ConversationService = Depends(get_conversation_service),
 ) -> ConversationResponse:
     return await service.update_conversation(conversation, data)
@@ -62,7 +70,7 @@ async def update_conversation(
 
 @conversations_router.delete("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_conversation(
-    conversation: Conversation = Depends(get_conversation),
+    conversation: Conversation = Depends(get_participant_conversation),
     service: ConversationService = Depends(get_conversation_service),
 ) -> None:
     await service.delete_conversation(conversation)
@@ -70,7 +78,7 @@ async def delete_conversation(
 
 @conversations_router.post("/{conversation_id}/archive", response_model=ConversationResponse)
 async def archive_conversation(
-    conversation: Conversation = Depends(get_conversation),
+    conversation: Conversation = Depends(get_participant_conversation),
     service: ConversationService = Depends(get_conversation_service),
 ) -> ConversationResponse:
     return await service.archive_conversation(conversation)
@@ -78,10 +86,47 @@ async def archive_conversation(
 
 @conversations_router.post("/{conversation_id}/restore", response_model=ConversationResponse)
 async def restore_conversation(
-    conversation: Conversation = Depends(get_conversation),
+    conversation: Conversation = Depends(get_participant_conversation),
     service: ConversationService = Depends(get_conversation_service),
 ) -> ConversationResponse:
     return await service.restore_conversation(conversation)
+
+
+@conversations_router.get(
+    "/{conversation_id}/participants",
+    response_model=list[ConversationParticipantResponse],
+)
+async def list_participants(
+    conversation_id: UUID,
+    _: Conversation = Depends(get_participant_conversation),
+    service: ConversationService = Depends(get_conversation_service),
+) -> list[ConversationParticipantResponse]:
+    return await service.list_participants(conversation_id)
+
+
+@conversations_router.post(
+    "/{conversation_id}/participants",
+    response_model=list[ConversationParticipantResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_participants(
+    data: ConversationParticipantCreate,
+    conversation: Conversation = Depends(require_conversation_owner),
+    service: ConversationService = Depends(get_conversation_service),
+) -> list[ConversationParticipantResponse]:
+    return await service.add_participants(conversation, data)
+
+
+@conversations_router.delete(
+    "/{conversation_id}/participants/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_participant(
+    user_id: UUID,
+    conversation: Conversation = Depends(require_conversation_owner),
+    service: ConversationService = Depends(get_conversation_service),
+) -> None:
+    await service.remove_participant(conversation, user_id)
 
 
 @conversations_router.post(
@@ -91,7 +136,7 @@ async def restore_conversation(
 )
 async def create_message(
     data: MessageCreate,
-    conversation: Conversation = Depends(get_conversation),
+    conversation: Conversation = Depends(get_participant_conversation),
     ctx: WorkspaceContext = Depends(get_workspace_context),
     service: ConversationService = Depends(get_conversation_service),
 ) -> MessageResponse:
@@ -101,7 +146,7 @@ async def create_message(
 @conversations_router.get("/{conversation_id}/messages", response_model=list[MessageResponse])
 async def list_messages(
     conversation_id: UUID,
-    _: Conversation = Depends(get_conversation),
+    _: Conversation = Depends(get_participant_conversation),
     service: ConversationService = Depends(get_conversation_service),
 ) -> list[MessageResponse]:
     return await service.list_messages(conversation_id)

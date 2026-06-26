@@ -13,6 +13,7 @@ from app.conversations.service import ConversationService
 from app.core.config import Settings, get_settings
 from app.core.credentials import CredentialEncryption
 from app.resource_management.budget_service import BudgetService
+from app.resource_sharing.engine import BorrowEngine
 from app.routing.engine import RoutingEngine
 
 chat_router = APIRouter(prefix="/chat", tags=["chat"])
@@ -38,12 +39,20 @@ def get_routing_engine(
     )
 
 
+def get_borrow_engine(
+    db: AsyncSession = Depends(get_db),
+    budget_service: BudgetService = Depends(get_budget_service),
+) -> BorrowEngine:
+    return BorrowEngine(db=db, budget_service=budget_service)
+
+
 def get_ai_gateway(
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
     encryption: CredentialEncryption = Depends(get_credential_encryption),
     budget_service: BudgetService = Depends(get_budget_service),
     routing_engine: RoutingEngine = Depends(get_routing_engine),
+    borrow_engine: BorrowEngine = Depends(get_borrow_engine),
 ) -> AIGateway:
     ai_account_service = AIAccountService(db=db, settings=settings, encryption=encryption)
     return AIGateway(
@@ -52,6 +61,7 @@ def get_ai_gateway(
         ai_account_service=ai_account_service,
         budget_service=budget_service,
         routing_engine=routing_engine,
+        borrow_engine=borrow_engine,
     )
 
 

@@ -37,9 +37,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30
 
-    ai_provider: Literal["mock", "anthropic"] = "mock"
+    ai_provider: Literal["mock", "anthropic", "ollama"] = "mock"
     ai_model: str = "claude-sonnet-4-20250514"
     ai_system_prompt: str = "You are a helpful assistant."
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.2"
     anthropic_api_key: str | None = Field(
         default=None,
         description="Development-only fallback when no workspace AI account is configured",

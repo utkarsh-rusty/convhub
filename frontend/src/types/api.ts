@@ -179,6 +179,34 @@ export const routingSettingsResponseSchema = z.object({
   preview: routingPreviewSchema,
 });
 
+export const lendingPreferenceResponseSchema = z.object({
+  workspace_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  auto_share_enabled: z.boolean(),
+  monthly_share_limit: z.string(),
+  minimum_reserved_credits: z.string(),
+  priority: z.number(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const workspaceSharingMemberSchema = z.object({
+  user_id: z.string().uuid(),
+  user_name: z.string(),
+  user_email: z.string(),
+  auto_share_enabled: z.boolean(),
+  remaining_credits: z.string(),
+  monthly_share_limit: z.string(),
+  minimum_reserved_credits: z.string(),
+  borrowed_credits: z.string(),
+  lent_credits: z.string(),
+  priority: z.number(),
+});
+
+export const workspaceSharingOverviewSchema = z.object({
+  members: z.array(workspaceSharingMemberSchema),
+});
+
 export type TokenResponse = z.infer<typeof tokenResponseSchema>;
 export type UserResponse = z.infer<typeof userResponseSchema>;
 export type WorkspaceResponse = z.infer<typeof workspaceResponseSchema>;
@@ -193,6 +221,8 @@ export type BudgetResponse = z.infer<typeof budgetResponseSchema>;
 export type CreditTransactionResponse = z.infer<typeof creditTransactionResponseSchema>;
 export type RoutingPolicyType = z.infer<typeof routingPolicyTypeSchema>;
 export type RoutingSettingsResponse = z.infer<typeof routingSettingsResponseSchema>;
+export type LendingPreferenceResponse = z.infer<typeof lendingPreferenceResponseSchema>;
+export type WorkspaceSharingOverview = z.infer<typeof workspaceSharingOverviewSchema>;
 
 export const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),

@@ -1,10 +1,16 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.conversation import DEFAULT_CONVERSATION_TITLE
-from app.models.enums import MessageRole
+from app.models.enums import ConversationParticipantRole, MessageRole
+
+
+class ConversationParticipantSummary(BaseModel):
+    user_id: UUID
+    name: str
+    role: ConversationParticipantRole
 
 
 class ConversationCreate(BaseModel):
@@ -26,6 +32,21 @@ class ConversationResponse(BaseModel):
     archived_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    participant_count: int = 0
+    participants: list[ConversationParticipantSummary] = Field(default_factory=list)
+
+
+class ConversationParticipantCreate(BaseModel):
+    user_ids: list[UUID] = Field(min_length=1)
+
+
+class ConversationParticipantResponse(BaseModel):
+    conversation_id: UUID
+    user_id: UUID
+    name: str
+    email: EmailStr
+    role: ConversationParticipantRole
+    joined_at: datetime
 
 
 class MessageCreate(BaseModel):
@@ -42,3 +63,4 @@ class MessageResponse(BaseModel):
     role: MessageRole
     content: str
     created_at: datetime
+    provider: str | None = None

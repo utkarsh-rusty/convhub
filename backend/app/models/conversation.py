@@ -12,6 +12,7 @@ from app.db.base import Base
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.conversation_participant import ConversationParticipant
     from app.models.message import Message
     from app.models.project import Project
     from app.models.user import User
@@ -58,6 +59,11 @@ class Conversation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     project: Mapped[Project | None] = relationship(back_populates="conversations", lazy="selectin")
     created_by: Mapped[User | None] = relationship(back_populates="conversations", lazy="selectin")
     messages: Mapped[list[Message]] = relationship(
+        back_populates="conversation",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
+    participants: Mapped[list[ConversationParticipant]] = relationship(
         back_populates="conversation",
         lazy="selectin",
         cascade="all, delete-orphan",
