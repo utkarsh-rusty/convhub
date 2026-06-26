@@ -4,11 +4,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.gateway import AIGateway
 from app.ai.schemas import ChatSendRequest
 from app.ai.service import ChatService
+from app.ai_accounts.deps import get_ai_account_service, get_credential_encryption
+from app.ai_accounts.service import AIAccountService
 from app.api.deps import get_db
 from app.conversations.deps import WorkspaceContext, get_workspace_context
 from app.conversations.schemas import MessageResponse
 from app.conversations.service import ConversationService
 from app.core.config import Settings, get_settings
+from app.core.credentials import CredentialEncryption
 
 chat_router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -16,8 +19,10 @@ chat_router = APIRouter(prefix="/chat", tags=["chat"])
 def get_ai_gateway(
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    encryption: CredentialEncryption = Depends(get_credential_encryption),
 ) -> AIGateway:
-    return AIGateway(db=db, settings=settings)
+    ai_account_service = AIAccountService(db=db, settings=settings, encryption=encryption)
+    return AIGateway(db=db, settings=settings, ai_account_service=ai_account_service)
 
 
 def get_chat_service(

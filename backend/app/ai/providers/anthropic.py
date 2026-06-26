@@ -3,16 +3,12 @@ from decimal import Decimal
 from anthropic import AsyncAnthropic
 
 from app.ai.providers.base import AIProvider, AIResponse, ChatMessage
-from app.core.config import Settings
 
 
 class AnthropicProvider(AIProvider):
-    def __init__(self, settings: Settings) -> None:
-        if not settings.anthropic_api_key:
-            raise ValueError("ANTHROPIC_API_KEY is required when AI_PROVIDER=anthropic")
-
-        self._settings = settings
-        self._client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+    def __init__(self, api_key: str, model: str) -> None:
+        self._model = model
+        self._client = AsyncAnthropic(api_key=api_key)
 
     async def generate(
         self,
@@ -20,7 +16,7 @@ class AnthropicProvider(AIProvider):
         system_prompt: str | None,
     ) -> AIResponse:
         response = await self._client.messages.create(
-            model=self._settings.ai_model,
+            model=self._model,
             max_tokens=1024,
             system=system_prompt or "",
             messages=[

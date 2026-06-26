@@ -40,7 +40,14 @@ class Settings(BaseSettings):
     ai_provider: Literal["mock", "anthropic"] = "mock"
     ai_model: str = "claude-sonnet-4-20250514"
     ai_system_prompt: str = "You are a helpful assistant."
-    anthropic_api_key: str | None = None
+    anthropic_api_key: str | None = Field(
+        default=None,
+        description="Development-only fallback when no workspace AI account is configured",
+    )
+    credentials_encryption_key: str = Field(
+        default="lHOGnkjdkIA2CqtPkQKagGz7u7JIwHBDO5x0V3Z2yjY=",
+        description="Fernet key for encrypting workspace AI account credentials",
+    )
 
     @computed_field  # type: ignore[prop-decorator]
     @property

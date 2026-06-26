@@ -2,12 +2,11 @@ from datetime import UTC, datetime
 from decimal import Decimal
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.providers.anthropic import AnthropicProvider
-from app.ai.providers.base import AIProvider, ChatMessage
-from app.ai.providers.mock import MockProvider
+from app.ai.providers.factory import create_provider
+from app.ai.providers.base import ChatMessage
+from app.ai_accounts.service import AIAccountService
 from app.conversations.schemas import MessageResponse
 from app.core.config import Settings
 from app.models.ai_request import AIRequest
@@ -17,10 +16,15 @@ from app.models.message import Message
 
 
 class AIGateway:
-    def __init__(self, db: AsyncSession, settings: Settings) -> None:
+    def __init__(
+        self,
+        db: AsyncSession,
+        settings: Settings,
+        ai_account_service: AIAccountService,
+    ) -> None:
         self.db = db
         self.settings = settings
-        self._provider = _create_provider(settings)
+        self.ai_account_service = ai_account_service
 
     async def generate(
         self,
@@ -31,6 +35,27 @@ class AIGateway:
         started_at = datetime.now(UTC)
         provider_name = self.settings.ai_provider
         model_name = self.settings.ai_model
+
+        account = await self.ai_account_service.resolve_active_account(
+            conversation.workspace_id,
+            provider_name,
+        )
+        credentials = None
+        if account is not None:
+            credentials = await self.ai_account_service.get_decrypted_credentials(account)
+
+        try:
+            provider = create_provider(
+                provider_name=provider_name,
+                model=model_name,
+                credentials=credentials,
+                settings=self.settings,
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(exc),
+            ) from exc
 
         ai_request = AIRequest(
             conversation_id=conversation.id,
@@ -43,7 +68,7 @@ class AIGateway:
         self.db.add(ai_request)
 
         try:
-            response = await self._provider.generate(
+            response = await provider.generate(
                 messages=_to_chat_messages(history),
                 system_prompt=self.settings.ai_system_prompt,
             )
@@ -77,6 +102,8 @@ class AIGateway:
             await self.db.commit()
             await self.db.refresh(assistant_message)
             return MessageResponse.model_validate(assistant_message)
+        except HTTPException:
+            raise
         except Exception as exc:
             completed_at = datetime.now(UTC)
             latency_ms = int((completed_at - started_at).total_seconds() * 1000)
@@ -92,12 +119,6 @@ class AIGateway:
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="AI provider failed to generate a response",
             ) from exc
-
-
-def _create_provider(settings: Settings) -> AIProvider:
-    if settings.ai_provider == "anthropic":
-        return AnthropicProvider(settings)
-    return MockProvider()
 
 
 def _to_chat_messages(messages: list[Message]) -> list[ChatMessage]:
