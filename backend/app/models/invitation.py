@@ -4,11 +4,12 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, String, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.types import pg_enum
 from app.models.enums import WorkspaceRole
 from app.models.mixins import UUIDPrimaryKeyMixin
 
@@ -31,7 +32,7 @@ class Invitation(UUIDPrimaryKeyMixin, Base):
     )
     email: Mapped[str] = mapped_column(String(320), nullable=False)
     role: Mapped[WorkspaceRole] = mapped_column(
-        Enum(WorkspaceRole, name="workspace_role", create_constraint=False),
+        pg_enum(WorkspaceRole, name="workspace_role", create_constraint=False),
         nullable=False,
     )
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)

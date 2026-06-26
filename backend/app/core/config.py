@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30
 
+    ai_provider: Literal["mock", "anthropic"] = "mock"
+    ai_model: str = "claude-sonnet-4-20250514"
+    ai_system_prompt: str = "You are a helpful assistant."
+    anthropic_api_key: str | None = None
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins_list(self) -> list[str]:

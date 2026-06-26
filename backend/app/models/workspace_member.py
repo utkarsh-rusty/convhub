@@ -3,11 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import Enum, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import ForeignKey, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.types import pg_enum
 from app.models.enums import WorkspaceRole
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
@@ -34,7 +35,7 @@ class WorkspaceMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
     )
     role: Mapped[WorkspaceRole] = mapped_column(
-        Enum(WorkspaceRole, name="workspace_role"),
+        pg_enum(WorkspaceRole, name="workspace_role"),
         nullable=False,
     )
 

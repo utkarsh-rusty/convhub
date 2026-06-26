@@ -1,0 +1,172 @@
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
+import { toast } from "sonner";
+
+import { authStorage } from "@/lib/auth-storage";
+import {
+  conversationResponseSchema,
+  messageResponseSchema,
+  tokenResponseSchema,
+  userResponseSchema,
+  workspaceResponseSchema,
+  type ConversationResponse,
+  type MessageResponse,
+  type TokenResponse,
+  type UserResponse,
+  type WorkspaceResponse,
+} from "@/types/api";
+
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+
+export const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = authStorage.getRefreshToken();
+  if (!refreshToken) {
+    return null;
+  }
+
+  try {
+    const { data } = await axios.post<TokenResponse>(`${API_URL}/auth/refresh`, {
+      refresh_token: refreshToken,
+    });
+    const tokens = tokenResponseSchema.parse(data);
+    authStorage.setTokens(tokens.access_token, tokens.refresh_token);
+    return tokens.access_token;
+  } catch {
+    authStorage.clearAll();
+    return null;
+  }
+}
+
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const accessToken = authStorage.getAccessToken();
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  const workspaceId = authStorage.getWorkspaceId();
+  if (workspaceId) {
+    config.headers["X-Workspace-ID"] = workspaceId;
+  }
+
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError<{ detail?: string | { msg?: string }[] }>) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      refreshPromise ??= refreshAccessToken().finally(() => {
+        refreshPromise = null;
+      });
+
+      const newToken = await refreshPromise;
+      if (newToken) {
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      }
+
+      if (!originalRequest.url?.includes("/auth/login") && !window.location.pathname.startsWith("/login")) {
+        window.location.href = "/login";
+      }
+    }
+
+    return Promise.reject(error);
+  },
+);
+
+export function getErrorMessage(error: unknown, fallback = "Something went wrong"): string {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+    if (typeof detail === "string") {
+      return detail;
+    }
+    if (Array.isArray(detail) && detail[0]?.msg) {
+      return detail[0].msg;
+    }
+    if (error.message) {
+      return error.message;
+    }
+  }
+  return fallback;
+}
+
+export function showApiError(error: unknown, fallback?: string) {
+  toast.error(getErrorMessage(error, fallback));
+}
+
+export const authApi = {
+  async login(payload: { email: string; password: string }) {
+    const { data } = await api.post("/auth/login", payload);
+    return tokenResponseSchema.parse(data);
+  },
+
+  async register(payload: { email: string; password: string; name: string }) {
+    const { data } = await api.post("/auth/register", payload);
+    return userResponseSchema.parse(data);
+  },
+
+  async me() {
+    const { data } = await api.get("/users/me");
+    return userResponseSchema.parse(data);
+  },
+};
+
+export const workspaceApi = {
+  async list() {
+    const { data } = await api.get("/workspaces");
+    return workspaceResponseSchema.array().parse(data);
+  },
+
+  async create(payload: { name: string }) {
+    const { data } = await api.post("/workspaces", payload);
+    return workspaceResponseSchema.parse(data);
+  },
+};
+
+export const conversationApi = {
+  async list() {
+    const { data } = await api.get("/conversations");
+    return conversationResponseSchema.array().parse(data);
+  },
+
+  async create(payload: { title?: string } = {}) {
+    const { data } = await api.post("/conversations", payload);
+    return conversationResponseSchema.parse(data);
+  },
+
+  async get(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}`);
+    return conversationResponseSchema.parse(data);
+  },
+
+  async update(conversationId: string, payload: { title: string }) {
+    const { data } = await api.patch(`/conversations/${conversationId}`, payload);
+    return conversationResponseSchema.parse(data);
+  },
+};
+
+export const messageApi = {
+  async list(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/messages`);
+    return messageResponseSchema.array().parse(data);
+  },
+
+  async create(conversationId: string, payload: { content: string; role: "user" }) {
+    const { data } = await api.post(`/conversations/${conversationId}/messages`, payload);
+    return messageResponseSchema.parse(data);
+  },
+};
+
+export type { ConversationResponse, MessageResponse, UserResponse, WorkspaceResponse };
