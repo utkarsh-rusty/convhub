@@ -11,6 +11,7 @@ from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 if TYPE_CHECKING:
     from app.models.conversation import Conversation
     from app.models.message import Message
+    from app.models.refresh_token import RefreshToken
     from app.models.workspace import Workspace
     from app.models.workspace_member import WorkspaceMember
 
@@ -20,6 +21,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
     workspace_memberships: Mapped[list[WorkspaceMember]] = relationship(
         back_populates="user",
@@ -37,4 +39,9 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     messages: Mapped[list[Message]] = relationship(
         back_populates="author",
         lazy="selectin",
+    )
+    refresh_tokens: Mapped[list[RefreshToken]] = relationship(
+        back_populates="user",
+        lazy="selectin",
+        cascade="all, delete-orphan",
     )

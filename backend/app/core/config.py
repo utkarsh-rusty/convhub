@@ -28,6 +28,15 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000"
 
+    jwt_secret_key: str = Field(
+        default="dev-only-change-me-in-production-use-32-chars-min",
+        min_length=32,
+        description="Secret key for signing JWT access tokens",
+    )
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 30
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins_list(self) -> list[str]:
