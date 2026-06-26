@@ -10,6 +10,7 @@ from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from app.models.conversation import Conversation
+    from app.models.invitation import Invitation
     from app.models.message import Message
     from app.models.refresh_token import RefreshToken
     from app.models.workspace import Workspace
@@ -44,4 +45,8 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         back_populates="user",
         lazy="selectin",
         cascade="all, delete-orphan",
+    )
+    sent_invitations: Mapped[list[Invitation]] = relationship(
+        back_populates="invited_by",
+        lazy="selectin",
     )

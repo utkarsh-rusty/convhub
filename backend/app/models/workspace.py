@@ -11,6 +11,7 @@ from app.db.base import Base
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.invitation import Invitation
     from app.models.project import Project
     from app.models.user import User
     from app.models.workspace_member import WorkspaceMember
@@ -35,6 +36,11 @@ class Workspace(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         cascade="all, delete-orphan",
     )
     projects: Mapped[list[Project]] = relationship(
+        back_populates="workspace",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
+    invitations: Mapped[list[Invitation]] = relationship(
         back_populates="workspace",
         lazy="selectin",
         cascade="all, delete-orphan",
