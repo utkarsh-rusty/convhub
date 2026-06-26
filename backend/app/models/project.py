@@ -31,5 +31,4 @@ class Project(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     conversations: Mapped[list[Conversation]] = relationship(
         back_populates="project",
         lazy="selectin",
-        cascade="all, delete-orphan",
     )
