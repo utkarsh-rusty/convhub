@@ -51,6 +51,22 @@ class InvitationResponse(BaseModel):
     expires_at: datetime
 
 
+class PendingInvitationResponse(BaseModel):
+    id: UUID
+    email: EmailStr
+    role: WorkspaceRole
+    expires_at: datetime
+    created_at: datetime
+
+
+class InvitationPreviewResponse(BaseModel):
+    workspace_name: str
+    email: EmailStr
+    role: WorkspaceRole
+    expires_at: datetime
+    is_valid: bool
+
+
 class AcceptInvitationResponse(BaseModel):
     workspace_id: UUID
     workspace_name: str

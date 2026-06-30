@@ -6,6 +6,58 @@ export const conversationParticipantRoleSchema = z.enum(["owner", "member"]);
 export const aiProviderNameSchema = z.enum(["mock", "anthropic", "ollama"]);
 export type AIProviderName = z.infer<typeof aiProviderNameSchema>;
 
+export const routingPolicyTypeSchema = z.enum([
+  "owner_first",
+  "balanced",
+  "lowest_usage",
+  "cheapest",
+  "priority",
+]);
+
+export const pricingProfileTypeSchema = z.enum(["production", "demo", "free"]);
+export const providerSimulationModeSchema = z.enum([
+  "normal",
+  "timeout",
+  "unauthorized",
+  "rate_limit",
+  "server_error",
+]);
+export const routingOverrideModeSchema = z.enum([
+  "normal",
+  "first_account",
+  "second_account",
+  "random",
+  "specific_account",
+]);
+
+export const demoConfigResponseSchema = z.object({
+  enabled: z.boolean(),
+});
+
+export const demoSettingsResponseSchema = z.object({
+  workspace_id: z.string().uuid(),
+  pricing_profile: pricingProfileTypeSchema,
+  provider_simulation: providerSimulationModeSchema,
+  routing_override_mode: routingOverrideModeSchema,
+  routing_override_account_id: z.string().uuid().nullable(),
+});
+
+export const demoEventResponseSchema = z.object({
+  id: z.string().uuid(),
+  event_type: z.string(),
+  message: z.string(),
+  created_at: z.string(),
+});
+
+export const demoUserBudgetSummarySchema = z.object({
+  user_id: z.string().uuid(),
+  monthly_credit_limit: z.string(),
+  remaining_credits: z.string(),
+  used_credits: z.string(),
+  borrowed_credits: z.string(),
+  lent_credits: z.string(),
+});
+
 export const tokenResponseSchema = z.object({
   access_token: z.string(),
   refresh_token: z.string(),
@@ -56,6 +108,34 @@ export const acceptInvitationResponseSchema = z.object({
   role: workspaceRoleSchema,
 });
 
+export const pendingInvitationResponseSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  role: workspaceRoleSchema,
+  expires_at: z.string(),
+  created_at: z.string(),
+});
+
+export const invitationPreviewResponseSchema = z.object({
+  workspace_name: z.string(),
+  email: z.string().email(),
+  role: workspaceRoleSchema,
+  expires_at: z.string(),
+  is_valid: z.boolean(),
+});
+
+export const workspaceBudgetSettingsSchema = z.object({
+  id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  monthly_default_credits: z.string(),
+  allow_credit_borrowing: z.boolean(),
+  allow_emergency_pool: z.boolean(),
+  allow_local_models: z.boolean(),
+  routing_policy: routingPolicyTypeSchema,
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 export const conversationParticipantSummarySchema = z.object({
   user_id: z.string().uuid(),
   name: z.string(),
@@ -84,6 +164,14 @@ export const conversationParticipantResponseSchema = z.object({
   joined_at: z.string(),
 });
 
+export const executionSummarySchema = z.object({
+  provider: z.string(),
+  model: z.string(),
+  account_owner_name: z.string().nullable(),
+  execution_type: z.enum(["own_account", "borrowed", "local_model"]),
+  routing_policy: routingPolicyTypeSchema,
+});
+
 export const messageResponseSchema = z.object({
   id: z.string().uuid(),
   conversation_id: z.string().uuid(),
@@ -92,6 +180,7 @@ export const messageResponseSchema = z.object({
   content: z.string(),
   created_at: z.string(),
   provider: z.string().nullable().optional(),
+  execution: executionSummarySchema.nullable().optional(),
 });
 
 export const aiAccountResponseSchema = z.object({
@@ -103,8 +192,12 @@ export const aiAccountResponseSchema = z.object({
   monthly_budget: z.string().nullable(),
   monthly_spent: z.string(),
   priority: z.number(),
+  default_model: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
+  last_used_at: z.string().nullable().optional(),
+  request_count: z.number().optional(),
+  credits_used: z.string().optional(),
 });
 
 export const aiAccountTestResponseSchema = z.object({
@@ -145,13 +238,6 @@ export const creditTransactionListResponseSchema = z.object({
   offset: z.number(),
 });
 
-export const routingPolicyTypeSchema = z.enum([
-  "owner_first",
-  "balanced",
-  "lowest_usage",
-  "cheapest",
-  "priority",
-]);
 
 export const routingPreviewSchema = z.object({
   selected_account_id: z.string().uuid().nullable(),
@@ -215,7 +301,11 @@ export type InvitationResponse = z.infer<typeof invitationResponseSchema>;
 export type ConversationResponse = z.infer<typeof conversationResponseSchema>;
 export type ConversationParticipantSummary = z.infer<typeof conversationParticipantSummarySchema>;
 export type ConversationParticipantResponse = z.infer<typeof conversationParticipantResponseSchema>;
+export type ExecutionSummary = z.infer<typeof executionSummarySchema>;
 export type MessageResponse = z.infer<typeof messageResponseSchema>;
+export type PendingInvitationResponse = z.infer<typeof pendingInvitationResponseSchema>;
+export type InvitationPreviewResponse = z.infer<typeof invitationPreviewResponseSchema>;
+export type WorkspaceBudgetSettings = z.infer<typeof workspaceBudgetSettingsSchema>;
 export type AIAccountResponse = z.infer<typeof aiAccountResponseSchema>;
 export type BudgetResponse = z.infer<typeof budgetResponseSchema>;
 export type CreditTransactionResponse = z.infer<typeof creditTransactionResponseSchema>;
@@ -272,3 +362,7 @@ export type ConversationUpdateForm = z.infer<typeof conversationUpdateSchema>;
 export type MessageCreateForm = z.infer<typeof messageCreateSchema>;
 export type AIAccountCreateForm = z.infer<typeof aiAccountCreateSchema>;
 export type InvitationCreateForm = z.infer<typeof invitationCreateSchema>;
+export type PricingProfileType = z.infer<typeof pricingProfileTypeSchema>;
+export type ProviderSimulationMode = z.infer<typeof providerSimulationModeSchema>;
+export type RoutingOverrideMode = z.infer<typeof routingOverrideModeSchema>;
+export type DemoSettingsResponse = z.infer<typeof demoSettingsResponseSchema>;

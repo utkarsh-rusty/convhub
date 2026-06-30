@@ -24,7 +24,6 @@ export function ConversationSidebar() {
     queryKey: ["conversations", activeWorkspaceId],
     queryFn: conversationApi.list,
     enabled: Boolean(activeWorkspaceId),
-    refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });
 

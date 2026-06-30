@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.conversations.deps import WorkspaceContext
+from app.conversations.execution import load_execution_summaries
 from app.conversations.schemas import (
     ConversationCreate,
     ConversationParticipantCreate,
@@ -17,12 +18,12 @@ from app.conversations.schemas import (
     MessageCreate,
     MessageResponse,
 )
-from app.models.ai_request import AIRequest
 from app.models.conversation import DEFAULT_CONVERSATION_TITLE, Conversation
 from app.models.conversation_participant import ConversationParticipant
 from app.models.enums import ConversationParticipantRole, MessageRole
 from app.models.message import Message
 from app.models.user import User
+from app.realtime.broadcaster import get_broadcaster
 from app.models.workspace_member import WorkspaceMember
 
 
@@ -241,15 +242,33 @@ class ConversationService:
         self.db.add(message)
         await self.db.commit()
         await self.db.refresh(message)
-        return MessageResponse.model_validate(message)
+        response = MessageResponse.model_validate(message)
+        broadcaster = get_broadcaster()
+        if broadcaster is not None:
+            await broadcaster.message_created(
+                conversation.workspace_id,
+                conversation.id,
+                response.model_dump(mode="json"),
+            )
+            await broadcaster.conversation_updated(
+                conversation.workspace_id,
+                conversation.id,
+                {"last_activity_at": now.isoformat()},
+            )
+        return response
 
     async def list_messages(self, conversation_id: UUID) -> list[MessageResponse]:
         result = await self.db.execute(
-            select(Message, AIRequest.provider)
-            .outerjoin(AIRequest, AIRequest.assistant_message_id == Message.id)
+            select(Message)
             .where(Message.conversation_id == conversation_id)
             .order_by(Message.created_at.asc())
         )
+        messages = list(result.scalars().all())
+        assistant_ids = [
+            message.id for message in messages if message.role == MessageRole.ASSISTANT
+        ]
+        execution_map = await load_execution_summaries(self.db, assistant_ids)
+
         return [
             MessageResponse(
                 id=message.id,
@@ -258,9 +277,10 @@ class ConversationService:
                 role=message.role,
                 content=message.content,
                 created_at=message.created_at,
-                provider=provider,
+                provider=execution.provider if (execution := execution_map.get(message.id)) else None,
+                execution=execution_map.get(message.id),
             )
-            for message, provider in result.all()
+            for message in messages
         ]
 
     async def _get_workspace_member_ids(self, workspace_id: UUID) -> set[UUID]:

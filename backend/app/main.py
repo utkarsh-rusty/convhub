@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.db.session import create_engine, create_session_factory
+from app.realtime.manager import get_ws_manager
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +22,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.engine = engine
     app.state.session_factory = session_factory
 
+    ws_manager = get_ws_manager()
+    await ws_manager.start()
+    app.state.ws_manager = ws_manager
+
     logger.info("Starting %s (%s)", settings.app_name, settings.app_env)
     yield
+    await ws_manager.stop()
     await engine.dispose()
     logger.info("Shutdown complete")
 

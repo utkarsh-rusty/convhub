@@ -3,9 +3,31 @@ from app.ai.providers.base import AIProvider
 from app.ai.providers.mock import MockProvider
 from app.ai.providers.ollama import OllamaProvider
 from app.core.config import Settings
+from app.demo.context import get_demo_runtime
+from app.demo.runtime import SimulatedFailureProvider
+from app.models.enums import ProviderSimulationMode
 
 
 def create_provider(
+    provider_name: str,
+    credentials: dict[str, str] | None,
+    settings: Settings,
+    *,
+    allow_dev_fallback: bool = True,
+) -> AIProvider:
+    provider = _create_base_provider(
+        provider_name,
+        credentials,
+        settings,
+        allow_dev_fallback=allow_dev_fallback,
+    )
+    runtime = get_demo_runtime()
+    if runtime is not None and runtime.provider_simulation != ProviderSimulationMode.NORMAL:
+        return SimulatedFailureProvider(provider, runtime.provider_simulation)
+    return provider
+
+
+def _create_base_provider(
     provider_name: str,
     credentials: dict[str, str] | None,
     settings: Settings,

@@ -15,6 +15,8 @@ from app.models.user import User
 from app.models.user_budget import UserBudget
 from app.models.workspace import Workspace
 from app.models.workspace_budget_settings import WorkspaceBudgetSettings
+from app.models.workspace_demo_settings import WorkspaceDemoSettings
+from app.models.demo_event_log import DemoEventLog
 from app.models.workspace_member import WorkspaceMember
 
 __all__ = [

@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -12,6 +12,12 @@ export function AcceptInvitePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { setActiveWorkspaceId } = useWorkspace();
+
+  const { data: preview, isLoading } = useQuery({
+    queryKey: ["invitation-preview", token],
+    queryFn: () => invitationApi.preview(token!),
+    enabled: Boolean(token),
+  });
 
   const acceptMutation = useMutation({
     mutationFn: () => invitationApi.accept(token!),
@@ -32,19 +38,38 @@ export function AcceptInvitePage() {
     );
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center px-6">
+        <Skeleton className="h-40 w-full max-w-md" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-1 items-center justify-center px-6">
       <div className="w-full max-w-md space-y-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-6 text-center">
-        <h2 className="text-lg font-semibold">Workspace invitation</h2>
-        <p className="text-sm text-[var(--color-muted-foreground)]">
-          Accept this invitation to join the shared workspace.
-        </p>
-        {acceptMutation.isPending ? (
-          <Skeleton className="mx-auto h-10 w-40" />
+        <h2 className="text-lg font-semibold">Join {preview?.workspace_name ?? "workspace"}</h2>
+        {preview?.is_valid ? (
+          <>
+            <p className="text-sm text-[var(--color-muted-foreground)]">
+              You&apos;ve been invited as <span className="capitalize">{preview.role}</span>.
+            </p>
+            <p className="text-xs text-[var(--color-muted-foreground)]">
+              Invitation for {preview.email} · expires{" "}
+              {new Date(preview.expires_at).toLocaleString()}
+            </p>
+            <Button
+              onClick={() => acceptMutation.mutate()}
+              disabled={acceptMutation.isPending || acceptMutation.isSuccess}
+            >
+              {acceptMutation.isPending ? "Joining..." : "Accept invitation"}
+            </Button>
+          </>
         ) : (
-          <Button onClick={() => acceptMutation.mutate()} disabled={acceptMutation.isSuccess}>
-            Join workspace
-          </Button>
+          <p className="text-sm text-[var(--color-destructive)]">
+            This invitation is invalid, expired, or has already been used.
+          </p>
         )}
       </div>
     </div>

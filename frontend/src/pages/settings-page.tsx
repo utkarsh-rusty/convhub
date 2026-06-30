@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { routingApi, showApiError } from "@/lib/api";
+import { budgetApi, routingApi, showApiError } from "@/lib/api";
 import { useWorkspace } from "@/context/workspace-context";
 import { useAuth } from "@/context/auth-context";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -31,6 +31,12 @@ export function SettingsPage() {
     enabled: Boolean(activeWorkspaceId),
   });
 
+  const { data: budgetSettings, isLoading: budgetSettingsLoading } = useQuery({
+    queryKey: ["workspace-budget-settings", activeWorkspaceId],
+    queryFn: () => budgetApi.getWorkspaceSettings(activeWorkspaceId!),
+    enabled: Boolean(activeWorkspaceId && canManage),
+  });
+
   const updateRoutingMutation = useMutation({
     mutationFn: (policy: RoutingPolicyType) =>
       routingApi.updateSettings(activeWorkspaceId!, policy),
@@ -39,6 +45,16 @@ export function SettingsPage() {
       void queryClient.invalidateQueries({ queryKey: ["routing-settings", activeWorkspaceId] });
     },
     onError: (error) => showApiError(error, "Unable to update routing policy"),
+  });
+
+  const updateBudgetMutation = useMutation({
+    mutationFn: (payload: { allow_credit_borrowing?: boolean }) =>
+      budgetApi.updateWorkspaceSettings(activeWorkspaceId!, payload),
+    onSuccess: () => {
+      toast.success("Workspace budget settings updated");
+      void queryClient.invalidateQueries({ queryKey: ["workspace-budget-settings", activeWorkspaceId] });
+    },
+    onError: (error) => showApiError(error, "Unable to update budget settings"),
   });
 
   return (
@@ -78,6 +94,50 @@ export function SettingsPage() {
             <p className="text-sm text-[var(--color-muted-foreground)]">No workspace selected.</p>
           )}
         </section>
+
+        {activeWorkspaceId && (
+          <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+            <h3 className="mb-3 text-sm font-medium">Credit Borrowing</h3>
+            {budgetSettingsLoading || !budgetSettings ? (
+              canManage ? (
+                <Skeleton className="h-16 w-full" />
+              ) : (
+                <p className="text-sm text-[var(--color-muted-foreground)]">
+                  Only workspace owners and admins can view borrowing settings.
+                </p>
+              )
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <Label htmlFor="credit-borrowing">Allow credit borrowing</Label>
+                    <p className="text-sm text-[var(--color-muted-foreground)]">
+                      Let members borrow from teammates who have auto-share enabled on Resource
+                      Sharing.
+                    </p>
+                  </div>
+                  <input
+                    id="credit-borrowing"
+                    type="checkbox"
+                    className="h-4 w-4 rounded border border-[var(--color-border)]"
+                    checked={budgetSettings.allow_credit_borrowing}
+                    onChange={(event) =>
+                      updateBudgetMutation.mutate({ allow_credit_borrowing: event.target.checked })
+                    }
+                    disabled={!canManage || updateBudgetMutation.isPending}
+                  />
+                </div>
+                {!canManage && (
+                  <p className="text-sm text-[var(--color-muted-foreground)]">
+                    Borrowing is currently{" "}
+                    {budgetSettings.allow_credit_borrowing ? "enabled" : "disabled"} for this
+                    workspace.
+                  </p>
+                )}
+              </div>
+            )}
+          </section>
+        )}
 
         {activeWorkspaceId && (
           <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] p-4">

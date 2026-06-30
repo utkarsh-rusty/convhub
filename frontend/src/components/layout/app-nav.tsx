@@ -1,16 +1,26 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Bot, Coins, MessageSquare, Settings, Share2, Users } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Bot, Coins, FlaskConical, LayoutDashboard, MessageSquare, Settings, Share2, Users } from "lucide-react";
 
+import { demoApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-const navItems = [
+const baseNavItems = [
   { to: "/", label: "Conversations", icon: MessageSquare, section: "conversations" as const },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "dashboard" as const },
   { to: "/members", label: "Members", icon: Users, section: "members" as const },
   { to: "/ai-providers", label: "AI Providers", icon: Bot, section: "ai-providers" as const },
   { to: "/budget", label: "Budget", icon: Coins, section: "budget" as const },
   { to: "/sharing", label: "Resource Sharing", icon: Share2, section: "sharing" as const },
   { to: "/settings", label: "Settings", icon: Settings, section: "settings" as const },
 ];
+
+const demoNavItem = {
+  to: "/demo",
+  label: "Demo Toolkit",
+  icon: FlaskConical,
+  section: "demo" as const,
+};
 
 function isActiveSection(pathname: string, section: string) {
   if (section === "conversations") {
@@ -21,6 +31,13 @@ function isActiveSection(pathname: string, section: string) {
 
 export function AppNav() {
   const location = useLocation();
+  const { data: demoConfig } = useQuery({
+    queryKey: ["demo-config"],
+    queryFn: () => demoApi.getConfig(),
+    staleTime: 60_000,
+  });
+
+  const navItems = demoConfig?.enabled ? [...baseNavItems, demoNavItem] : baseNavItems;
 
   return (
     <nav className="space-y-1 px-2 py-3">

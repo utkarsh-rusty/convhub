@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { authStorage } from "@/lib/auth-storage";
 import {
@@ -8,10 +9,17 @@ import {
   budgetResponseSchema,
   creditTransactionListResponseSchema,
   routingSettingsResponseSchema,
+  demoConfigResponseSchema,
+  demoEventResponseSchema,
+  demoSettingsResponseSchema,
+  demoUserBudgetSummarySchema,
   lendingPreferenceResponseSchema,
   workspaceSharingOverviewSchema,
   invitationResponseSchema,
   acceptInvitationResponseSchema,
+  pendingInvitationResponseSchema,
+  invitationPreviewResponseSchema,
+  workspaceBudgetSettingsSchema,
   conversationParticipantResponseSchema,
   conversationResponseSchema,
   messageResponseSchema,
@@ -26,6 +34,7 @@ import {
   type MessageResponse,
   type TokenResponse,
   type UserResponse,
+  type DemoSettingsResponse,
   type RoutingSettingsResponse,
   type WorkspaceResponse,
 } from "@/types/api";
@@ -161,9 +170,26 @@ export const workspaceApi = {
     const { data } = await api.post(`/workspaces/${workspaceId}/invite`, payload);
     return invitationResponseSchema.parse(data);
   },
+
+  async listPendingInvitations(workspaceId: string) {
+    const { data } = await api.get(`/workspaces/${workspaceId}/invitations`);
+    return pendingInvitationResponseSchema.array().parse(data);
+  },
+
+  async refreshInvitationLink(workspaceId: string, invitationId: string) {
+    const { data } = await api.post(
+      `/workspaces/${workspaceId}/invitations/${invitationId}/link`,
+    );
+    return invitationResponseSchema.parse(data);
+  },
 };
 
 export const invitationApi = {
+  async preview(token: string) {
+    const { data } = await axios.get(`${API_URL}/invitations/${token}`);
+    return invitationPreviewResponseSchema.parse(data);
+  },
+
   async accept(token: string) {
     const { data } = await api.post(`/invitations/${token}/accept`);
     return acceptInvitationResponseSchema.parse(data);
@@ -258,6 +284,23 @@ export const budgetApi = {
     return budgetResponseSchema.parse(data);
   },
 
+  async getWorkspaceSettings(workspaceId: string) {
+    const { data } = await api.get(`/workspaces/${workspaceId}/settings/budget`);
+    return workspaceBudgetSettingsSchema.parse(data);
+  },
+
+  async updateWorkspaceSettings(
+    workspaceId: string,
+    payload: {
+      allow_credit_borrowing?: boolean;
+      allow_local_models?: boolean;
+      monthly_default_credits?: string;
+    },
+  ) {
+    const { data } = await api.patch(`/workspaces/${workspaceId}/settings/budget`, payload);
+    return workspaceBudgetSettingsSchema.parse(data);
+  },
+
   async listHistory(workspaceId: string, params?: { limit?: number; offset?: number }) {
     const { data } = await api.get(`/workspaces/${workspaceId}/credits/history`, { params });
     return creditTransactionListResponseSchema.parse(data);
@@ -273,6 +316,86 @@ export const routingApi = {
   async updateSettings(workspaceId: string, routing_policy: RoutingSettingsResponse["routing_policy"]) {
     const { data } = await api.patch(`/workspaces/${workspaceId}/routing`, { routing_policy });
     return routingSettingsResponseSchema.parse(data);
+  },
+};
+
+export const demoApi = {
+  async getConfig() {
+    const { data } = await api.get("/demo/config");
+    return demoConfigResponseSchema.parse(data);
+  },
+
+  async getSettings(workspaceId: string) {
+    const { data } = await api.get(`/workspaces/${workspaceId}/demo`);
+    return demoSettingsResponseSchema.parse(data);
+  },
+
+  async updatePricingProfile(workspaceId: string, pricing_profile: DemoSettingsResponse["pricing_profile"]) {
+    const { data } = await api.patch(`/workspaces/${workspaceId}/demo/pricing-profile`, {
+      pricing_profile,
+    });
+    return demoSettingsResponseSchema.parse(data);
+  },
+
+  async updateProviderSimulation(
+    workspaceId: string,
+    provider_simulation: DemoSettingsResponse["provider_simulation"],
+  ) {
+    const { data } = await api.patch(`/workspaces/${workspaceId}/demo/provider-simulation`, {
+      provider_simulation,
+    });
+    return demoSettingsResponseSchema.parse(data);
+  },
+
+  async updateRoutingOverride(
+    workspaceId: string,
+    payload: {
+      routing_override_mode: DemoSettingsResponse["routing_override_mode"];
+      routing_override_account_id?: string | null;
+    },
+  ) {
+    const { data } = await api.patch(`/workspaces/${workspaceId}/demo/routing-override`, payload);
+    return demoSettingsResponseSchema.parse(data);
+  },
+
+  async listBudgets(workspaceId: string) {
+    const { data } = await api.get(`/workspaces/${workspaceId}/demo/budgets`);
+    return demoUserBudgetSummarySchema.array().parse(data);
+  },
+
+  async setUserCredits(workspaceId: string, user_id: string, remaining_credits: string) {
+    const { data } = await api.post(`/workspaces/${workspaceId}/demo/credits/set`, {
+      user_id,
+      remaining_credits,
+    });
+    return z.object({ budget: demoUserBudgetSummarySchema }).parse(data);
+  },
+
+  async resetUserCredits(workspaceId: string, userId: string) {
+    const { data } = await api.post(`/workspaces/${workspaceId}/demo/credits/reset-user`, null, {
+      params: { user_id: userId },
+    });
+    return z.object({ budget: demoUserBudgetSummarySchema }).parse(data);
+  },
+
+  async resetAllCredits(workspaceId: string) {
+    const { data } = await api.post(`/workspaces/${workspaceId}/demo/credits/reset-all`);
+    return data as { message: string; affected_count: number | null };
+  },
+
+  async clearLedger(workspaceId: string) {
+    const { data } = await api.post(`/workspaces/${workspaceId}/demo/ledger/clear`);
+    return data as { message: string; affected_count: number | null };
+  },
+
+  async reseedAllocations(workspaceId: string) {
+    const { data } = await api.post(`/workspaces/${workspaceId}/demo/reseed`);
+    return data as { message: string; affected_count: number | null };
+  },
+
+  async listEvents(workspaceId: string, limit = 20) {
+    const { data } = await api.get(`/workspaces/${workspaceId}/demo/events`, { params: { limit } });
+    return z.object({ items: demoEventResponseSchema.array() }).parse(data).items;
   },
 };
 

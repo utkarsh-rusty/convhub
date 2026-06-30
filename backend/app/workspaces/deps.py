@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
@@ -6,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.auth.deps import get_current_user
+from app.demo.activation import bind_workspace_demo_context, reset_demo_context
 from app.models.enums import WorkspaceRole
 from app.models.user import User
 from app.models.workspace import Workspace
@@ -16,7 +18,7 @@ async def get_workspace_membership(
     workspace_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> WorkspaceMember:
+) -> AsyncIterator[WorkspaceMember]:
     result = await db.execute(
         select(WorkspaceMember).where(
             WorkspaceMember.workspace_id == workspace_id,
@@ -29,7 +31,12 @@ async def get_workspace_membership(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not a member of this workspace",
         )
-    return membership
+
+    token = await bind_workspace_demo_context(db, workspace_id)
+    try:
+        yield membership
+    finally:
+        reset_demo_context(token)
 
 
 def require_workspace_roles(*allowed_roles: WorkspaceRole):

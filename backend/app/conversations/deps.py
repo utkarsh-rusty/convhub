@@ -1,3 +1,4 @@
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -7,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.auth.deps import get_current_user
+from app.demo.activation import bind_workspace_demo_context, reset_demo_context
 from app.models.conversation import Conversation
 from app.models.conversation_participant import ConversationParticipant
 from app.models.enums import ConversationParticipantRole
@@ -25,7 +27,7 @@ async def get_workspace_context(
     x_workspace_id: UUID = Header(alias="X-Workspace-ID"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> WorkspaceContext:
+) -> AsyncIterator[WorkspaceContext]:
     result = await db.execute(
         select(WorkspaceMember).where(
             WorkspaceMember.workspace_id == x_workspace_id,
@@ -38,11 +40,16 @@ async def get_workspace_context(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not a member of this workspace",
         )
-    return WorkspaceContext(
-        workspace_id=x_workspace_id,
-        user=current_user,
-        membership=membership,
-    )
+
+    token = await bind_workspace_demo_context(db, x_workspace_id)
+    try:
+        yield WorkspaceContext(
+            workspace_id=x_workspace_id,
+            user=current_user,
+            membership=membership,
+        )
+    finally:
+        reset_demo_context(token)
 
 
 async def get_conversation(

@@ -1,14 +1,19 @@
+from collections.abc import AsyncIterator
 from decimal import Decimal
 
 from anthropic import AsyncAnthropic
 
 from app.ai.prompt_builder import PromptContext
-from app.ai.providers.base import AIProvider, AIResponse
+from app.ai.providers.base import AIProvider, AIResponse, ProviderStreamEvent
 
 
 class AnthropicProvider(AIProvider):
     def __init__(self, api_key: str) -> None:
         self._client = AsyncAnthropic(api_key=api_key)
+
+    @property
+    def supports_streaming(self) -> bool:
+        return True
 
     async def generate(
         self,
@@ -26,6 +31,31 @@ class AnthropicProvider(AIProvider):
             ],
         )
 
+        return self._to_ai_response(response)
+
+    async def stream_events(
+        self,
+        prompt_context: PromptContext,
+        model: str,
+    ) -> AsyncIterator[ProviderStreamEvent]:
+        async with self._client.messages.stream(
+            model=model,
+            max_tokens=1024,
+            system=prompt_context.system_prompt,
+            messages=[
+                {"role": message.role, "content": message.content}
+                for message in prompt_context.chat_messages
+                if message.role in {"user", "assistant"}
+            ],
+        ) as stream:
+            async for text in stream.text_stream:
+                if text:
+                    yield ProviderStreamEvent(delta=text)
+            final = await stream.get_final_message()
+
+        yield ProviderStreamEvent(response=self._to_ai_response(final))
+
+    def _to_ai_response(self, response) -> AIResponse:
         content_blocks = [block.text for block in response.content if block.type == "text"]
         content = "\n".join(content_blocks).strip()
         if not content:

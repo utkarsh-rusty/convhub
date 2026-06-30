@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Navigate, useParams } from "react-router-dom";
 
 import { conversationApi, messageApi, workspaceApi } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspace } from "@/context/workspace-context";
+import { useSocket } from "@/context/socket-context";
+import { useConversationRealtime } from "@/hooks/use-conversation-realtime";
 import { ConversationHeader } from "@/components/conversation/conversation-header";
 import { MessageComposer } from "@/components/messages/message-composer";
 import { MessageList } from "@/components/messages/message-list";
@@ -14,22 +16,28 @@ export function ConversationPage() {
   const { conversationId } = useParams();
   const { user } = useAuth();
   const { activeWorkspaceId, workspaces, isLoading: workspacesLoading } = useWorkspace();
+  const { status: connectionStatus } = useSocket();
+
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
 
   const { data: conversation, isLoading: conversationLoading } = useQuery({
     queryKey: ["conversation", conversationId],
     queryFn: () => conversationApi.get(conversationId!),
     enabled: Boolean(conversationId && activeWorkspaceId),
-    refetchInterval: 5000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
-  const { data: messages = [], isLoading: messagesLoading } = useQuery({
+  const { data: initialMessages = [], isLoading: messagesLoading } = useQuery({
     queryKey: ["messages", conversationId],
     queryFn: () => messageApi.list(conversationId!),
     enabled: Boolean(conversationId && activeWorkspaceId),
-    refetchInterval: 3000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
+
+  const { messages, streamingContent, typingLabel, isStreaming } = useConversationRealtime(
+    conversationId,
+    initialMessages,
+  );
 
   const { data: members = [] } = useQuery({
     queryKey: ["workspace-members", activeWorkspaceId],
@@ -74,9 +82,19 @@ export function ConversationPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <ConversationHeader conversation={conversation} />
-      <MessageList messages={messages} currentUserId={user?.id} memberNames={memberNames} />
-      <MessageComposer conversationId={conversation.id} />
+      <ConversationHeader conversation={conversation} connectionStatus={connectionStatus} />
+      <MessageList
+        messages={messages}
+        currentUserId={user?.id}
+        memberNames={memberNames}
+        isAiGenerating={isAiGenerating || isStreaming}
+        streamingContent={streamingContent}
+        typingLabel={typingLabel}
+      />
+      <MessageComposer
+        conversationId={conversation.id}
+        onGeneratingChange={setIsAiGenerating}
+      />
     </div>
   );
 }

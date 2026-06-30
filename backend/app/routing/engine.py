@@ -20,6 +20,7 @@ from app.routing.context import RoutingContext
 from app.routing.decision import RoutingDecision
 from app.routing.health import ProviderHealth
 from app.routing.policy import FREE_PROVIDERS, get_policy
+from app.demo.runtime import NoOpRoutingOverride, RoutingOverrideProvider
 
 
 class RoutingEngine:
@@ -30,12 +31,14 @@ class RoutingEngine:
         encryption: CredentialEncryption,
         ai_account_service: AIAccountService,
         budget_service: BudgetService,
+        routing_override: RoutingOverrideProvider | None = None,
     ) -> None:
         self.db = db
         self.settings = settings
         self.encryption = encryption
         self.ai_account_service = ai_account_service
         self.budget_service = budget_service
+        self.routing_override = routing_override or NoOpRoutingOverride()
 
     async def select(self, context: RoutingContext) -> RoutingDecision:
         budget_settings = await self.budget_service.get_workspace_budget_settings(
@@ -50,6 +53,15 @@ class RoutingEngine:
 
         if not healthy:
             return self._fallback_decision(context, policy_type, "No eligible workspace AI accounts")
+
+        override_decision = await self.routing_override.try_override(
+            context,
+            healthy,
+            policy_type=policy_type,
+            monthly_usage=monthly_usage,
+        )
+        if override_decision is not None:
+            return override_decision
 
         scored = policy.choose_account(context, healthy, monthly_usage=monthly_usage)
         if scored is None:

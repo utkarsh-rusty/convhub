@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.prompt_builder import PromptBuilder, PromptContext
@@ -18,6 +18,8 @@ from app.conversations.deps import WorkspaceContext
 from app.core.config import Settings
 from app.core.credentials import CredentialEncryption
 from app.models.ai_account import AIAccount
+from app.models.ai_request import AIRequest
+from app.models.enums import AIRequestStatus
 
 
 class AIAccountService:
@@ -60,7 +62,56 @@ class AIAccountService:
             .where(AIAccount.workspace_id == workspace_id)
             .order_by(AIAccount.priority.asc(), AIAccount.created_at.asc())
         )
-        return [AIAccountResponse.model_validate(account) for account in result.scalars().all()]
+        accounts = list(result.scalars().all())
+        stats = await self._load_account_stats([account.id for account in accounts])
+        return [
+            self._to_response(account, stats.get(account.id))
+            for account in accounts
+        ]
+
+    async def _load_account_stats(
+        self,
+        account_ids: list[UUID],
+    ) -> dict[UUID, dict]:
+        if not account_ids:
+            return {}
+
+        result = await self.db.execute(
+            select(
+                AIRequest.selected_account_id,
+                func.count(AIRequest.id),
+                func.max(AIRequest.completed_at),
+                func.coalesce(func.sum(AIRequest.estimated_cost), 0),
+            )
+            .where(
+                AIRequest.selected_account_id.in_(account_ids),
+                AIRequest.status == AIRequestStatus.COMPLETED,
+            )
+            .group_by(AIRequest.selected_account_id)
+        )
+
+        return {
+            account_id: {
+                "request_count": int(count),
+                "last_used_at": last_used,
+                "credits_used": credits,
+            }
+            for account_id, count, last_used, credits in result.all()
+            if account_id is not None
+        }
+
+    @staticmethod
+    def _to_response(account: AIAccount, stats: dict | None) -> AIAccountResponse:
+        base = AIAccountResponse.model_validate(account)
+        if not stats:
+            return base
+        return base.model_copy(
+            update={
+                "request_count": stats["request_count"],
+                "last_used_at": stats["last_used_at"],
+                "credits_used": stats["credits_used"],
+            }
+        )
 
     async def update_account(
         self,

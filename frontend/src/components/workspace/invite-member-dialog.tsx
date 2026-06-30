@@ -44,6 +44,7 @@ export function InviteMemberDialog() {
       setInviteLink(link);
       toast.success(`Invitation created for ${invitation.email}`);
       void queryClient.invalidateQueries({ queryKey: ["workspace-members", activeWorkspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["pending-invitations", activeWorkspaceId] });
     },
     onError: (error) => showApiError(error, "Unable to send invitation"),
   });

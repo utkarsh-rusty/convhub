@@ -51,6 +51,11 @@ class Settings(BaseSettings):
         description="Fernet key for encrypting workspace AI account credentials",
     )
 
+    enable_demo_mode: bool = Field(
+        default=False,
+        description="Expose demo administration endpoints and testing toolkit",
+    )
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def cors_origins_list(self) -> list[str]:

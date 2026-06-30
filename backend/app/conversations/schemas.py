@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.conversation import DEFAULT_CONVERSATION_TITLE
-from app.models.enums import ConversationParticipantRole, MessageRole
+from app.models.enums import ConversationParticipantRole, ExecutionType, MessageRole, RoutingPolicyType
 
 
 class ConversationParticipantSummary(BaseModel):
@@ -54,6 +54,14 @@ class MessageCreate(BaseModel):
     role: MessageRole = MessageRole.USER
 
 
+class ExecutionSummary(BaseModel):
+    provider: str
+    model: str
+    account_owner_name: str | None = None
+    execution_type: ExecutionType
+    routing_policy: RoutingPolicyType
+
+
 class MessageResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -64,3 +72,4 @@ class MessageResponse(BaseModel):
     content: str
     created_at: datetime
     provider: str | None = None
+    execution: ExecutionSummary | None = None

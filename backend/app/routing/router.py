@@ -18,6 +18,7 @@ from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
 from app.resource_management.budget_service import BudgetService
 from app.routing.context import RoutingContext
+from app.routing.deps import get_budget_service, get_routing_engine
 from app.routing.decision import RoutingDecision
 from app.routing.engine import RoutingEngine
 from app.routing.schemas import (
@@ -29,26 +30,6 @@ from app.routing.schemas import (
 from app.workspaces.deps import get_workspace_membership, require_workspace_roles
 
 router = APIRouter(prefix="/workspaces", tags=["routing"])
-
-
-def get_budget_service(db: AsyncSession = Depends(get_db)) -> BudgetService:
-    return BudgetService(db=db)
-
-
-def get_routing_engine(
-    db: AsyncSession = Depends(get_db),
-    settings: Settings = Depends(get_settings),
-    encryption: CredentialEncryption = Depends(get_credential_encryption),
-    ai_account_service: AIAccountService = Depends(get_ai_account_service),
-    budget_service: BudgetService = Depends(get_budget_service),
-) -> RoutingEngine:
-    return RoutingEngine(
-        db=db,
-        settings=settings,
-        encryption=encryption,
-        ai_account_service=ai_account_service,
-        budget_service=budget_service,
-    )
 
 
 async def _load_workspace(db: AsyncSession, workspace_id: UUID) -> Workspace:

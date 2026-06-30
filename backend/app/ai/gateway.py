@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 from decimal import Decimal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -11,6 +11,7 @@ from app.ai.prompt_builder import PromptBuilder
 from app.ai.providers.factory import create_provider
 from app.ai_accounts.service import AIAccountService
 from app.conversations.schemas import MessageResponse
+from app.conversations.execution import build_execution_summary
 from app.core.config import Settings
 from app.models.ai_request import AIRequest
 from app.models.conversation import Conversation
@@ -24,6 +25,7 @@ from app.resource_management.credit_calculator import calculate_credits
 from app.resource_management.credit_policy import CreditPolicy
 from app.resource_management.exceptions import InsufficientCreditsError
 from app.resource_sharing.engine import BorrowEngine, BorrowReservation
+from app.realtime.broadcaster import RealtimeBroadcaster, get_broadcaster
 from app.routing.context import RoutingContext
 from app.routing.engine import RoutingEngine
 
@@ -39,6 +41,7 @@ class AIGateway:
         borrow_engine: BorrowEngine,
         prompt_builder: PromptBuilder | None = None,
         credit_policy: CreditPolicy | None = None,
+        broadcaster: RealtimeBroadcaster | None = None,
     ) -> None:
         self.db = db
         self.settings = settings
@@ -48,6 +51,7 @@ class AIGateway:
         self.borrow_engine = borrow_engine
         self.prompt_builder = prompt_builder or PromptBuilder()
         self.credit_policy = credit_policy or CreditPolicy()
+        self.broadcaster = broadcaster if broadcaster is not None else get_broadcaster()
 
     async def generate(
         self,
@@ -103,6 +107,10 @@ class AIGateway:
                             status_code=status.HTTP_402_PAYMENT_REQUIRED,
                             detail="Insufficient credits for this request",
                         )
+                    await self._broadcast_borrow_started(
+                        conversation,
+                        borrow_reservation,
+                    )
 
         routing_context = RoutingContext(
             workspace=workspace,
@@ -123,6 +131,17 @@ class AIGateway:
             credentials = None
 
         model_name = routing_decision.selected_model
+
+        if self.broadcaster is not None:
+            await self.broadcaster.routing_selected(
+                conversation.workspace_id,
+                conversation.id,
+                {
+                    "provider": provider_name,
+                    "model": model_name,
+                    "decision_reason": routing_decision.decision_reason,
+                },
+            )
 
         if provider_name == "ollama" and not budget_settings.allow_local_models:
             raise HTTPException(
@@ -151,6 +170,8 @@ class AIGateway:
                             user_message.author_id,
                             estimated_cost,
                         )
+                        if borrow_reservation is not None:
+                            await self._broadcast_borrow_started(conversation, borrow_reservation)
                     if not await self.budget_service.has_available_credits(
                         conversation.workspace_id,
                         user_message.author_id,
@@ -204,9 +225,20 @@ class AIGateway:
                 amount=reserved_cost,
                 description=f"Estimated charge for AI request {ai_request.id}",
             )
+            await self._broadcast_credits_updated(
+                conversation.workspace_id,
+                user_message.author_id,
+            )
 
         try:
-            response = await provider.generate(prompt_context, model_name)
+            response = await self._generate_provider_response(
+                provider=provider,
+                provider_name=provider_name,
+                prompt_context=prompt_context,
+                model_name=model_name,
+                workspace_id=conversation.workspace_id,
+                conversation_id=conversation.id,
+            )
 
             completed_at = datetime.now(UTC)
             latency_ms = int((completed_at - started_at).total_seconds() * 1000)
@@ -262,13 +294,27 @@ class AIGateway:
                         ),
                         ai_request_id=ai_request.id,
                     )
+                await self._broadcast_credits_updated(
+                    conversation.workspace_id,
+                    user_message.author_id,
+                )
 
+            lender_name: str | None = None
             if borrow_reservation is not None:
                 await self.borrow_engine.record_borrow(ai_request.id, borrow_reservation)
+                lender = await self._load_user(borrow_reservation.lender_user_id)
+                lender_name = lender.name
+                await self._broadcast_borrow_completed(conversation, borrow_reservation, ai_request.id)
+
+            execution = build_execution_summary(
+                ai_request,
+                routing_decision.selected_account,
+                lender_name=lender_name,
+            )
 
             await self.db.commit()
             await self.db.refresh(assistant_message)
-            return MessageResponse(
+            assistant_response = MessageResponse(
                 id=assistant_message.id,
                 conversation_id=assistant_message.conversation_id,
                 author_id=assistant_message.author_id,
@@ -276,7 +322,15 @@ class AIGateway:
                 content=assistant_message.content,
                 created_at=assistant_message.created_at,
                 provider=provider_name,
+                execution=execution,
             )
+            if self.broadcaster is not None:
+                await self.broadcaster.message_completed(
+                    conversation.workspace_id,
+                    conversation.id,
+                    assistant_response.model_dump(mode="json"),
+                )
+            return assistant_response
         except HTTPException:
             if borrow_reservation is not None:
                 await self.borrow_engine.release_borrow(borrow_reservation)
@@ -380,6 +434,96 @@ class AIGateway:
 
         return author_names
 
+    async def _generate_provider_response(
+        self,
+        *,
+        provider,
+        provider_name: str,
+        prompt_context,
+        model_name: str,
+        workspace_id: UUID,
+        conversation_id: UUID,
+    ):
+        from app.ai.providers.base import AIResponse
+
+        if self.broadcaster is not None and provider.supports_streaming:
+            stream_id = str(uuid4())
+            accumulated = ""
+            response: AIResponse | None = None
+            async for event in provider.stream_events(prompt_context, model_name):
+                if event.delta:
+                    accumulated += event.delta
+                    await self.broadcaster.message_streaming(
+                        workspace_id,
+                        conversation_id,
+                        {
+                            "stream_id": stream_id,
+                            "provider": provider_name,
+                            "model": model_name,
+                            "delta": event.delta,
+                            "content": accumulated,
+                        },
+                    )
+                if event.response is not None:
+                    response = event.response
+            if response is None:
+                raise RuntimeError("Streaming provider did not return a final response")
+            return response
+
+        return await provider.generate(prompt_context, model_name)
+
+    async def _broadcast_credits_updated(self, workspace_id: UUID, user_id: UUID) -> None:
+        if self.broadcaster is None:
+            return
+        budget = await self.budget_service.get_budget(workspace_id, user_id)
+        await self.broadcaster.credits_updated(
+            workspace_id,
+            user_id,
+            {
+                "user_id": str(user_id),
+                "remaining_credits": str(budget.remaining_credits),
+                "used_credits": str(budget.used_credits),
+                "borrowed_credits": str(budget.borrowed_credits),
+                "lent_credits": str(budget.lent_credits),
+            },
+        )
+
+    async def _broadcast_borrow_started(
+        self,
+        conversation: Conversation,
+        reservation: BorrowReservation,
+    ) -> None:
+        if self.broadcaster is None:
+            return
+        await self.broadcaster.borrow_started(
+            conversation.workspace_id,
+            conversation.id,
+            {
+                "borrower_user_id": str(reservation.borrower_user_id),
+                "lender_user_id": str(reservation.lender_user_id),
+                "credits": str(reservation.amount),
+            },
+        )
+
+    async def _broadcast_borrow_completed(
+        self,
+        conversation: Conversation,
+        reservation: BorrowReservation,
+        request_id: UUID,
+    ) -> None:
+        if self.broadcaster is None:
+            return
+        await self.broadcaster.borrow_completed(
+            conversation.workspace_id,
+            conversation.id,
+            {
+                "request_id": str(request_id),
+                "borrower_user_id": str(reservation.borrower_user_id),
+                "lender_user_id": str(reservation.lender_user_id),
+                "credits": str(reservation.amount),
+            },
+        )
+
     async def _refund_reserved_credits(
         self,
         workspace_id: UUID,
@@ -395,3 +539,4 @@ class AIGateway:
             ai_request_id=ai_request_id,
         )
         await self.db.flush()
+        await self._broadcast_credits_updated(workspace_id, user_id)

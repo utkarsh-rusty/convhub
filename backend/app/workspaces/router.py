@@ -13,7 +13,9 @@ from app.workspaces.deps import get_workspace, get_workspace_membership, require
 from app.workspaces.schemas import (
     AcceptInvitationResponse,
     InvitationCreate,
+    InvitationPreviewResponse,
     InvitationResponse,
+    PendingInvitationResponse,
     WorkspaceCreate,
     WorkspaceMemberResponse,
     WorkspaceResponse,
@@ -97,6 +99,35 @@ async def invite_member(
     return await service.create_invitation(workspace, current_user, data)
 
 
+@workspaces_router.get(
+    "/{workspace_id}/invitations",
+    response_model=list[PendingInvitationResponse],
+)
+async def list_pending_invitations(
+    workspace_id: UUID,
+    _: WorkspaceMember = Depends(
+        require_workspace_roles(WorkspaceRole.OWNER, WorkspaceRole.ADMIN)
+    ),
+    service: WorkspaceService = Depends(get_workspace_service),
+) -> list[PendingInvitationResponse]:
+    return await service.list_pending_invitations(workspace_id)
+
+
+@workspaces_router.post(
+    "/{workspace_id}/invitations/{invitation_id}/link",
+    response_model=InvitationResponse,
+)
+async def refresh_invitation_link(
+    workspace_id: UUID,
+    invitation_id: UUID,
+    _: WorkspaceMember = Depends(
+        require_workspace_roles(WorkspaceRole.OWNER, WorkspaceRole.ADMIN)
+    ),
+    service: WorkspaceService = Depends(get_workspace_service),
+) -> InvitationResponse:
+    return await service.refresh_invitation_link(workspace_id, invitation_id)
+
+
 @workspaces_router.get("/{workspace_id}/members", response_model=list[WorkspaceMemberResponse])
 async def list_members(
     workspace_id: UUID,
@@ -104,6 +135,14 @@ async def list_members(
     service: WorkspaceService = Depends(get_workspace_service),
 ) -> list[WorkspaceMemberResponse]:
     return await service.list_members(workspace_id)
+
+
+@invitations_router.get("/{token}", response_model=InvitationPreviewResponse)
+async def preview_invitation(
+    token: str,
+    service: WorkspaceService = Depends(get_workspace_service),
+) -> InvitationPreviewResponse:
+    return await service.preview_invitation(token)
 
 
 @invitations_router.post("/{token}/accept", response_model=AcceptInvitationResponse)

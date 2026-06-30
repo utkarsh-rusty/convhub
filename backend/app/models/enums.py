@@ -42,3 +42,31 @@ class RoutingPolicyType(str, enum.Enum):
 
 class BorrowStrategyType(str, enum.Enum):
     HIGHEST_REMAINING = "highest_remaining"
+
+
+class ExecutionType(str, enum.Enum):
+    OWN_ACCOUNT = "own_account"
+    BORROWED = "borrowed"
+    LOCAL_MODEL = "local_model"
+
+
+class PricingProfileType(str, enum.Enum):
+    PRODUCTION = "production"
+    DEMO = "demo"
+    FREE = "free"
+
+
+class ProviderSimulationMode(str, enum.Enum):
+    NORMAL = "normal"
+    TIMEOUT = "timeout"
+    UNAUTHORIZED = "unauthorized"
+    RATE_LIMIT = "rate_limit"
+    SERVER_ERROR = "server_error"
+
+
+class RoutingOverrideMode(str, enum.Enum):
+    NORMAL = "normal"
+    FIRST_ACCOUNT = "first_account"
+    SECOND_ACCOUNT = "second_account"
+    RANDOM = "random"
+    SPECIFIC_ACCOUNT = "specific_account"

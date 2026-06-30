@@ -6,6 +6,7 @@ import { Plus, TestTube } from "lucide-react";
 import { toast } from "sonner";
 
 import { aiAccountApi, showApiError } from "@/lib/api";
+import { formatCredits, formatModelLabel, providerStatusLabel } from "@/lib/format";
 import { useWorkspace } from "@/context/workspace-context";
 import { aiAccountCreateSchema, type AIAccountCreateForm, type AIProviderName } from "@/types/api";
 import { Button } from "@/components/ui/button";
@@ -102,7 +103,7 @@ export function AIProvidersPage() {
         <div>
           <h2 className="text-lg font-semibold">AI Providers</h2>
           <p className="text-sm text-[var(--color-muted-foreground)]">
-            Workspace credentials for the AI gateway
+            Workspace credentials and account health
           </p>
         </div>
 
@@ -176,50 +177,79 @@ export function AIProvidersPage() {
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <Skeleton key={index} className="h-20 w-full" />
-            ))}
-          </div>
+          <Skeleton className="h-48 w-full" />
         ) : accounts.length === 0 ? (
           <p className="text-sm text-[var(--color-muted-foreground)]">
             No AI providers configured yet.
           </p>
         ) : (
-          <div className="space-y-3">
-            {accounts.map((account) => (
-              <div
-                key={account.id}
-                className="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4"
-              >
-                <div>
-                  <p className="font-medium">{account.display_name}</p>
-                  <p className="text-sm text-[var(--color-muted-foreground)]">
-                    {account.provider} · priority {account.priority} ·{" "}
-                    {account.is_active ? "active" : "inactive"}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={testMutation.isPending}
-                    onClick={() => testMutation.mutate(account.id)}
+          <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
+            <table className="w-full min-w-[960px] text-left text-sm">
+              <thead className="border-b border-[var(--color-border)] bg-[var(--color-muted)]/30">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Provider</th>
+                  <th className="px-4 py-3 font-medium">Model</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Last Used</th>
+                  <th className="px-4 py-3 font-medium">Requests</th>
+                  <th className="px-4 py-3 font-medium">Credits Used</th>
+                  <th className="px-4 py-3 font-medium">Priority</th>
+                  <th className="px-4 py-3 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {accounts.map((account) => (
+                  <tr
+                    key={account.id}
+                    className="border-b border-[var(--color-border)] last:border-0"
                   >
-                    <TestTube className="mr-2 h-4 w-4" />
-                    Test
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={deleteMutation.isPending}
-                    onClick={() => deleteMutation.mutate(account.id)}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              </div>
-            ))}
+                    <td className="px-4 py-3">
+                      <p className="font-medium capitalize">{account.provider}</p>
+                      <p className="text-xs text-[var(--color-muted-foreground)]">
+                        {account.display_name}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      {formatModelLabel(account.default_model ?? account.provider, account.provider)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {providerStatusLabel(account.is_active, account.request_count ?? 0)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {account.last_used_at
+                        ? new Date(account.last_used_at).toLocaleString()
+                        : "Never"}
+                    </td>
+                    <td className="px-4 py-3">{account.request_count ?? 0}</td>
+                    <td className="px-4 py-3">
+                      {formatCredits(account.credits_used ?? account.monthly_spent)}
+                    </td>
+                    <td className="px-4 py-3">{account.priority}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={testMutation.isPending}
+                          onClick={() => testMutation.mutate(account.id)}
+                        >
+                          <TestTube className="mr-2 h-4 w-4" />
+                          Test
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={deleteMutation.isPending}
+                          onClick={() => deleteMutation.mutate(account.id)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

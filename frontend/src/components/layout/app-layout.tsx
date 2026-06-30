@@ -6,14 +6,17 @@ import { WorkspaceSelector } from "@/components/workspace/workspace-selector";
 import { CreateWorkspaceDialog } from "@/components/workspace/create-workspace-dialog";
 import { ConversationSidebar } from "@/components/conversation/conversation-sidebar";
 import { AppNav } from "@/components/layout/app-nav";
+import { DemoModeBanner } from "@/components/layout/demo-mode-banner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/auth-context";
+import { useWorkspaceRealtime } from "@/hooks/use-workspace-realtime";
 import { getInitials } from "@/lib/utils";
 
 export function AppLayout() {
   const { user, logout } = useAuth();
+  useWorkspaceRealtime();
   const location = useLocation();
   const showConversationSidebar =
     location.pathname === "/" || location.pathname.startsWith("/c/");
@@ -48,6 +51,7 @@ export function AppLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <DemoModeBanner />
         <header className="flex h-14 items-center justify-between border-b border-[var(--color-border)] px-6">
           <div className="text-sm text-[var(--color-muted-foreground)]">
             Shared AI workspace for your team

@@ -1,22 +1,17 @@
 from decimal import Decimal, ROUND_CEILING
 
 from app.ai.prompt_builder import PromptContext
+from app.demo.context import get_active_pricing_profile
+from app.resource_management.pricing_engine import PricingEngine
 
-# Provider cost multipliers. 0.00 = free (no credit charge).
-PROVIDER_MULTIPLIERS: dict[str, Decimal] = {
-    "ollama": Decimal("0.00"),
-    "mock": Decimal("0.00"),
-    "anthropic": Decimal("1.0"),
-    "openai": Decimal("1.0"),
-    "gemini": Decimal("1.0"),
-}
-
-DEFAULT_PROVIDER_MULTIPLIER = Decimal("1.0")
 ESTIMATED_MAX_OUTPUT_TOKENS = 1024
 
 
 class CreditPolicy:
     """Pricing policy — converts token usage into credit cost."""
+
+    def __init__(self, pricing_engine: PricingEngine | None = None) -> None:
+        self.pricing_engine = pricing_engine or PricingEngine()
 
     def calculate_cost(
         self,
@@ -25,7 +20,8 @@ class CreditPolicy:
         input_tokens: int,
         output_tokens: int,
     ) -> Decimal:
-        multiplier = PROVIDER_MULTIPLIERS.get(provider.lower(), DEFAULT_PROVIDER_MULTIPLIER)
+        profile = get_active_pricing_profile()
+        multiplier = self.pricing_engine.multiplier_for(profile, provider)
         total_tokens = Decimal(max(0, input_tokens) + max(0, output_tokens))
         raw = (total_tokens / Decimal("1000")) * multiplier
         # TODO: apply per-model rates and workspace pricing plans.

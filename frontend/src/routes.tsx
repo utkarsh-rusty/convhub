@@ -5,7 +5,9 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { AuthLayout } from "@/components/layout/auth-layout";
 import { AIProvidersPage } from "@/pages/ai-providers-page";
 import { AcceptInvitePage } from "@/pages/accept-invite-page";
+import { DashboardPage } from "@/pages/dashboard-page";
 import { BudgetPage } from "@/pages/budget-page";
+import { DemoToolkitPage } from "@/pages/demo-toolkit-page";
 import { ResourceSharingPage } from "@/pages/resource-sharing-page";
 import { ConversationPage } from "@/pages/conversation-page";
 import { HomePage } from "@/pages/home-page";
@@ -26,12 +28,14 @@ export function AppRoutes() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/c/:conversationId" element={<ConversationPage />} />
             <Route path="/members" element={<MembersPage />} />
             <Route path="/invite/:token" element={<AcceptInvitePage />} />
             <Route path="/ai-providers" element={<AIProvidersPage />} />
             <Route path="/budget" element={<BudgetPage />} />
             <Route path="/sharing" element={<ResourceSharingPage />} />
+            <Route path="/demo" element={<DemoToolkitPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>

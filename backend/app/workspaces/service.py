@@ -17,7 +17,9 @@ from app.resource_sharing.preference_service import LendingPreferenceService
 from app.workspaces.schemas import (
     AcceptInvitationResponse,
     InvitationCreate,
+    InvitationPreviewResponse,
     InvitationResponse,
+    PendingInvitationResponse,
     WorkspaceCreate,
     WorkspaceMemberResponse,
     WorkspaceResponse,
@@ -190,6 +192,107 @@ class WorkspaceService:
             email=email,
             role=data.role,
             expires_at=invitation.expires_at,
+        )
+
+    async def list_pending_invitations(
+        self,
+        workspace_id: UUID,
+    ) -> list[PendingInvitationResponse]:
+        result = await self.db.execute(
+            select(Invitation)
+            .where(
+                Invitation.workspace_id == workspace_id,
+                Invitation.accepted_at.is_(None),
+                Invitation.revoked_at.is_(None),
+                Invitation.expires_at > datetime.now(UTC),
+            )
+            .order_by(Invitation.created_at.desc())
+        )
+        return [
+            PendingInvitationResponse(
+                id=invitation.id,
+                email=invitation.email,
+                role=invitation.role,
+                expires_at=invitation.expires_at,
+                created_at=invitation.created_at,
+            )
+            for invitation in result.scalars().all()
+        ]
+
+    async def refresh_invitation_link(
+        self,
+        workspace_id: UUID,
+        invitation_id: UUID,
+    ) -> InvitationResponse:
+        result = await self.db.execute(
+            select(Invitation).where(
+                Invitation.id == invitation_id,
+                Invitation.workspace_id == workspace_id,
+            )
+        )
+        invitation = result.scalar_one_or_none()
+        if invitation is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invitation not found",
+            )
+        if invitation.accepted_at is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invitation has already been accepted",
+            )
+        if invitation.revoked_at is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invitation has been revoked",
+            )
+        if invitation.expires_at <= datetime.now(UTC):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invitation has expired",
+            )
+
+        raw_token = generate_invitation_token()
+        invitation.token_hash = hash_invitation_token(raw_token)
+        await self.db.commit()
+
+        return InvitationResponse(
+            token=raw_token,
+            email=invitation.email,
+            role=invitation.role,
+            expires_at=invitation.expires_at,
+        )
+
+    async def preview_invitation(self, raw_token: str) -> InvitationPreviewResponse:
+        token_hash = hash_invitation_token(raw_token)
+        result = await self.db.execute(
+            select(Invitation)
+            .options(selectinload(Invitation.workspace))
+            .where(Invitation.token_hash == token_hash)
+        )
+        invitation = result.scalar_one_or_none()
+
+        if invitation is None:
+            return InvitationPreviewResponse(
+                workspace_name="Unknown workspace",
+                email="unknown@example.com",
+                role=WorkspaceRole.MEMBER,
+                expires_at=datetime.now(UTC),
+                is_valid=False,
+            )
+
+        is_valid = (
+            invitation.revoked_at is None
+            and invitation.accepted_at is None
+            and invitation.expires_at > datetime.now(UTC)
+        )
+
+        return InvitationPreviewResponse(
+            workspace_name=invitation.workspace.name,
+            email=invitation.email,
+            role=invitation.role,
+            expires_at=invitation.expires_at,
+            is_valid=is_valid,
         )
 
     async def list_members(self, workspace_id: UUID) -> list[WorkspaceMemberResponse]:

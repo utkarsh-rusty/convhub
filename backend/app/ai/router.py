@@ -14,6 +14,7 @@ from app.core.config import Settings, get_settings
 from app.core.credentials import CredentialEncryption
 from app.resource_management.budget_service import BudgetService
 from app.resource_sharing.engine import BorrowEngine
+from app.routing.deps import get_routing_engine
 from app.routing.engine import RoutingEngine
 
 chat_router = APIRouter(prefix="/chat", tags=["chat"])
@@ -21,22 +22,6 @@ chat_router = APIRouter(prefix="/chat", tags=["chat"])
 
 def get_budget_service(db: AsyncSession = Depends(get_db)) -> BudgetService:
     return BudgetService(db=db)
-
-
-def get_routing_engine(
-    db: AsyncSession = Depends(get_db),
-    settings: Settings = Depends(get_settings),
-    encryption: CredentialEncryption = Depends(get_credential_encryption),
-    ai_account_service: AIAccountService = Depends(get_ai_account_service),
-    budget_service: BudgetService = Depends(get_budget_service),
-) -> RoutingEngine:
-    return RoutingEngine(
-        db=db,
-        settings=settings,
-        encryption=encryption,
-        ai_account_service=ai_account_service,
-        budget_service=budget_service,
-    )
 
 
 def get_borrow_engine(

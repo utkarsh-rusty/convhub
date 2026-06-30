@@ -4,13 +4,15 @@ import { conversationApi } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import { InviteParticipantsDialog } from "@/components/conversation/invite-participants-dialog";
 import { ParticipantAvatarStack } from "@/components/conversation/participant-avatar-stack";
+import type { ConnectionStatus } from "@/types/realtime";
 import type { ConversationResponse } from "@/types/api";
 
 interface ConversationHeaderProps {
   conversation: ConversationResponse;
+  connectionStatus?: ConnectionStatus;
 }
 
-export function ConversationHeader({ conversation }: ConversationHeaderProps) {
+export function ConversationHeader({ conversation, connectionStatus }: ConversationHeaderProps) {
   const { user } = useAuth();
 
   const { data: participants = [] } = useQuery({
@@ -33,6 +35,7 @@ export function ConversationHeader({ conversation }: ConversationHeaderProps) {
           {conversation.participant_count} participant
           {conversation.participant_count === 1 ? "" : "s"} · Last active{" "}
           {new Date(conversation.last_activity_at).toLocaleString()}
+          {connectionStatus ? ` · Live ${connectionStatus}` : null}
         </p>
       </div>
 

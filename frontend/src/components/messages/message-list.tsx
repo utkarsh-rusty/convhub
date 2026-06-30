@@ -1,14 +1,24 @@
 import type { MessageResponse } from "@/types/api";
-import { MessageBubble } from "@/components/messages/message-bubble";
+import { MessageBubble, StreamingAssistantBubble, TypingIndicator } from "@/components/messages/message-bubble";
 
 interface MessageListProps {
   messages: MessageResponse[];
   currentUserId?: string;
   memberNames?: Record<string, string>;
+  isAiGenerating?: boolean;
+  streamingContent?: string | null;
+  typingLabel?: string | null;
 }
 
-export function MessageList({ messages, currentUserId, memberNames = {} }: MessageListProps) {
-  if (!messages.length) {
+export function MessageList({
+  messages,
+  currentUserId,
+  memberNames = {},
+  isAiGenerating = false,
+  streamingContent = null,
+  typingLabel = null,
+}: MessageListProps) {
+  if (!messages.length && !isAiGenerating && !typingLabel) {
     return (
       <div className="flex flex-1 items-center justify-center px-6 text-sm text-[var(--color-muted-foreground)]">
         No messages yet. Send the first message or ask AI below.
@@ -28,6 +38,9 @@ export function MessageList({ messages, currentUserId, memberNames = {} }: Messa
           }
         />
       ))}
+      {streamingContent ? <StreamingAssistantBubble content={streamingContent} /> : null}
+      {typingLabel ? <TypingIndicator label={typingLabel} /> : null}
+      {!streamingContent && !typingLabel && isAiGenerating ? <TypingIndicator /> : null}
     </div>
   );
 }

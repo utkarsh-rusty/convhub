@@ -54,6 +54,9 @@ class AIAccountResponse(BaseModel):
     default_model: str | None
     created_at: datetime
     updated_at: datetime
+    last_used_at: datetime | None = None
+    request_count: int = 0
+    credits_used: Decimal = Decimal("0")
 
 
 class AIAccountTestResponse(BaseModel):
