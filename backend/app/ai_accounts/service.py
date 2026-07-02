@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.ai.prompt_builder import PromptBuilder, PromptContext
 from app.ai.providers.base import ChatMessage
@@ -43,6 +44,7 @@ class AIAccountService:
 
         account = AIAccount(
             workspace_id=ctx.workspace_id,
+            owner_user_id=ctx.user.id,
             provider=data.provider,
             display_name=data.display_name,
             encrypted_credentials=encrypted_credentials,
@@ -53,19 +55,20 @@ class AIAccountService:
         )
         self.db.add(account)
         await self.db.commit()
-        await self.db.refresh(account)
-        return AIAccountResponse.model_validate(account)
+        await self.db.refresh(account, attribute_names=["owner"])
+        return self._to_response(account, ctx.user.id)
 
-    async def list_accounts(self, workspace_id: UUID) -> list[AIAccountResponse]:
+    async def list_accounts(self, ctx: WorkspaceContext) -> list[AIAccountResponse]:
         result = await self.db.execute(
             select(AIAccount)
-            .where(AIAccount.workspace_id == workspace_id)
+            .options(selectinload(AIAccount.owner))
+            .where(AIAccount.workspace_id == ctx.workspace_id)
             .order_by(AIAccount.priority.asc(), AIAccount.created_at.asc())
         )
         accounts = list(result.scalars().all())
         stats = await self._load_account_stats([account.id for account in accounts])
         return [
-            self._to_response(account, stats.get(account.id))
+            self._to_response(account, ctx.user.id, stats.get(account.id))
             for account in accounts
         ]
 
@@ -100,9 +103,18 @@ class AIAccountService:
             if account_id is not None
         }
 
-    @staticmethod
-    def _to_response(account: AIAccount, stats: dict | None) -> AIAccountResponse:
-        base = AIAccountResponse.model_validate(account)
+    def _to_response(
+        self,
+        account: AIAccount,
+        current_user_id: UUID,
+        stats: dict | None = None,
+    ) -> AIAccountResponse:
+        base = AIAccountResponse.model_validate(account).model_copy(
+            update={
+                "owner_name": account.owner.name if account.owner is not None else None,
+                "is_mine": account.owner_user_id == current_user_id,
+            }
+        )
         if not stats:
             return base
         return base.model_copy(
@@ -117,6 +129,8 @@ class AIAccountService:
         self,
         account: AIAccount,
         data: AIAccountUpdate,
+        *,
+        current_user_id: UUID,
     ) -> AIAccountResponse:
         if data.display_name is not None:
             account.display_name = data.display_name
@@ -132,8 +146,13 @@ class AIAccountService:
             account.encrypted_credentials = self.encryption.encrypt({"api_key": data.api_key})
 
         await self.db.commit()
-        await self.db.refresh(account)
-        return AIAccountResponse.model_validate(account)
+        result = await self.db.execute(
+            select(AIAccount)
+            .options(selectinload(AIAccount.owner))
+            .where(AIAccount.id == account.id)
+        )
+        refreshed = result.scalar_one()
+        return self._to_response(refreshed, current_user_id)
 
     async def delete_account(self, account: AIAccount) -> None:
         await self.db.delete(account)
@@ -180,18 +199,39 @@ class AIAccountService:
             return "mock"
         return self.settings.ai_model
 
-    async def resolve_primary_active_account(
+    async def resolve_user_accounts(
         self,
         workspace_id: UUID,
-    ) -> AIAccount | None:
+        user_id: UUID,
+    ) -> list[AIAccount]:
         result = await self.db.execute(
             select(AIAccount)
             .where(
                 AIAccount.workspace_id == workspace_id,
+                AIAccount.owner_user_id == user_id,
                 AIAccount.is_active.is_(True),
             )
             .order_by(AIAccount.priority.asc(), AIAccount.created_at.asc())
-            .limit(1)
+        )
+        return list(result.scalars().all())
+
+    async def resolve_primary_active_account(
+        self,
+        workspace_id: UUID,
+        *,
+        owner_user_id: UUID | None = None,
+        participant_user_ids: frozenset[UUID] | None = None,
+    ) -> AIAccount | None:
+        query = select(AIAccount).where(
+            AIAccount.workspace_id == workspace_id,
+            AIAccount.is_active.is_(True),
+        )
+        if owner_user_id is not None:
+            query = query.where(AIAccount.owner_user_id == owner_user_id)
+        if participant_user_ids is not None:
+            query = query.where(AIAccount.owner_user_id.in_(participant_user_ids))
+        result = await self.db.execute(
+            query.order_by(AIAccount.priority.asc(), AIAccount.created_at.asc()).limit(1)
         )
         return result.scalar_one_or_none()
 
@@ -199,16 +239,21 @@ class AIAccountService:
         self,
         workspace_id: UUID,
         provider_name: str,
+        *,
+        owner_user_id: UUID | None = None,
+        participant_user_ids: frozenset[UUID] | None = None,
     ) -> AIAccount | None:
+        query = select(AIAccount).where(
+            AIAccount.workspace_id == workspace_id,
+            AIAccount.provider == provider_name,
+            AIAccount.is_active.is_(True),
+        )
+        if owner_user_id is not None:
+            query = query.where(AIAccount.owner_user_id == owner_user_id)
+        if participant_user_ids is not None:
+            query = query.where(AIAccount.owner_user_id.in_(participant_user_ids))
         result = await self.db.execute(
-            select(AIAccount)
-            .where(
-                AIAccount.workspace_id == workspace_id,
-                AIAccount.provider == provider_name,
-                AIAccount.is_active.is_(True),
-            )
-            .order_by(AIAccount.priority.asc(), AIAccount.created_at.asc())
-            .limit(1)
+            query.order_by(AIAccount.priority.asc(), AIAccount.created_at.asc()).limit(1)
         )
         return result.scalar_one_or_none()
 

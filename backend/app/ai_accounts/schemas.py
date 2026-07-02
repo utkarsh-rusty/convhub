@@ -45,6 +45,9 @@ class AIAccountResponse(BaseModel):
 
     id: UUID
     workspace_id: UUID
+    owner_user_id: UUID
+    owner_name: str | None = None
+    is_mine: bool = False
     provider: str
     display_name: str
     is_active: bool

@@ -54,6 +54,8 @@ async def test_gateway_blocks_paid_provider_with_zero_credits(client: AsyncClien
         )
         user_id = member_result.scalar_one()
         service = BudgetService(db)
+        settings = await service.get_workspace_budget_settings(workspace_id)
+        settings.hard_budget_enforcement = True
         budget = await service.get_budget(workspace_id, user_id)
         budget.remaining_credits = Decimal("0")
         budget.used_credits = budget.monthly_credit_limit

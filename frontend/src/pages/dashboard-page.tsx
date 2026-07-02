@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { budgetApi, routingApi, sharingApi, workspaceApi } from "@/lib/api";
+import { budgetApi, routingApi, sharingApi, workspaceApi, aiAccountApi } from "@/lib/api";
 import { useWorkspace } from "@/context/workspace-context";
 import { useSocket } from "@/context/socket-context";
 import { formatCredits, formatRoutingPolicy } from "@/lib/format";
@@ -38,6 +38,20 @@ export function DashboardPage() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: myBudget, isLoading: myBudgetLoading } = useQuery({
+    queryKey: ["budget", activeWorkspaceId],
+    queryFn: () => budgetApi.getMyBudget(activeWorkspaceId!),
+    enabled: Boolean(activeWorkspaceId),
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: myAccounts = [], isLoading: accountsLoading } = useQuery({
+    queryKey: ["ai-accounts", activeWorkspaceId],
+    queryFn: () => aiAccountApi.list(),
+    enabled: Boolean(activeWorkspaceId),
+    refetchOnWindowFocus: false,
+  });
+
   if (!activeWorkspaceId) {
     return (
       <div className="flex flex-1 items-center justify-center px-6 text-sm text-[var(--color-muted-foreground)]">
@@ -46,15 +60,14 @@ export function DashboardPage() {
     );
   }
 
-  const teamRemaining =
-    sharing?.members.reduce((sum, member) => sum + Number(member.remaining_credits), 0) ?? 0;
-
   const defaultProvider =
     routing?.preview.selected_provider ??
     routing?.active_accounts[0]?.provider ??
     "—";
 
-  const isLoading = membersLoading || settingsLoading || routingLoading || sharingLoading;
+  const isLoading =
+    membersLoading || settingsLoading || routingLoading || sharingLoading || myBudgetLoading || accountsLoading;
+  const myProviders = myAccounts.filter((account) => account.is_mine);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -74,6 +87,38 @@ export function DashboardPage() {
               <SummaryCard label="Workspace" value={activeWorkspace?.name ?? "—"} />
               <SummaryCard label="Members" value={String(members.length)} />
               <SummaryCard
+                label="My Providers"
+                value={String(myProviders.length)}
+                hint={
+                  myProviders.length > 0
+                    ? myProviders.map((account) => account.provider).join(", ")
+                    : "Add providers in AI Providers"
+                }
+              />
+              <SummaryCard
+                label="Borrowed This Month"
+                value={formatCredits(myBudget?.borrowed_credits ?? "0")}
+              />
+              <SummaryCard
+                label="Shared This Month"
+                value={formatCredits(myBudget?.lent_credits ?? "0")}
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <SummaryCard
+                label="Borrowing Budget"
+                value={formatCredits(myBudget?.remaining_credits ?? "0")}
+              />
+              <SummaryCard
+                label="Budget Status"
+                value={
+                  myBudget && Number(myBudget.remaining_credits) <= 0
+                    ? "Exceeded"
+                    : "Within limit"
+                }
+              />
+              <SummaryCard
                 label="Borrowing"
                 value={settings?.allow_credit_borrowing ? "Enabled" : "Disabled"}
                 hint={canViewOverview && !settings?.allow_credit_borrowing ? "Enable in Settings" : undefined}
@@ -81,10 +126,6 @@ export function DashboardPage() {
               <SummaryCard
                 label="Routing Policy"
                 value={formatRoutingPolicy(routing?.routing_policy ?? "owner_first")}
-              />
-              <SummaryCard
-                label="Team Remaining Credits"
-                value={canViewOverview ? formatCredits(teamRemaining) : "—"}
               />
             </div>
 

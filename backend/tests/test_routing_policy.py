@@ -17,10 +17,12 @@ from app.routing.policy import (
 )
 
 
-def _account(*, provider: str, priority: int = 0, spent: Decimal = Decimal("0")) -> AIAccount:
+def _account(*, provider: str, priority: int = 0, spent: Decimal = Decimal("0"), owner_id=None) -> AIAccount:
+    owner_id = owner_id or uuid4()
     return AIAccount(
         id=uuid4(),
         workspace_id=uuid4(),
+        owner_user_id=owner_id,
         provider=provider,
         display_name=provider,
         encrypted_credentials="enc",
@@ -44,6 +46,7 @@ def _context(*, owner_id, user_id) -> RoutingContext:
         provider=None,
         model=None,
         estimated_cost=Decimal("0"),
+        participant_user_ids=frozenset({user_id}),
     )
 
 

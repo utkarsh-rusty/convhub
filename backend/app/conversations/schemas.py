@@ -57,9 +57,10 @@ class MessageCreate(BaseModel):
 class ExecutionSummary(BaseModel):
     provider: str
     model: str
-    account_owner_name: str | None = None
+    owner_name: str | None = None
     execution_type: ExecutionType
     routing_policy: RoutingPolicyType
+    borrowed_from: str | None = None
 
 
 class MessageResponse(BaseModel):
@@ -73,3 +74,4 @@ class MessageResponse(BaseModel):
     created_at: datetime
     provider: str | None = None
     execution: ExecutionSummary | None = None
+    budget_warning: str | None = None

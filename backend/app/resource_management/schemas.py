@@ -58,6 +58,7 @@ class WorkspaceBudgetSettingsResponse(BaseModel):
     allow_credit_borrowing: bool
     allow_emergency_pool: bool
     allow_local_models: bool
+    hard_budget_enforcement: bool
     routing_policy: RoutingPolicyType
     created_at: datetime
     updated_at: datetime
@@ -68,4 +69,5 @@ class WorkspaceBudgetSettingsUpdate(BaseModel):
     allow_credit_borrowing: bool | None = None
     allow_emergency_pool: bool | None = None
     allow_local_models: bool | None = None
+    hard_budget_enforcement: bool | None = None
     routing_policy: RoutingPolicyType | None = None

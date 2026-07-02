@@ -180,6 +180,7 @@ export const workspaceBudgetSettingsSchema = z.object({
   allow_credit_borrowing: z.boolean(),
   allow_emergency_pool: z.boolean(),
   allow_local_models: z.boolean(),
+  hard_budget_enforcement: z.boolean().optional().default(false),
   routing_policy: routingPolicyTypeSchema,
   created_at: z.string(),
   updated_at: z.string(),
@@ -216,10 +217,33 @@ export const conversationParticipantResponseSchema = z.object({
 export const executionSummarySchema = z.object({
   provider: z.string(),
   model: z.string(),
-  account_owner_name: z.string().nullable(),
-  execution_type: z.enum(["own_account", "borrowed", "local_model"]),
+  owner_name: z.string().nullable().optional(),
+  account_owner_name: z.string().nullable().optional(),
+  execution_type: z
+    .enum([
+      "own_provider",
+      "borrowed_provider",
+      "local_model",
+      "own_account",
+      "participant_account",
+      "borrowed",
+    ])
+    .transform((value) => {
+      if (value === "own_account") return "own_provider" as const;
+      if (value === "participant_account" || value === "borrowed") return "borrowed_provider" as const;
+      return value;
+    }),
   routing_policy: routingPolicyTypeSchema,
-});
+  borrowed_from: z.string().nullable().optional(),
+  credits_borrowed_from: z.string().nullable().optional(),
+}).transform((execution) => ({
+  provider: execution.provider,
+  model: execution.model,
+  owner_name: execution.owner_name ?? execution.account_owner_name ?? null,
+  execution_type: execution.execution_type,
+  routing_policy: execution.routing_policy,
+  borrowed_from: execution.borrowed_from ?? execution.credits_borrowed_from ?? null,
+}));
 
 export const messageResponseSchema = z.object({
   id: z.string().uuid(),
@@ -230,11 +254,15 @@ export const messageResponseSchema = z.object({
   created_at: z.string(),
   provider: z.string().nullable().optional(),
   execution: executionSummarySchema.nullable().optional(),
+  budget_warning: z.string().nullable().optional(),
 });
 
 export const aiAccountResponseSchema = z.object({
   id: z.string().uuid(),
   workspace_id: z.string().uuid(),
+  owner_user_id: z.string().uuid(),
+  owner_name: z.string().nullable().optional(),
+  is_mine: z.boolean().optional(),
   provider: z.string(),
   display_name: z.string(),
   is_active: z.boolean(),

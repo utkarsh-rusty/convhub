@@ -27,6 +27,7 @@ from app.resource_management.exceptions import InsufficientCreditsError
 from app.resource_sharing.engine import BorrowEngine, BorrowReservation
 from app.realtime.broadcaster import RealtimeBroadcaster, get_broadcaster
 from app.routing.context import RoutingContext
+from app.routing.decision import RoutingDecision
 from app.routing.engine import RoutingEngine
 
 
@@ -64,6 +65,7 @@ class AIGateway:
         workspace = await self._load_workspace(conversation.workspace_id)
         budget_settings = await self.budget_service.get_workspace_budget_settings(workspace.id)
         participants = await self._load_participants(conversation.id)
+        participant_user_ids = frozenset(participant.user_id for participant in participants)
         author_names = await self._resolve_author_names(participants, history)
         requesting_user = await self._load_user(user_message.author_id)
 
@@ -78,39 +80,9 @@ class AIGateway:
 
         reserved_cost = Decimal("0")
         borrow_reservation: BorrowReservation | None = None
-
-        if user_message.author_id is not None:
-            borrower_budget = await self.budget_service.reset_if_needed(
-                conversation.workspace_id,
-                user_message.author_id,
-            )
-            preliminary_estimate = self.credit_policy.estimate_request_cost(
-                self.settings.ai_provider,
-                self.settings.ai_model,
-                prompt_context,
-            )
-
-            if preliminary_estimate > Decimal("0"):
-                if borrower_budget.remaining_credits == Decimal("0"):
-                    if not budget_settings.allow_credit_borrowing:
-                        raise HTTPException(
-                            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                            detail="Insufficient credits for this request",
-                        )
-                    borrow_reservation = await self.borrow_engine.reserve_shared_credits(
-                        conversation.workspace_id,
-                        user_message.author_id,
-                        preliminary_estimate,
-                    )
-                    if borrow_reservation is None:
-                        raise HTTPException(
-                            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                            detail="Insufficient credits for this request",
-                        )
-                    await self._broadcast_borrow_started(
-                        conversation,
-                        borrow_reservation,
-                    )
+        budget_warning: str | None = None
+        using_borrowed_provider = False
+        lender_user_id: UUID | None = None
 
         routing_context = RoutingContext(
             workspace=workspace,
@@ -119,9 +91,32 @@ class AIGateway:
             provider=None,
             model=None,
             estimated_cost=Decimal("0"),
+            participant_user_ids=participant_user_ids,
             prompt_context=prompt_context,
         )
-        routing_decision = await self.routing_engine.select(routing_context)
+
+        sender_decision = await self.routing_engine.select_for_owner(
+            routing_context,
+            user_message.author_id,
+        )
+
+        if sender_decision.selected_account is not None:
+            routing_decision = sender_decision
+        elif self._is_free_fallback(sender_decision):
+            routing_decision = sender_decision
+        else:
+            routing_decision, lender_user_id = await self._resolve_borrowed_routing(
+                routing_context,
+                borrower_user_id=user_message.author_id,
+                participant_user_ids=participant_user_ids,
+                budget_settings=budget_settings,
+            )
+            if routing_decision is None:
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail="No AI providers available",
+                )
+            using_borrowed_provider = lender_user_id is not None
 
         if routing_decision.selected_account is not None:
             provider_name = routing_decision.selected_account.provider
@@ -156,34 +151,44 @@ class AIGateway:
                 prompt_context,
             )
             if estimated_cost > Decimal("0"):
-                if not await self.budget_service.has_available_credits(
-                    conversation.workspace_id,
-                    user_message.author_id,
-                    estimated_cost,
-                ):
-                    if (
-                        borrow_reservation is None
-                        and budget_settings.allow_credit_borrowing
-                    ):
-                        borrow_reservation = await self.borrow_engine.reserve_shared_credits(
-                            conversation.workspace_id,
-                            user_message.author_id,
-                            estimated_cost,
+                if using_borrowed_provider:
+                    if not budget_settings.allow_credit_borrowing:
+                        raise HTTPException(
+                            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                            detail="Credit borrowing is disabled for this workspace",
                         )
-                        if borrow_reservation is not None:
-                            await self._broadcast_borrow_started(conversation, borrow_reservation)
+                    borrow_reservation = await self.borrow_engine.reserve_shared_credits(
+                        conversation.workspace_id,
+                        user_message.author_id,
+                        estimated_cost,
+                        eligible_user_ids=participant_user_ids,
+                    )
+                    if borrow_reservation is None:
+                        raise HTTPException(
+                            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                            detail="Borrow limit exceeded",
+                        )
+                    await self._broadcast_borrow_started(conversation, borrow_reservation)
+                    reserved_cost = estimated_cost
+                elif budget_settings.hard_budget_enforcement:
                     if not await self.budget_service.has_available_credits(
                         conversation.workspace_id,
                         user_message.author_id,
                         estimated_cost,
                     ):
-                        if borrow_reservation is not None:
-                            await self.borrow_engine.release_borrow(borrow_reservation)
                         raise HTTPException(
                             status_code=status.HTTP_402_PAYMENT_REQUIRED,
                             detail="Insufficient credits for this request",
                         )
-                reserved_cost = estimated_cost
+                    reserved_cost = estimated_cost
+                else:
+                    borrower_budget = await self.budget_service.reset_if_needed(
+                        conversation.workspace_id,
+                        user_message.author_id,
+                    )
+                    if borrower_budget.remaining_credits < estimated_cost:
+                        budget_warning = "Monthly budget exceeded."
+                    reserved_cost = estimated_cost
 
         try:
             provider = create_provider(
@@ -218,12 +223,17 @@ class AIGateway:
         await self.db.flush()
 
         if user_message.author_id is not None and reserved_cost > Decimal("0"):
+            allow_insufficient = (
+                not budget_settings.hard_budget_enforcement
+                and not using_borrowed_provider
+            )
             await self.budget_service.consume_credits(
                 workspace_id=conversation.workspace_id,
                 user_id=user_message.author_id,
                 ai_request_id=ai_request.id,
                 amount=reserved_cost,
                 description=f"Estimated charge for AI request {ai_request.id}",
+                allow_insufficient=allow_insufficient,
             )
             await self._broadcast_credits_updated(
                 conversation.workspace_id,
@@ -276,12 +286,17 @@ class AIGateway:
             if user_message.author_id is not None:
                 actual_cost = calculate_credits(ai_request, self.credit_policy)
 
+                allow_insufficient = (
+                    not budget_settings.hard_budget_enforcement
+                    and not using_borrowed_provider
+                )
                 if reserved_cost == Decimal("0") and actual_cost > Decimal("0"):
                     await self.budget_service.consume_credits(
                         workspace_id=conversation.workspace_id,
                         user_id=user_message.author_id,
                         ai_request_id=ai_request.id,
                         amount=actual_cost,
+                        allow_insufficient=allow_insufficient,
                     )
                 elif reserved_cost > Decimal("0") and actual_cost != reserved_cost:
                     await self.budget_service.adjust_credits(
@@ -306,10 +321,18 @@ class AIGateway:
                 lender_name = lender.name
                 await self._broadcast_borrow_completed(conversation, borrow_reservation, ai_request.id)
 
+            owner_names: dict[UUID, str] = {}
+            if routing_decision.selected_account is not None:
+                account_owner = await self._load_user(routing_decision.selected_account.owner_user_id)
+                owner_names[account_owner.id] = account_owner.name
+
             execution = build_execution_summary(
                 ai_request,
                 routing_decision.selected_account,
+                sender_user_id=user_message.author_id,
+                owner_names=owner_names,
                 lender_name=lender_name,
+                borrowed_from=lender_name if using_borrowed_provider else None,
             )
 
             await self.db.commit()
@@ -323,6 +346,7 @@ class AIGateway:
                 created_at=assistant_message.created_at,
                 provider=provider_name,
                 execution=execution,
+                budget_warning=budget_warning,
             )
             if self.broadcaster is not None:
                 await self.broadcaster.message_completed(
@@ -378,6 +402,46 @@ class AIGateway:
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="AI provider failed to generate a response",
             ) from exc
+
+    async def _resolve_borrowed_routing(
+        self,
+        context: RoutingContext,
+        *,
+        borrower_user_id: UUID | None,
+        participant_user_ids: frozenset[UUID],
+        budget_settings,
+    ) -> tuple[RoutingDecision | None, UUID | None]:
+        """Borrow path: pick a conversation participant lender with usable providers."""
+        if borrower_user_id is None:
+            return None, None
+
+        if not budget_settings.allow_credit_borrowing:
+            return None, None
+
+        eligible_participants = frozenset(
+            user_id for user_id in participant_user_ids if user_id != borrower_user_id
+        )
+        lenders = await self.borrow_engine.find_eligible_lenders(
+            context.workspace.id,
+            borrower_user_id,
+            eligible_user_ids=eligible_participants,
+        )
+        if not lenders:
+            return None, None
+
+        ordered = self.borrow_engine.strategy.order_lenders(lenders)
+        for lender in ordered:
+            decision = await self.routing_engine.select_for_owner(context, lender.user_id)
+            if decision.selected_account is not None:
+                return decision, lender.user_id
+
+        return None, None
+
+    def _is_free_fallback(self, decision) -> bool:
+        if decision.selected_account is not None:
+            return decision.selected_account.provider in {"mock", "ollama"}
+        provider_name = self.settings.ai_provider
+        return provider_name in {"mock", "ollama"}
 
     async def _load_user(self, user_id: UUID | None) -> User:
         if user_id is None:

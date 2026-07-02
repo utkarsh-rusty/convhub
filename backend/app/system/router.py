@@ -83,7 +83,7 @@ async def get_system_status(
             ComponentStatus(name="Borrow Engine", status="unhealthy", detail="Unavailable"),
         )
 
-    accounts = await ai_account_service.list_accounts(ctx.workspace_id)
+    accounts = await ai_account_service.list_accounts(ctx)
     active_accounts = [account for account in accounts if account.is_active]
     components.append(
         ComponentStatus(
@@ -99,6 +99,7 @@ async def get_system_status(
             provider=account.provider,
             model=ai_account_service.resolve_model(account.provider, account),
             display_name=account.display_name,
+            owner_name=account.owner_name,
             healthy=account.is_active,
             last_used_at=account.last_used_at,
             request_count=account.request_count,

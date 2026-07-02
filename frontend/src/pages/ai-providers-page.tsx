@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -7,8 +7,9 @@ import { toast } from "sonner";
 
 import { aiAccountApi, showApiError } from "@/lib/api";
 import { formatCredits, formatModelLabel, formatTimestamp, providerStatusLabel } from "@/lib/format";
+import { useAuth } from "@/context/auth-context";
 import { useWorkspace } from "@/context/workspace-context";
-import { aiAccountCreateSchema, type AIAccountCreateForm, type AIProviderName } from "@/types/api";
+import { aiAccountCreateSchema, type AIAccountCreateForm, type AIAccountResponse, type AIProviderName } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -32,17 +33,133 @@ const PROVIDER_MODEL_PLACEHOLDERS: Record<AIProviderName, string> = {
   ollama: "llama3.2",
 };
 
+function canManageAccount(
+  account: AIAccountResponse,
+  userId: string | undefined,
+  workspaceRole: string | undefined,
+) {
+  if (!userId) {
+    return false;
+  }
+  if (account.owner_user_id === userId) {
+    return true;
+  }
+  return ["owner", "admin"].includes(workspaceRole ?? "");
+}
+
+function AccountsTable({
+  accounts,
+  canManage,
+  onTest,
+  onDelete,
+  isTesting,
+  isDeleting,
+}: {
+  accounts: AIAccountResponse[];
+  canManage: (account: AIAccountResponse) => boolean;
+  onTest: (accountId: string) => void;
+  onDelete: (accountId: string) => void;
+  isTesting: boolean;
+  isDeleting: boolean;
+}) {
+  if (accounts.length === 0) {
+    return (
+      <p className="text-sm text-[var(--color-muted-foreground)]">No accounts in this section yet.</p>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
+      <table className="w-full min-w-[1040px] text-left text-sm">
+        <thead className="border-b border-[var(--color-border)] bg-[var(--color-muted)]/30">
+          <tr>
+            <th className="px-4 py-3 font-medium">Provider</th>
+            <th className="px-4 py-3 font-medium">Owner</th>
+            <th className="px-4 py-3 font-medium">Model</th>
+            <th className="px-4 py-3 font-medium">Status</th>
+            <th className="px-4 py-3 font-medium">Last Used</th>
+            <th className="px-4 py-3 font-medium">Requests</th>
+            <th className="px-4 py-3 font-medium">Credits Used</th>
+            <th className="px-4 py-3 font-medium">Priority</th>
+            <th className="px-4 py-3 font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {accounts.map((account) => (
+            <tr key={account.id} className="border-b border-[var(--color-border)] last:border-0">
+              <td className="px-4 py-3">
+                <p className="font-medium capitalize">{account.provider}</p>
+                <p className="text-xs text-[var(--color-muted-foreground)]">{account.display_name}</p>
+              </td>
+              <td className="px-4 py-3">{account.owner_name ?? "Unknown"}</td>
+              <td className="px-4 py-3">
+                {formatModelLabel(account.default_model ?? account.provider, account.provider)}
+              </td>
+              <td className="px-4 py-3">
+                {providerStatusLabel(account.is_active, account.request_count ?? 0)}
+              </td>
+              <td className="px-4 py-3">
+                {account.last_used_at ? formatTimestamp(account.last_used_at) : "Never"}
+              </td>
+              <td className="px-4 py-3">{account.request_count ?? 0}</td>
+              <td className="px-4 py-3">
+                {formatCredits(account.credits_used ?? account.monthly_spent)}
+              </td>
+              <td className="px-4 py-3">{account.priority}</td>
+              <td className="px-4 py-3">
+                {canManage(account) ? (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isTesting}
+                      onClick={() => onTest(account.id)}
+                    >
+                      <TestTube className="mr-2 h-4 w-4" />
+                      Test
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={isDeleting}
+                      onClick={() => onDelete(account.id)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-[var(--color-muted-foreground)]">View only</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function AIProvidersPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { activeWorkspace, activeWorkspaceId } = useWorkspace();
   const [open, setOpen] = useState(false);
-  const canManage = ["owner", "admin"].includes(activeWorkspace?.role ?? "");
+  const isAdmin = ["owner", "admin"].includes(activeWorkspace?.role ?? "");
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ["ai-accounts", activeWorkspaceId],
     queryFn: aiAccountApi.list,
-    enabled: Boolean(activeWorkspaceId && canManage),
+    enabled: Boolean(activeWorkspaceId),
   });
+
+  const myAccounts = useMemo(
+    () => accounts.filter((account) => account.is_mine || account.owner_user_id === user?.id),
+    [accounts, user?.id],
+  );
+  const otherAccounts = useMemo(
+    () => accounts.filter((account) => !(account.is_mine || account.owner_user_id === user?.id)),
+    [accounts, user?.id],
+  );
 
   const {
     register,
@@ -90,18 +207,13 @@ export function AIProvidersPage() {
     onError: (error) => showApiError(error, "Unable to remove AI account"),
   });
 
+  const manage = (account: AIAccountResponse) =>
+    canManageAccount(account, user?.id, activeWorkspace?.role);
+
   if (!activeWorkspaceId) {
     return (
       <div className="flex flex-1 items-center justify-center px-6 text-sm text-[var(--color-muted-foreground)]">
         Select a workspace to manage AI providers.
-      </div>
-    );
-  }
-
-  if (!canManage) {
-    return (
-      <div className="flex flex-1 items-center justify-center px-6 text-sm text-[var(--color-muted-foreground)]">
-        Only workspace owners and admins can manage AI providers.
       </div>
     );
   }
@@ -112,7 +224,7 @@ export function AIProvidersPage() {
         <div>
           <h2 className="text-lg font-semibold">AI Providers</h2>
           <p className="text-sm text-[var(--color-muted-foreground)]">
-            Workspace credentials and account health
+            User-owned credentials scoped to conversations you participate in
           </p>
         </div>
 
@@ -127,9 +239,8 @@ export function AIProvidersPage() {
             <DialogHeader>
               <DialogTitle>Add AI provider</DialogTitle>
               <DialogDescription>
-                {selectedProvider === "ollama"
-                  ? "Ollama uses your local server; no API key is required."
-                  : "API keys are encrypted and never shown again after saving."}
+                Accounts are owned by you. Lower priority numbers are preferred first in your
+                conversations.
               </DialogDescription>
             </DialogHeader>
             <form
@@ -187,6 +298,10 @@ export function AIProvidersPage() {
                   {...register("default_model")}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="priority">Your priority (lower = preferred)</Label>
+                <Input id="priority" type="number" min={0} {...register("priority", { valueAsNumber: true })} />
+              </div>
               <Button type="submit" className="w-full" disabled={createMutation.isPending}>
                 {createMutation.isPending ? "Saving..." : "Save provider"}
               </Button>
@@ -195,82 +310,45 @@ export function AIProvidersPage() {
         </Dialog>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div className="flex-1 space-y-8 overflow-y-auto px-6 py-6">
         {isLoading ? (
           <Skeleton className="h-48 w-full" />
-        ) : accounts.length === 0 ? (
-          <p className="text-sm text-[var(--color-muted-foreground)]">
-            No AI providers configured yet.
-          </p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
-            <table className="w-full min-w-[960px] text-left text-sm">
-              <thead className="border-b border-[var(--color-border)] bg-[var(--color-muted)]/30">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Provider</th>
-                  <th className="px-4 py-3 font-medium">Model</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Last Used</th>
-                  <th className="px-4 py-3 font-medium">Requests</th>
-                  <th className="px-4 py-3 font-medium">Credits Used</th>
-                  <th className="px-4 py-3 font-medium">Priority</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {accounts.map((account) => (
-                  <tr
-                    key={account.id}
-                    className="border-b border-[var(--color-border)] last:border-0"
-                  >
-                    <td className="px-4 py-3">
-                      <p className="font-medium capitalize">{account.provider}</p>
-                      <p className="text-xs text-[var(--color-muted-foreground)]">
-                        {account.display_name}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3">
-                      {formatModelLabel(account.default_model ?? account.provider, account.provider)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {providerStatusLabel(account.is_active, account.request_count ?? 0)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {account.last_used_at
-                        ? formatTimestamp(account.last_used_at)
-                        : "Never"}
-                    </td>
-                    <td className="px-4 py-3">{account.request_count ?? 0}</td>
-                    <td className="px-4 py-3">
-                      {formatCredits(account.credits_used ?? account.monthly_spent)}
-                    </td>
-                    <td className="px-4 py-3">{account.priority}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={testMutation.isPending}
-                          onClick={() => testMutation.mutate(account.id)}
-                        >
-                          <TestTube className="mr-2 h-4 w-4" />
-                          Test
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={deleteMutation.isPending}
-                          onClick={() => deleteMutation.mutate(account.id)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <section>
+              <h3 className="mb-1 text-base font-semibold">My Providers</h3>
+              <p className="mb-4 text-sm text-[var(--color-muted-foreground)]">
+                These accounts are used first when you send messages in shared conversations.
+              </p>
+              <AccountsTable
+                accounts={myAccounts}
+                canManage={manage}
+                onTest={(id) => testMutation.mutate(id)}
+                onDelete={(id) => deleteMutation.mutate(id)}
+                isTesting={testMutation.isPending}
+                isDeleting={deleteMutation.isPending}
+              />
+            </section>
+
+            {isAdmin || otherAccounts.length > 0 ? (
+              <section>
+                <h3 className="mb-1 text-base font-semibold">Workspace Accounts</h3>
+                <p className="mb-4 text-sm text-[var(--color-muted-foreground)]">
+                  {isAdmin
+                    ? "All provider accounts in this workspace, including other members."
+                    : "Other participants' accounts visible in this workspace."}
+                </p>
+                <AccountsTable
+                  accounts={otherAccounts}
+                  canManage={manage}
+                  onTest={(id) => testMutation.mutate(id)}
+                  onDelete={(id) => deleteMutation.mutate(id)}
+                  isTesting={testMutation.isPending}
+                  isDeleting={deleteMutation.isPending}
+                />
+              </section>
+            ) : null}
+          </>
         )}
       </div>
     </div>

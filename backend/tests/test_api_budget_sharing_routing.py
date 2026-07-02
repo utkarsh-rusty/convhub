@@ -178,7 +178,7 @@ async def test_chat_send_returns_execution_summary(
     assert body["role"] == "assistant"
     assert body["execution"] is not None
     assert body["execution"]["provider"] == "mock"
-    assert body["execution"]["execution_type"] == "own_account"
+    assert body["execution"]["execution_type"] == "own_provider"
 
 
 @pytest.mark.asyncio
@@ -215,14 +215,31 @@ async def test_borrow_flow_creates_ledger_and_borrow_record(
         await db.commit()
 
     borrower_headers = {**borrower.headers, "X-Workspace-ID": workspace.workspace_id}
+    await client.post(
+        "/ai-accounts",
+        headers=workspace.headers,
+        json={
+            "provider": "anthropic",
+            "display_name": "Lender Anthropic",
+            "api_key": "lender-key",
+            "is_active": True,
+            "priority": 0,
+        },
+    )
     conv = await client.post("/conversations", headers=borrower_headers, json={"title": "Borrow QA"})
+    conv_id = conv.json()["id"]
+    await client.post(
+        f"/conversations/{conv_id}/participants",
+        headers=borrower_headers,
+        json={"user_ids": [owner.user_id]},
+    )
     response = await client.post(
         "/chat/send",
         headers=borrower_headers,
-        json={"conversation_id": conv.json()["id"], "content": "Need credits"},
+        json={"conversation_id": conv_id, "content": "Need credits"},
     )
     assert response.status_code == 200
-    assert response.json()["execution"]["execution_type"] == "borrowed"
+    assert response.json()["execution"]["execution_type"] == "borrowed_provider"
 
     async with session_factory() as db:
         records = (

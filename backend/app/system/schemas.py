@@ -19,6 +19,7 @@ class ProviderHealthRow(BaseModel):
     provider: str
     model: str
     display_name: str
+    owner_name: str | None = None
     healthy: bool
     last_used_at: datetime | None
     request_count: int

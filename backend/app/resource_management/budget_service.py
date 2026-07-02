@@ -134,12 +134,13 @@ class BudgetService:
         ai_request_id: UUID,
         amount: Decimal,
         description: str | None = None,
+        allow_insufficient: bool = False,
     ) -> CreditTransaction | None:
         if amount <= Decimal("0"):
             return None
 
         budget = await self.reset_if_needed(workspace_id, user_id)
-        if budget.remaining_credits < amount:
+        if budget.remaining_credits < amount and not allow_insufficient:
             raise InsufficientCreditsError(required=amount, available=budget.remaining_credits)
 
         transaction = CreditTransaction(
@@ -284,6 +285,7 @@ class BudgetService:
             allow_credit_borrowing=False,
             allow_emergency_pool=False,
             allow_local_models=True,
+            hard_budget_enforcement=False,
             routing_policy=RoutingPolicyType.OWNER_FIRST,
         )
         self.db.add(settings)
@@ -298,6 +300,7 @@ class BudgetService:
         allow_credit_borrowing: bool | None = None,
         allow_emergency_pool: bool | None = None,
         allow_local_models: bool | None = None,
+        hard_budget_enforcement: bool | None = None,
         routing_policy: RoutingPolicyType | None = None,
     ) -> WorkspaceBudgetSettings:
         settings = await self.get_workspace_budget_settings(workspace_id)
@@ -310,6 +313,8 @@ class BudgetService:
             settings.allow_emergency_pool = allow_emergency_pool
         if allow_local_models is not None:
             settings.allow_local_models = allow_local_models
+        if hard_budget_enforcement is not None:
+            settings.hard_budget_enforcement = hard_budget_enforcement
         if routing_policy is not None:
             settings.routing_policy = routing_policy
 

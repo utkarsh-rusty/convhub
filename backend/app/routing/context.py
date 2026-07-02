@@ -18,4 +18,6 @@ class RoutingContext:
     provider: str | None
     model: str | None
     estimated_cost: Decimal
+    participant_user_ids: frozenset[UUID] = field(default_factory=frozenset)
+    scoped_owner_id: UUID | None = None
     prompt_context: PromptContext | None = field(default=None)

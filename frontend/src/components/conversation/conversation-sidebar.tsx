@@ -20,7 +20,7 @@ export function ConversationSidebar() {
   const queryClient = useQueryClient();
   const { activeWorkspaceId } = useWorkspace();
 
-  const { data: conversations = [], isLoading } = useQuery({
+  const { data: conversations = [], isLoading, isError } = useQuery({
     queryKey: ["conversations", activeWorkspaceId],
     queryFn: conversationApi.list,
     enabled: Boolean(activeWorkspaceId),
@@ -60,6 +60,10 @@ export function ConversationSidebar() {
             {Array.from({ length: 5 }).map((_, index) => (
               <Skeleton key={index} className="h-10 w-full" />
             ))}
+          </div>
+        ) : isError ? (
+          <div className="px-4 py-8 text-sm text-[var(--color-muted-foreground)]">
+            Could not load conversations. Check your connection and try again.
           </div>
         ) : conversations.length === 0 ? (
           <div className="px-4 py-8 text-sm text-[var(--color-muted-foreground)]">

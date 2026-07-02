@@ -46,6 +46,8 @@ class BorrowEngine:
         workspace_id: UUID,
         borrower_user_id: UUID,
         amount: Decimal,
+        *,
+        eligible_user_ids: frozenset[UUID] | None = None,
     ) -> list[LenderCandidate]:
         result = await self.db.execute(
             select(LendingPreference, UserBudget)
@@ -69,6 +71,8 @@ class BorrowEngine:
 
         candidates: list[LenderCandidate] = []
         for preference, budget in result.all():
+            if eligible_user_ids is not None and preference.user_id not in eligible_user_ids:
+                continue
             await self.budget_service.reset_if_needed(workspace_id, preference.user_id)
             candidate = LenderCandidate(
                 user_id=preference.user_id,
@@ -93,25 +97,75 @@ class BorrowEngine:
         if preference.monthly_share_limit <= Decimal("0"):
             return False
 
-        shareable = budget.remaining_credits - preference.minimum_reserved_credits
-        if shareable < amount:
+        remaining_share = preference.monthly_share_limit - budget.lent_credits
+        if remaining_share < amount:
             return False
 
-        if budget.lent_credits + amount > preference.monthly_share_limit:
+        if budget.remaining_credits - amount < preference.minimum_reserved_credits:
             return False
 
         return True
+
+    async def find_eligible_lenders(
+        self,
+        workspace_id: UUID,
+        borrower_user_id: UUID,
+        *,
+        eligible_user_ids: frozenset[UUID] | None = None,
+    ) -> list[LenderCandidate]:
+        """Lenders with auto-share enabled and remaining share capacity."""
+        result = await self.db.execute(
+            select(LendingPreference, UserBudget)
+            .join(
+                UserBudget,
+                (UserBudget.workspace_id == LendingPreference.workspace_id)
+                & (UserBudget.user_id == LendingPreference.user_id),
+            )
+            .join(
+                WorkspaceMember,
+                (WorkspaceMember.workspace_id == LendingPreference.workspace_id)
+                & (WorkspaceMember.user_id == LendingPreference.user_id),
+            )
+            .where(
+                LendingPreference.workspace_id == workspace_id,
+                LendingPreference.user_id != borrower_user_id,
+                LendingPreference.auto_share_enabled.is_(True),
+                LendingPreference.monthly_share_limit > Decimal("0"),
+            )
+        )
+
+        candidates: list[LenderCandidate] = []
+        for preference, budget in result.all():
+            if eligible_user_ids is not None and preference.user_id not in eligible_user_ids:
+                continue
+            await self.budget_service.reset_if_needed(workspace_id, preference.user_id)
+            candidate = LenderCandidate(
+                user_id=preference.user_id,
+                preference=preference,
+                budget=budget,
+            )
+            if candidate.remaining_share_capacity > Decimal("0"):
+                candidates.append(candidate)
+
+        return candidates
 
     async def reserve_shared_credits(
         self,
         workspace_id: UUID,
         borrower_user_id: UUID,
         amount: Decimal,
+        *,
+        eligible_user_ids: frozenset[UUID] | None = None,
     ) -> BorrowReservation | None:
         if amount <= Decimal("0"):
             return None
 
-        candidates = await self.find_lenders(workspace_id, borrower_user_id, amount)
+        candidates = await self.find_lenders(
+            workspace_id,
+            borrower_user_id,
+            amount,
+            eligible_user_ids=eligible_user_ids,
+        )
         lender = self.strategy.select_lender(candidates, amount)
         if lender is None:
             return None

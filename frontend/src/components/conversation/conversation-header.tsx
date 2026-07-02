@@ -3,20 +3,25 @@ import { Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { conversationApi } from "@/lib/api";
-import { formatTimestamp } from "@/lib/format";
+import { formatExecutionHeader, formatTimestamp } from "@/lib/format";
 import { useAuth } from "@/context/auth-context";
 import { InviteParticipantsDialog } from "@/components/conversation/invite-participants-dialog";
 import { ParticipantAvatarStack } from "@/components/conversation/participant-avatar-stack";
 import { Button } from "@/components/ui/button";
 import type { ConnectionStatus } from "@/types/realtime";
-import type { ConversationResponse } from "@/types/api";
+import type { ConversationResponse, ExecutionSummary } from "@/types/api";
 
 interface ConversationHeaderProps {
   conversation: ConversationResponse;
   connectionStatus?: ConnectionStatus;
+  latestExecution?: ExecutionSummary | null;
 }
 
-export function ConversationHeader({ conversation, connectionStatus }: ConversationHeaderProps) {
+export function ConversationHeader({
+  conversation,
+  connectionStatus,
+  latestExecution,
+}: ConversationHeaderProps) {
   const { user } = useAuth();
 
   const { data: participants = [] } = useQuery({
@@ -49,6 +54,7 @@ export function ConversationHeader({ conversation, connectionStatus }: Conversat
           {conversation.participant_count} participant
           {conversation.participant_count === 1 ? "" : "s"} · Last active{" "}
           {formatTimestamp(conversation.last_activity_at)}
+          {latestExecution ? ` · ${formatExecutionHeader(latestExecution)}` : null}
           {connectionStatus ? ` · Live ${connectionStatus}` : null}
         </p>
       </div>

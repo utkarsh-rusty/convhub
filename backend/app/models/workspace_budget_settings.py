@@ -36,6 +36,7 @@ class WorkspaceBudgetSettings(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     allow_credit_borrowing: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     allow_emergency_pool: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     allow_local_models: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    hard_budget_enforcement: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     routing_policy: Mapped[RoutingPolicyType] = mapped_column(
         pg_enum(RoutingPolicyType, name="routing_policy_type"),
         nullable=False,

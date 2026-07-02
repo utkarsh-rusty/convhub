@@ -324,6 +324,7 @@ export const budgetApi = {
     payload: {
       allow_credit_borrowing?: boolean;
       allow_local_models?: boolean;
+      hard_budget_enforcement?: boolean;
       monthly_default_credits?: string;
     },
   ) {

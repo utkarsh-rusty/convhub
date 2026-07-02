@@ -12,6 +12,7 @@ from app.db.base import Base
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.user import User
     from app.models.workspace import Workspace
 
 
@@ -20,11 +21,18 @@ class AIAccount(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         Index("ix_ai_accounts_workspace_id", "workspace_id"),
         Index("ix_ai_accounts_workspace_id_provider", "workspace_id", "provider"),
+        Index("ix_ai_accounts_owner_user_id", "owner_user_id"),
+        Index("ix_ai_accounts_workspace_id_owner_user_id", "workspace_id", "owner_user_id"),
     )
 
     workspace_id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True),
         ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    owner_user_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -41,3 +49,4 @@ class AIAccount(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     default_model: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     workspace: Mapped[Workspace] = relationship(back_populates="ai_accounts", lazy="selectin")
+    owner: Mapped[User] = relationship(back_populates="ai_accounts", lazy="selectin")

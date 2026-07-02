@@ -9,6 +9,7 @@ from app.ai_accounts.deps import get_ai_account_service, get_credential_encrypti
 from app.ai_accounts.service import AIAccountService
 from app.api.deps import get_db
 from app.auth.deps import get_current_user
+from app.conversations.deps import WorkspaceContext
 from app.core.config import Settings, get_settings
 from app.core.credentials import CredentialEncryption
 from app.models.conversation import Conversation
@@ -59,29 +60,31 @@ def _build_preview(decision: RoutingDecision, routing_policy: RoutingPolicyType)
 async def _routing_response(
     *,
     db: AsyncSession,
-    workspace_id: UUID,
-    current_user: User,
+    ctx: WorkspaceContext,
     engine: RoutingEngine,
     ai_account_service: AIAccountService,
     budget_service: BudgetService,
 ) -> RoutingSettingsResponse:
-    settings = await budget_service.get_workspace_budget_settings(workspace_id)
-    workspace = await _load_workspace(db, workspace_id)
-    accounts = await ai_account_service.list_accounts(workspace_id)
+    settings = await budget_service.get_workspace_budget_settings(ctx.workspace_id)
+    workspace = await _load_workspace(db, ctx.workspace_id)
+    accounts = await ai_account_service.list_accounts(ctx)
 
     preview_context = RoutingContext(
         workspace=workspace,
-        requesting_user=current_user,
-        conversation=Conversation(workspace_id=workspace_id, title="Routing Preview"),
+        requesting_user=ctx.user,
+        conversation=Conversation(workspace_id=ctx.workspace_id, title="Routing Preview"),
         provider=None,
         model=None,
         estimated_cost=Decimal("0"),
+        participant_user_ids=frozenset({ctx.user.id}),
     )
     decision = await engine.preview(preview_context)
 
     return RoutingSettingsResponse(
         routing_policy=settings.routing_policy,
-        active_accounts=[RoutingAccountSummary.model_validate(account) for account in accounts if account.is_active],
+        active_accounts=[
+            RoutingAccountSummary.model_validate(account) for account in accounts if account.is_active
+        ],
         preview=_build_preview(decision, settings.routing_policy),
     )
 
@@ -89,17 +92,17 @@ async def _routing_response(
 @router.get("/{workspace_id}/routing", response_model=RoutingSettingsResponse)
 async def get_routing_settings(
     workspace_id: UUID,
-    _: WorkspaceMember = Depends(get_workspace_membership),
+    membership: WorkspaceMember = Depends(get_workspace_membership),
     current_user: User = Depends(get_current_user),
     engine: RoutingEngine = Depends(get_routing_engine),
     ai_account_service: AIAccountService = Depends(get_ai_account_service),
     budget_service: BudgetService = Depends(get_budget_service),
     db: AsyncSession = Depends(get_db),
 ) -> RoutingSettingsResponse:
+    ctx = WorkspaceContext(workspace_id=workspace_id, user=current_user, membership=membership)
     return await _routing_response(
         db=db,
-        workspace_id=workspace_id,
-        current_user=current_user,
+        ctx=ctx,
         engine=engine,
         ai_account_service=ai_account_service,
         budget_service=budget_service,
@@ -110,7 +113,7 @@ async def get_routing_settings(
 async def update_routing_settings(
     workspace_id: UUID,
     data: RoutingSettingsUpdate,
-    _: WorkspaceMember = Depends(require_workspace_roles(WorkspaceRole.OWNER, WorkspaceRole.ADMIN)),
+    membership: WorkspaceMember = Depends(require_workspace_roles(WorkspaceRole.OWNER, WorkspaceRole.ADMIN)),
     current_user: User = Depends(get_current_user),
     engine: RoutingEngine = Depends(get_routing_engine),
     ai_account_service: AIAccountService = Depends(get_ai_account_service),
@@ -122,10 +125,10 @@ async def update_routing_settings(
         routing_policy=data.routing_policy,
     )
     await db.commit()
+    ctx = WorkspaceContext(workspace_id=workspace_id, user=current_user, membership=membership)
     return await _routing_response(
         db=db,
-        workspace_id=workspace_id,
-        current_user=current_user,
+        ctx=ctx,
         engine=engine,
         ai_account_service=ai_account_service,
         budget_service=budget_service,

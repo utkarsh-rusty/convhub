@@ -45,8 +45,8 @@ class BorrowStrategyType(str, enum.Enum):
 
 
 class ExecutionType(str, enum.Enum):
-    OWN_ACCOUNT = "own_account"
-    BORROWED = "borrowed"
+    OWN_PROVIDER = "own_provider"
+    BORROWED_PROVIDER = "borrowed_provider"
     LOCAL_MODEL = "local_model"
 
 

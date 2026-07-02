@@ -85,6 +85,7 @@ async def update_workspace_budget_settings(
         allow_credit_borrowing=data.allow_credit_borrowing,
         allow_emergency_pool=data.allow_emergency_pool,
         allow_local_models=data.allow_local_models,
+        hard_budget_enforcement=data.hard_budget_enforcement,
         routing_policy=data.routing_policy,
     )
     await db.commit()

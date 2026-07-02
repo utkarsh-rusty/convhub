@@ -48,7 +48,7 @@ export function SettingsPage() {
   });
 
   const updateBudgetMutation = useMutation({
-    mutationFn: (payload: { allow_credit_borrowing?: boolean }) =>
+    mutationFn: (payload: { allow_credit_borrowing?: boolean; hard_budget_enforcement?: boolean }) =>
       budgetApi.updateWorkspaceSettings(activeWorkspaceId!, payload),
     onSuccess: () => {
       toast.success("Workspace budget settings updated");
@@ -123,6 +123,27 @@ export function SettingsPage() {
                     checked={budgetSettings.allow_credit_borrowing}
                     onChange={(event) =>
                       updateBudgetMutation.mutate({ allow_credit_borrowing: event.target.checked })
+                    }
+                    disabled={!canManage || updateBudgetMutation.isPending}
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-4 border-t border-[var(--color-border)] pt-3">
+                  <div>
+                    <Label htmlFor="hard-budget">Hard budget enforcement</Label>
+                    <p className="text-sm text-[var(--color-muted-foreground)]">
+                      When enabled, ConvHub credits block all AI usage (legacy mode). When disabled,
+                      your own providers always work; credits only govern borrowing.
+                    </p>
+                  </div>
+                  <input
+                    id="hard-budget"
+                    type="checkbox"
+                    className="h-4 w-4 rounded border border-[var(--color-border)]"
+                    checked={budgetSettings.hard_budget_enforcement}
+                    onChange={(event) =>
+                      updateBudgetMutation.mutate({
+                        hard_budget_enforcement: event.target.checked,
+                      })
                     }
                     disabled={!canManage || updateBudgetMutation.isPending}
                   />

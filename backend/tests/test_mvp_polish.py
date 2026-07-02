@@ -44,9 +44,11 @@ async def db_session() -> AsyncSession:
 
 
 def test_build_execution_summary_own_account() -> None:
+    owner_id = uuid4()
     account = AIAccount(
         id=uuid4(),
         workspace_id=uuid4(),
+        owner_user_id=owner_id,
         provider="anthropic",
         display_name="Alice's Account",
         encrypted_credentials="enc",
@@ -60,9 +62,14 @@ def test_build_execution_summary_own_account() -> None:
         routing_policy=RoutingPolicyType.BALANCED,
     )
 
-    summary = build_execution_summary(request, account)
-    assert summary.execution_type == ExecutionType.OWN_ACCOUNT
-    assert summary.account_owner_name == "Alice's Account"
+    summary = build_execution_summary(
+        request,
+        account,
+        sender_user_id=owner_id,
+        owner_names={owner_id: "Alice"},
+    )
+    assert summary.execution_type == ExecutionType.OWN_PROVIDER
+    assert summary.owner_name == "Alice"
     assert summary.routing_policy == RoutingPolicyType.BALANCED
 
 
@@ -77,8 +84,8 @@ def test_build_execution_summary_borrowed() -> None:
     )
 
     summary = build_execution_summary(request, None, lender_name="Bob")
-    assert summary.execution_type == ExecutionType.BORROWED
-    assert summary.account_owner_name == "Bob"
+    assert summary.execution_type == ExecutionType.BORROWED_PROVIDER
+    assert summary.borrowed_from == "Bob"
 
 
 def test_build_execution_summary_local_model() -> None:
@@ -132,6 +139,7 @@ async def test_load_execution_summaries(db_session: AsyncSession) -> None:
     account = AIAccount(
         id=uuid4(),
         workspace_id=workspace.id,
+        owner_user_id=user.id,
         provider="mock",
         display_name="Demo Account",
         encrypted_credentials="enc",
@@ -153,8 +161,8 @@ async def test_load_execution_summaries(db_session: AsyncSession) -> None:
 
     summaries = await load_execution_summaries(db_session, [assistant.id])
     assert assistant.id in summaries
-    assert summaries[assistant.id].execution_type == ExecutionType.OWN_ACCOUNT
-    assert summaries[assistant.id].account_owner_name == "Demo Account"
+    assert summaries[assistant.id].execution_type == ExecutionType.OWN_PROVIDER
+    assert summaries[assistant.id].owner_name == "Exec User"
 
 
 @pytest.mark.asyncio

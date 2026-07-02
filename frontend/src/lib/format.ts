@@ -49,15 +49,31 @@ export function formatRoutingPolicy(policy: RoutingPolicyType) {
 
 export function formatExecutionBadge(execution: ExecutionSummary) {
   const modelLabel = formatModelLabel(execution.model, execution.provider);
+  const providerLabel =
+    execution.provider.charAt(0).toUpperCase() + execution.provider.slice(1);
 
   switch (execution.execution_type) {
-    case "borrowed":
-      return `${modelLabel} · Borrowed from ${execution.account_owner_name ?? "teammate"}`;
+    case "borrowed_provider":
+      return `Borrowed from ${execution.borrowed_from ?? execution.owner_name ?? "teammate"} · ${providerLabel}`;
     case "local_model":
       return `${modelLabel} · Local Model`;
     default:
-      return `${modelLabel} · ${execution.account_owner_name ?? "Workspace"}'s Account`;
+      return `${execution.owner_name ?? "You"} · ${providerLabel}`;
   }
+}
+
+export function formatExecutionHeader(execution: ExecutionSummary) {
+  const providerLabel =
+    execution.provider.charAt(0).toUpperCase() + execution.provider.slice(1);
+
+  if (execution.execution_type === "borrowed_provider") {
+    const lender = execution.borrowed_from ?? execution.owner_name ?? "teammate";
+    return `Borrowed from ${lender} · ${providerLabel}`;
+  }
+  if (execution.execution_type === "local_model") {
+    return `Local · ${formatModelLabel(execution.model, execution.provider)}`;
+  }
+  return `${execution.owner_name ?? "You"} · ${providerLabel}`;
 }
 
 export function formatCredits(value: string | number) {

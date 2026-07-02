@@ -12,7 +12,7 @@ function formatCredits(value: string) {
 }
 
 export function BudgetPage() {
-  const { activeWorkspace, activeWorkspaceId } = useWorkspace();
+  const { activeWorkspaceId } = useWorkspace();
 
   const { data: budget, isLoading: budgetLoading } = useQuery({
     queryKey: ["budget", activeWorkspaceId],
@@ -37,9 +37,10 @@ export function BudgetPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-b border-[var(--color-border)] px-6 py-4">
-        <h2 className="text-lg font-semibold">Budget</h2>
+        <h2 className="text-lg font-semibold">Borrowing Budget</h2>
         <p className="text-sm text-[var(--color-muted-foreground)]">
-          Credit usage in {activeWorkspace?.name ?? "this workspace"}
+          This budget only limits how much shared AI you may consume from teammates. Your own AI
+          providers are never blocked.
         </p>
       </div>
 
@@ -49,20 +50,30 @@ export function BudgetPage() {
         ) : budget ? (
           <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4">
-              <p className="text-sm text-[var(--color-muted-foreground)]">Remaining Credits</p>
+              <p className="text-sm text-[var(--color-muted-foreground)]">Borrowing Budget Remaining</p>
               <p className="mt-1 text-2xl font-semibold">
                 {formatCredits(budget.remaining_credits)}
               </p>
+            </div>
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4">
+              <p className="text-sm text-[var(--color-muted-foreground)]">Own Usage</p>
+              <p className="mt-1 text-2xl font-semibold">{formatCredits(budget.used_credits)}</p>
+            </div>
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4">
+              <p className="text-sm text-[var(--color-muted-foreground)]">Borrowed Usage</p>
+              <p className="mt-1 text-2xl font-semibold">
+                {formatCredits(budget.borrowed_credits)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4">
+              <p className="text-sm text-[var(--color-muted-foreground)]">Shared (Lent)</p>
+              <p className="mt-1 text-2xl font-semibold">{formatCredits(budget.lent_credits)}</p>
             </div>
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4">
               <p className="text-sm text-[var(--color-muted-foreground)]">Monthly Allocation</p>
               <p className="mt-1 text-2xl font-semibold">
                 {formatCredits(budget.monthly_credit_limit)}
               </p>
-            </div>
-            <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4">
-              <p className="text-sm text-[var(--color-muted-foreground)]">Used</p>
-              <p className="mt-1 text-2xl font-semibold">{formatCredits(budget.used_credits)}</p>
             </div>
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4">
               <p className="text-sm text-[var(--color-muted-foreground)]">Reset Date</p>

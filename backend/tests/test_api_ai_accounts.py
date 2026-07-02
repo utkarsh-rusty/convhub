@@ -125,13 +125,25 @@ async def test_paid_provider_accounts_can_be_created(
 
 
 @pytest.mark.asyncio
-async def test_member_cannot_manage_ai_accounts(
+async def test_member_can_create_and_list_ai_accounts(
     client: AsyncClient,
     member_workspace: tuple[WorkspaceContext, AuthContext],
 ) -> None:
     _, member = member_workspace
-    response = await client.get("/ai-accounts", headers=member.headers)
-    assert response.status_code == 403
+    listed = await client.get("/ai-accounts", headers=member.headers)
+    assert listed.status_code == 200
+
+    created = await client.post(
+        "/ai-accounts",
+        headers=member.headers,
+        json={
+            "provider": "mock",
+            "display_name": "Member Mock",
+            "api_key": "test-key",
+            "priority": 0,
+        },
+    )
+    assert created.status_code == 201
 
 
 @pytest.mark.asyncio

@@ -99,6 +99,17 @@ async def test_user_with_credits_skips_borrowing(client: AsyncClient, monkeypatc
     workspace_id = workspace.json()["id"]
     headers["X-Workspace-ID"] = workspace_id
 
+    await client.post(
+        "/ai-accounts",
+        headers=headers,
+        json={
+            "provider": "mock",
+            "display_name": "Own Mock",
+            "api_key": "key",
+            "priority": 0,
+        },
+    )
+
     conv = await client.post("/conversations", headers=headers, json={"title": "No Borrow"})
     conv_id = conv.json()["id"]
 
@@ -167,8 +178,26 @@ async def test_zero_credits_borrow_succeeds(client: AsyncClient, monkeypatch) ->
         )
         await db.commit()
 
+    lender_headers = {**borrower_headers, "Authorization": f"Bearer {lender_token}"}
+    await client.post(
+        "/ai-accounts",
+        headers=lender_headers,
+        json={
+            "provider": "anthropic",
+            "display_name": "Lender Anthropic",
+            "api_key": "lender-key",
+            "priority": 0,
+        },
+    )
+
     conv = await client.post("/conversations", headers=borrower_headers, json={"title": "Borrow"})
     conv_id = conv.json()["id"]
+
+    await client.post(
+        f"/conversations/{conv_id}/participants",
+        headers=borrower_headers,
+        json={"user_ids": [lender_id]},
+    )
 
     response = await client.post(
         "/chat/send",

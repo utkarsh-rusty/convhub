@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.ai_accounts.service import AIAccountService
 from app.api.deps import get_db
@@ -34,13 +35,21 @@ def require_workspace_admin(ctx: WorkspaceContext = Depends(get_workspace_contex
     return ctx
 
 
+def can_manage_account(ctx: WorkspaceContext, account: AIAccount) -> bool:
+    if account.owner_user_id == ctx.user.id:
+        return True
+    return ctx.membership.role in {WorkspaceRole.OWNER, WorkspaceRole.ADMIN}
+
+
 async def get_ai_account(
     account_id: UUID,
     ctx: WorkspaceContext = Depends(get_workspace_context),
     db: AsyncSession = Depends(get_db),
 ) -> AIAccount:
     result = await db.execute(
-        select(AIAccount).where(
+        select(AIAccount)
+        .options(selectinload(AIAccount.owner))
+        .where(
             AIAccount.id == account_id,
             AIAccount.workspace_id == ctx.workspace_id,
         )
@@ -50,5 +59,17 @@ async def get_ai_account(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="AI account not found",
+        )
+    return account
+
+
+def require_account_manager(
+    account: AIAccount = Depends(get_ai_account),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+) -> AIAccount:
+    if not can_manage_account(ctx, account):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions to manage this AI account",
         )
     return account

@@ -38,6 +38,17 @@ class BorrowStrategy(ABC):
     ) -> LenderCandidate | None:
         """Pick the best lender that can cover the full amount."""
 
+    def order_lenders(self, candidates: list[LenderCandidate]) -> list[LenderCandidate]:
+        """Return lenders sorted by preference for routing attempts."""
+        return sorted(
+            candidates,
+            key=lambda candidate: (
+                candidate.remaining_share_capacity,
+                -candidate.preference.priority,
+            ),
+            reverse=True,
+        )
+
 
 class HighestRemainingStrategy(BorrowStrategy):
     strategy_type = BorrowStrategyType.HIGHEST_REMAINING
@@ -50,8 +61,7 @@ class HighestRemainingStrategy(BorrowStrategy):
         eligible = [
             candidate
             for candidate in candidates
-            if candidate.shareable_credits >= amount
-            and candidate.remaining_share_capacity >= amount
+            if candidate.remaining_share_capacity >= amount
         ]
         if not eligible:
             return None
@@ -59,7 +69,7 @@ class HighestRemainingStrategy(BorrowStrategy):
         return max(
             eligible,
             key=lambda candidate: (
-                candidate.shareable_credits,
+                candidate.remaining_share_capacity,
                 -candidate.preference.priority,
             ),
         )

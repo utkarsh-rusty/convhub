@@ -9,6 +9,7 @@ from app.db.base import Base
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.ai_account import AIAccount
     from app.models.conversation import Conversation
     from app.models.invitation import Invitation
     from app.models.message import Message
@@ -39,6 +40,10 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     messages: Mapped[list[Message]] = relationship(
         back_populates="author",
+        lazy="selectin",
+    )
+    ai_accounts: Mapped[list[AIAccount]] = relationship(
+        back_populates="owner",
         lazy="selectin",
     )
     refresh_tokens: Mapped[list[RefreshToken]] = relationship(

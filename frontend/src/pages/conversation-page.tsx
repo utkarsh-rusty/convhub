@@ -21,14 +21,22 @@ export function ConversationPage() {
 
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
-  const { data: conversation, isLoading: conversationLoading } = useQuery({
+  const {
+    data: conversation,
+    isLoading: conversationLoading,
+    isError: conversationError,
+  } = useQuery({
     queryKey: ["conversation", conversationId],
     queryFn: () => conversationApi.get(conversationId!),
     enabled: Boolean(conversationId && activeWorkspaceId),
     refetchOnWindowFocus: false,
   });
 
-  const { data: initialMessages = [], isLoading: messagesLoading } = useQuery({
+  const {
+    data: initialMessages = [],
+    isLoading: messagesLoading,
+    isError: messagesError,
+  } = useQuery({
     queryKey: ["messages", conversationId],
     queryFn: () => messageApi.list(conversationId!),
     enabled: Boolean(conversationId && activeWorkspaceId),
@@ -51,6 +59,16 @@ export function ConversationPage() {
     [members],
   );
 
+  const latestExecution = useMemo(() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (message.role === "assistant" && message.execution) {
+        return message.execution;
+      }
+    }
+    return null;
+  }, [messages]);
+
   if (!workspacesLoading && workspaces.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-[var(--color-muted-foreground)]">
@@ -61,6 +79,14 @@ export function ConversationPage() {
 
   if (!conversationId) {
     return <Navigate to={APP_HOME} replace />;
+  }
+
+  if (conversationError || messagesError) {
+    return (
+      <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-[var(--color-muted-foreground)]">
+        Unable to load this conversation. Try refreshing or switching workspace.
+      </div>
+    );
   }
 
   if (conversationLoading || messagesLoading) {
@@ -83,7 +109,11 @@ export function ConversationPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <ConversationHeader conversation={conversation} connectionStatus={connectionStatus} />
+      <ConversationHeader
+        conversation={conversation}
+        connectionStatus={connectionStatus}
+        latestExecution={latestExecution}
+      />
       <MessageList
         conversationId={conversation.id}
         messages={messages}
