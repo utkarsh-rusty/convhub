@@ -34,6 +34,55 @@ export const demoConfigResponseSchema = z.object({
   enabled: z.boolean(),
 });
 
+export const demoPersonaSchema = z.enum(["alice", "bob", "charlie"]);
+export type DemoPersona = z.infer<typeof demoPersonaSchema>;
+
+export const demoUserResponseSchema = z.object({
+  persona: demoPersonaSchema,
+  name: z.string(),
+  email: z.string().email(),
+  role: z.string(),
+});
+
+export const demoUsersResponseSchema = z.object({
+  workspace_slug: z.string(),
+  users: demoUserResponseSchema.array(),
+});
+
+export const demoLoginResponseSchema = z.object({
+  access_token: z.string(),
+  refresh_token: z.string(),
+  token_type: z.string(),
+  workspace_id: z.string().uuid().nullable(),
+  workspace_slug: z.string().nullable(),
+});
+
+export const systemComponentStatusSchema = z.object({
+  name: z.string(),
+  status: z.enum(["healthy", "unhealthy", "degraded"]),
+  detail: z.string().nullable().optional(),
+});
+
+export const systemProviderHealthSchema = z.object({
+  account_id: z.string().uuid(),
+  provider: z.string(),
+  model: z.string(),
+  display_name: z.string(),
+  healthy: z.boolean(),
+  last_used_at: z.string().nullable(),
+  request_count: z.number(),
+  credits_used: z.coerce.string(),
+});
+
+export const systemStatusResponseSchema = z.object({
+  environment: z.string(),
+  demo_mode: z.boolean(),
+  components: systemComponentStatusSchema.array(),
+  providers: systemProviderHealthSchema.array(),
+});
+
+export type SystemStatusResponse = z.infer<typeof systemStatusResponseSchema>;
+
 export const demoSettingsResponseSchema = z.object({
   workspace_id: z.string().uuid(),
   pricing_profile: pricingProfileTypeSchema,

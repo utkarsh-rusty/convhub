@@ -10,6 +10,9 @@ import {
   creditTransactionListResponseSchema,
   routingSettingsResponseSchema,
   demoConfigResponseSchema,
+  demoLoginResponseSchema,
+  demoUsersResponseSchema,
+  systemStatusResponseSchema,
   demoEventResponseSchema,
   demoSettingsResponseSchema,
   demoUserBudgetSummarySchema,
@@ -112,13 +115,40 @@ api.interceptors.response.use(
 
 export function getErrorMessage(error: unknown, fallback = "Something went wrong"): string {
   if (axios.isAxiosError(error)) {
+    const status = error.response?.status;
     const detail = error.response?.data?.detail;
-    if (typeof detail === "string") {
-      return detail;
+    const detailText =
+      typeof detail === "string"
+        ? detail
+        : Array.isArray(detail) && detail[0]?.msg
+          ? detail[0].msg
+          : null;
+
+    if (status === 402) {
+      if (detailText?.toLowerCase().includes("insufficient credits")) {
+        return "You have exhausted your monthly credits. Ask a teammate to share credits or wait for your next allocation.";
+      }
+      return "You have exhausted your monthly credits.";
     }
-    if (Array.isArray(detail) && detail[0]?.msg) {
-      return detail[0].msg;
+
+    if (status === 502 || detailText?.toLowerCase().includes("provider failed")) {
+      return "All eligible AI accounts failed. Try another provider or check AI Providers.";
     }
+
+    if (detailText) {
+      const normalized = detailText.toLowerCase();
+      if (normalized.includes("borrowing") && normalized.includes("disabled")) {
+        return "Credit borrowing is disabled for this workspace. Enable it in Settings.";
+      }
+      if (normalized.includes("no eligible") && normalized.includes("sharing")) {
+        return "No eligible teammates are sharing credits.";
+      }
+      if (normalized.includes("demo mode is not enabled")) {
+        return "Demo mode is not enabled on this server.";
+      }
+      return detailText;
+    }
+
     if (error.message) {
       return error.message;
     }
@@ -325,6 +355,16 @@ export const demoApi = {
     return demoConfigResponseSchema.parse(data);
   },
 
+  async listUsers() {
+    const { data } = await api.get("/demo/users");
+    return demoUsersResponseSchema.parse(data);
+  },
+
+  async login(persona: "alice" | "bob" | "charlie") {
+    const { data } = await api.post("/demo/login", { persona });
+    return demoLoginResponseSchema.parse(data);
+  },
+
   async getSettings(workspaceId: string) {
     const { data } = await api.get(`/workspaces/${workspaceId}/demo`);
     return demoSettingsResponseSchema.parse(data);
@@ -396,6 +436,13 @@ export const demoApi = {
   async listEvents(workspaceId: string, limit = 20) {
     const { data } = await api.get(`/workspaces/${workspaceId}/demo/events`, { params: { limit } });
     return z.object({ items: demoEventResponseSchema.array() }).parse(data).items;
+  },
+};
+
+export const systemApi = {
+  async getStatus() {
+    const { data } = await api.get("/system");
+    return systemStatusResponseSchema.parse(data);
   },
 };
 

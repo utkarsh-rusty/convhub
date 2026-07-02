@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.demo.constants import DemoPersona
 from app.models.enums import (
     PricingProfileType,
     ProviderSimulationMode,
@@ -15,6 +16,30 @@ from app.models.enums import (
 
 class DemoConfigResponse(BaseModel):
     enabled: bool
+
+
+class DemoUserResponse(BaseModel):
+    persona: DemoPersona
+    name: str
+    email: str
+    role: str
+
+
+class DemoUsersResponse(BaseModel):
+    workspace_slug: str
+    users: list[DemoUserResponse]
+
+
+class DemoLoginRequest(BaseModel):
+    persona: DemoPersona
+
+
+class DemoLoginResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    workspace_id: UUID | None = None
+    workspace_slug: str | None = None
 
 
 class DemoSettingsResponse(BaseModel):

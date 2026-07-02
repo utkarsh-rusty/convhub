@@ -58,6 +58,13 @@ class WebSocketManager:
                 pass
             self._typing_task = None
 
+    @property
+    def is_active(self) -> bool:
+        return self._typing_task is not None and not self._typing_task.done()
+
+    def connection_count(self) -> int:
+        return len(self._connections)
+
     async def connect(
         self,
         websocket: WebSocket,

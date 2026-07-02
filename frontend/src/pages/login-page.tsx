@@ -1,23 +1,37 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { authApi, showApiError } from "@/lib/api";
+import { authApi, demoApi, showApiError } from "@/lib/api";
 import { authStorage } from "@/lib/auth-storage";
 import { useAuth } from "@/context/auth-context";
-import { loginSchema, type LoginForm } from "@/types/api";
+import { loginSchema, type DemoPersona, type LoginForm } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 export function LoginPage() {
   const navigate = useNavigate();
   const { completeLogin } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+
+  const { data: demoConfig } = useQuery({
+    queryKey: ["demo-config"],
+    queryFn: () => demoApi.getConfig(),
+    staleTime: 60_000,
+  });
+
+  const { data: demoUsers } = useQuery({
+    queryKey: ["demo-users"],
+    queryFn: () => demoApi.listUsers(),
+    enabled: Boolean(demoConfig?.enabled),
+    staleTime: 60_000,
+  });
 
   const {
     register,
@@ -27,15 +41,27 @@ export function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
+  const finishLogin = (accessToken: string, refreshToken: string, workspaceId?: string | null) => {
+    authStorage.setTokens(accessToken, refreshToken);
+    if (workspaceId) {
+      authStorage.setWorkspaceId(workspaceId);
+    }
+    completeLogin();
+    toast.success("Welcome back");
+    navigate("/", { replace: true });
+  };
+
   const loginMutation = useMutation({
     mutationFn: authApi.login,
-    onSuccess: (tokens) => {
-      authStorage.setTokens(tokens.access_token, tokens.refresh_token);
-      completeLogin();
-      toast.success("Welcome back");
-      navigate("/", { replace: true });
-    },
+    onSuccess: (tokens) => finishLogin(tokens.access_token, tokens.refresh_token),
     onError: (error) => showApiError(error, "Unable to sign in"),
+  });
+
+  const demoLoginMutation = useMutation({
+    mutationFn: (persona: DemoPersona) => demoApi.login(persona),
+    onSuccess: (tokens) =>
+      finishLogin(tokens.access_token, tokens.refresh_token, tokens.workspace_id),
+    onError: (error) => showApiError(error, "Unable to sign in as demo user"),
   });
 
   const onSubmit = handleSubmit(async (values) => {
@@ -78,6 +104,34 @@ export function LoginPage() {
             {submitting ? "Signing in..." : "Sign in"}
           </Button>
         </form>
+
+        {demoConfig?.enabled && demoUsers?.users.length ? (
+          <>
+            <Separator className="my-6" />
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium">Login as Demo User</p>
+                <p className="text-xs text-[var(--color-muted-foreground)]">
+                  Jump into the seeded demo workspace instantly.
+                </p>
+              </div>
+              <div className="grid gap-2">
+                {demoUsers.users.map((user) => (
+                  <Button
+                    key={user.persona}
+                    type="button"
+                    variant="secondary"
+                    className="w-full justify-start"
+                    disabled={demoLoginMutation.isPending}
+                    onClick={() => demoLoginMutation.mutate(user.persona)}
+                  >
+                    {demoLoginMutation.isPending ? "Signing in..." : `Continue as ${user.name}`}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : null}
 
         <p className="mt-6 text-center text-sm text-[var(--color-muted-foreground)]">
           Don&apos;t have an account?{" "}

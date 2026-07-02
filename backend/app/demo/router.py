@@ -3,17 +3,26 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.auth.router import get_auth_service
+from app.auth.schemas import LoginRequest
+from app.auth.service import AuthService
 from app.core.config import Settings, get_settings
+from app.demo.constants import DEMO_PERSONAS, DEMO_PASSWORD, DEMO_WORKSPACE_SLUG
 from app.demo.deps import get_demo_service, require_demo_mode
 from app.demo.schemas import (
     DemoActionResponse,
     DemoConfigResponse,
     DemoEventsResponse,
     DemoEventResponse,
+    DemoLoginRequest,
+    DemoLoginResponse,
     DemoSettingsResponse,
+    DemoUserResponse,
+    DemoUsersResponse,
     PricingProfileUpdate,
     ProviderSimulationUpdate,
     RoutingOverrideUpdate,
@@ -23,6 +32,7 @@ from app.demo.schemas import (
 )
 from app.demo.service import DemoService
 from app.models.enums import WorkspaceRole
+from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
 from app.workspaces.deps import get_workspace_membership, require_workspace_roles
 
@@ -33,6 +43,54 @@ workspace_router = APIRouter(prefix="/workspaces", tags=["demo"])
 @router.get("/demo/config", response_model=DemoConfigResponse)
 async def get_demo_config(settings: Settings = Depends(get_settings)) -> DemoConfigResponse:
     return DemoConfigResponse(enabled=settings.enable_demo_mode)
+
+
+@router.get("/demo/users", response_model=DemoUsersResponse)
+async def list_demo_users(
+    _: Settings = Depends(require_demo_mode),
+) -> DemoUsersResponse:
+    return DemoUsersResponse(
+        workspace_slug=DEMO_WORKSPACE_SLUG,
+        users=[
+            DemoUserResponse(
+                persona=persona,
+                name=details["name"],
+                email=details["email"],
+                role=details["role"],
+            )
+            for persona, details in DEMO_PERSONAS.items()
+        ],
+    )
+
+
+@router.post("/demo/login", response_model=DemoLoginResponse)
+async def demo_login(
+    data: DemoLoginRequest,
+    _: Settings = Depends(require_demo_mode),
+    auth_service: AuthService = Depends(get_auth_service),
+    db: AsyncSession = Depends(get_db),
+) -> DemoLoginResponse:
+    persona = DEMO_PERSONAS[data.persona]
+    tokens = await auth_service.login(
+        LoginRequest.model_construct(
+            email=persona["email"],
+            password=DEMO_PASSWORD,
+        ),
+    )
+
+    workspace_id: UUID | None = None
+    result = await db.execute(select(Workspace).where(Workspace.slug == DEMO_WORKSPACE_SLUG))
+    workspace = result.scalar_one_or_none()
+    if workspace is not None:
+        workspace_id = workspace.id
+
+    return DemoLoginResponse(
+        access_token=tokens.access_token,
+        refresh_token=tokens.refresh_token,
+        token_type=tokens.token_type,
+        workspace_id=workspace_id,
+        workspace_slug=DEMO_WORKSPACE_SLUG if workspace_id else None,
+    )
 
 
 @workspace_router.get("/{workspace_id}/demo", response_model=DemoSettingsResponse)

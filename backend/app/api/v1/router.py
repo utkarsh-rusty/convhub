@@ -10,6 +10,7 @@ from app.realtime.router import router as realtime_router
 from app.resource_management.router import router as credits_router
 from app.resource_sharing.router import router as sharing_router
 from app.routing.router import router as routing_router
+from app.system.router import router as system_router
 from app.workspaces.router import invitations_router, workspaces_router
 
 api_router = APIRouter()
@@ -27,3 +28,4 @@ api_router.include_router(conversations_router)
 api_router.include_router(demo_router)
 api_router.include_router(demo_workspace_router)
 api_router.include_router(realtime_router)
+api_router.include_router(system_router)

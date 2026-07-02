@@ -129,6 +129,9 @@ export function MessageComposer({ conversationId, onGeneratingChange }: MessageC
           {errors.content && (
             <p className="text-sm text-[var(--color-destructive)]">{errors.content.message}</p>
           )}
+          <p className="text-xs text-[var(--color-muted-foreground)]">
+            Press Enter to send · Shift+Enter for a new line
+          </p>
         </div>
         <div className="flex flex-col gap-2">
           <Button

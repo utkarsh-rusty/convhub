@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, computed_field
+from pydantic import AliasChoices, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +11,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
+        populate_by_name=True,
     )
 
     app_name: str = "convhub-api"
@@ -68,6 +69,7 @@ class Settings(BaseSettings):
 
     enable_demo_mode: bool = Field(
         default=False,
+        validation_alias=AliasChoices("ENABLE_DEMO_MODE", "DEMO_MODE"),
         description="Expose demo administration endpoints and testing toolkit",
     )
 

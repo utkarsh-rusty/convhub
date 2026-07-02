@@ -1,8 +1,9 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, Coins, FlaskConical, LayoutDashboard, MessageSquare, Settings, Share2, Users } from "lucide-react";
+import { Activity, Bot, Coins, FlaskConical, LayoutDashboard, MessageSquare, Settings, Share2, Users } from "lucide-react";
 
 import { demoApi } from "@/lib/api";
+import { useWorkspace } from "@/context/workspace-context";
 import { cn } from "@/lib/utils";
 
 const baseNavItems = [
@@ -10,6 +11,7 @@ const baseNavItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "dashboard" as const },
   { to: "/members", label: "Members", icon: Users, section: "members" as const },
   { to: "/ai-providers", label: "AI Providers", icon: Bot, section: "ai-providers" as const },
+  { to: "/system", label: "System", icon: Activity, section: "system" as const, adminOnly: true },
   { to: "/budget", label: "Budget", icon: Coins, section: "budget" as const },
   { to: "/sharing", label: "Resource Sharing", icon: Share2, section: "sharing" as const },
   { to: "/settings", label: "Settings", icon: Settings, section: "settings" as const },
@@ -31,13 +33,18 @@ function isActiveSection(pathname: string, section: string) {
 
 export function AppNav() {
   const location = useLocation();
+  const { activeWorkspace } = useWorkspace();
+  const canViewSystem = ["owner", "admin"].includes(activeWorkspace?.role ?? "");
   const { data: demoConfig } = useQuery({
     queryKey: ["demo-config"],
     queryFn: () => demoApi.getConfig(),
     staleTime: 60_000,
   });
 
-  const navItems = demoConfig?.enabled ? [...baseNavItems, demoNavItem] : baseNavItems;
+  const navItems = [
+    ...baseNavItems.filter((item) => !item.adminOnly || canViewSystem),
+    ...(demoConfig?.enabled ? [demoNavItem] : []),
+  ];
 
   return (
     <nav className="space-y-1 px-2 py-3">

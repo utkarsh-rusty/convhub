@@ -15,6 +15,7 @@ import { LoginPage } from "@/pages/login-page";
 import { MembersPage } from "@/pages/members-page";
 import { RegisterPage } from "@/pages/register-page";
 import { SettingsPage } from "@/pages/settings-page";
+import { SystemHealthPage } from "@/pages/system-health-page";
 
 export function AppRoutes() {
   return (
@@ -36,6 +37,7 @@ export function AppRoutes() {
             <Route path="/budget" element={<BudgetPage />} />
             <Route path="/sharing" element={<ResourceSharingPage />} />
             <Route path="/demo" element={<DemoToolkitPage />} />
+            <Route path="/system" element={<SystemHealthPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>

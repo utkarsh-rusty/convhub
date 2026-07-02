@@ -38,9 +38,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const firstWorkspace = workspaces[0];
-    authStorage.setWorkspaceId(firstWorkspace.id);
-    setActiveWorkspaceIdState(firstWorkspace.id);
+    const demoWorkspace = workspaces.find((workspace) => workspace.slug === "demo");
+    const preferredWorkspace = demoWorkspace ?? workspaces[0];
+    authStorage.setWorkspaceId(preferredWorkspace.id);
+    setActiveWorkspaceIdState(preferredWorkspace.id);
   }, [workspaces]);
 
   const setActiveWorkspaceId = (workspaceId: string) => {

@@ -6,7 +6,7 @@ import { Plus, TestTube } from "lucide-react";
 import { toast } from "sonner";
 
 import { aiAccountApi, showApiError } from "@/lib/api";
-import { formatCredits, formatModelLabel, providerStatusLabel } from "@/lib/format";
+import { formatCredits, formatModelLabel, formatTimestamp, providerStatusLabel } from "@/lib/format";
 import { useWorkspace } from "@/context/workspace-context";
 import { aiAccountCreateSchema, type AIAccountCreateForm, type AIProviderName } from "@/types/api";
 import { Button } from "@/components/ui/button";
@@ -237,7 +237,7 @@ export function AIProvidersPage() {
                     </td>
                     <td className="px-4 py-3">
                       {account.last_used_at
-                        ? new Date(account.last_used_at).toLocaleString()
+                        ? formatTimestamp(account.last_used_at)
                         : "Never"}
                     </td>
                     <td className="px-4 py-3">{account.request_count ?? 0}</td>
