@@ -78,6 +78,53 @@ async def test_anthropic_account_requires_api_key(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("provider", ["openai", "gemini", "groq"])
+async def test_paid_provider_account_requires_api_key(
+    client: AsyncClient,
+    workspace: WorkspaceContext,
+    provider: str,
+) -> None:
+    response = await client.post(
+        "/ai-accounts",
+        headers=workspace.headers,
+        json={
+            "provider": provider,
+            "display_name": f"Missing {provider} key",
+            "is_active": True,
+            "priority": 0,
+        },
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_paid_provider_accounts_can_be_created(
+    client: AsyncClient,
+    workspace: WorkspaceContext,
+) -> None:
+    models = {
+        "openai": "gpt-4o",
+        "gemini": "gemini-2.0-flash",
+        "groq": "llama-3.3-70b-versatile",
+    }
+    for provider, model in models.items():
+        response = await client.post(
+            "/ai-accounts",
+            headers=workspace.headers,
+            json={
+                "provider": provider,
+                "display_name": f"{provider.title()} Account",
+                "api_key": f"test-{provider}-key",
+                "is_active": True,
+                "priority": 0,
+                "default_model": model,
+            },
+        )
+        assert response.status_code == 201, response.text
+        assert response.json()["provider"] == provider
+
+
+@pytest.mark.asyncio
 async def test_member_cannot_manage_ai_accounts(
     client: AsyncClient,
     member_workspace: tuple[WorkspaceContext, AuthContext],

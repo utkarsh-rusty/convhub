@@ -10,6 +10,7 @@ PRODUCTION_MULTIPLIERS: dict[str, Decimal] = {
     "anthropic": Decimal("1.0"),
     "openai": Decimal("1.0"),
     "gemini": Decimal("1.0"),
+    "groq": Decimal("1.0"),
 }
 
 DEMO_MULTIPLIER = Decimal("1.0")

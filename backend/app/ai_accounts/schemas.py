@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-AIProviderName = Literal["mock", "anthropic", "ollama"]
+AIProviderName = Literal["mock", "anthropic", "ollama", "openai", "gemini", "groq"]
 
 
 class AIAccountCreate(BaseModel):

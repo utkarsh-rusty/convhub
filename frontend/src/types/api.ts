@@ -3,7 +3,7 @@ import { z } from "zod";
 export const workspaceRoleSchema = z.enum(["owner", "admin", "member"]);
 export const messageRoleSchema = z.enum(["user", "assistant", "system"]);
 export const conversationParticipantRoleSchema = z.enum(["owner", "member"]);
-export const aiProviderNameSchema = z.enum(["mock", "anthropic", "ollama"]);
+export const aiProviderNameSchema = z.enum(["mock", "anthropic", "ollama", "openai", "gemini", "groq"]);
 export type AIProviderName = z.infer<typeof aiProviderNameSchema>;
 
 export const routingPolicyTypeSchema = z.enum([
@@ -344,6 +344,7 @@ export const aiAccountCreateSchema = z
     api_key: z.string().optional(),
     is_active: z.boolean(),
     priority: z.number().int().min(0),
+    default_model: z.string().max(255).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.provider !== "ollama" && !data.api_key?.trim()) {

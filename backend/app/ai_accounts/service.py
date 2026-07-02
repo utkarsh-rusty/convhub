@@ -170,6 +170,12 @@ class AIAccountService:
             return account.default_model
         if provider_name == "ollama":
             return self.settings.ollama_model
+        if provider_name == "openai":
+            return self.settings.openai_model
+        if provider_name == "gemini":
+            return self.settings.gemini_model
+        if provider_name == "groq":
+            return self.settings.groq_model
         if provider_name == "mock":
             return "mock"
         return self.settings.ai_model

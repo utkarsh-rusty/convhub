@@ -10,7 +10,7 @@ from app.routing.decision import RoutingScore
 from app.routing.health import ProviderHealth
 
 FREE_PROVIDERS = {"ollama", "mock"}
-PAID_PROVIDER_ORDER = {"ollama": 0, "mock": 1, "anthropic": 2, "openai": 3, "gemini": 4}
+PAID_PROVIDER_ORDER = {"ollama": 0, "mock": 1, "anthropic": 2, "openai": 3, "gemini": 4, "groq": 5}
 
 
 class RoutingPolicy(ABC):

@@ -11,6 +11,12 @@ const ROUTING_POLICY_LABELS: Record<RoutingPolicyType, string> = {
 const MODEL_LABELS: Record<string, string> = {
   "claude-sonnet-4-20250514": "Claude Sonnet 4",
   "claude-3-5-sonnet-20241022": "Claude 3.5 Sonnet",
+  "gpt-4o": "GPT-4o",
+  "gpt-4o-mini": "GPT-4o Mini",
+  "gemini-2.0-flash": "Gemini 2.0 Flash",
+  "gemini-1.5-pro": "Gemini 1.5 Pro",
+  "llama-3.3-70b-versatile": "Llama 3.3 70B",
+  "llama-3.1-8b-instant": "Llama 3.1 8B Instant",
   "llama3.2": "Llama 3.2",
   mock: "Mock",
 };
@@ -24,6 +30,15 @@ export function formatModelLabel(model: string, provider?: string) {
   }
   if (provider === "anthropic" && model.includes("sonnet")) {
     return "Claude Sonnet";
+  }
+  if (provider === "openai" && model.startsWith("gpt")) {
+    return model.toUpperCase().replace(/-/g, " ");
+  }
+  if (provider === "gemini") {
+    return model.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+  if (provider === "groq") {
+    return model.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
   }
   return model;
 }

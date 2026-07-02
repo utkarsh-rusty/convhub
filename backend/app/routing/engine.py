@@ -126,8 +126,9 @@ class RoutingEngine:
 
         api_key = credentials.get("api_key", "").strip()
         if not api_key:
-            if self.settings.app_env == "development" and account.provider == "anthropic":
-                if self.settings.anthropic_api_key:
+            if self.settings.app_env == "development":
+                fallback_key = self._dev_fallback_api_key(account.provider)
+                if fallback_key:
                     return ProviderHealth(
                         account=account,
                         is_healthy=True,
@@ -136,6 +137,17 @@ class RoutingEngine:
             return ProviderHealth(account=account, is_healthy=False, reason="Missing API key")
 
         return ProviderHealth(account=account, is_healthy=True, reason="Credentials present")
+
+    def _dev_fallback_api_key(self, provider: str) -> str | None:
+        if provider == "anthropic":
+            return self.settings.anthropic_api_key
+        if provider == "openai":
+            return self.settings.openai_api_key
+        if provider == "gemini":
+            return self.settings.gemini_api_key
+        if provider == "groq":
+            return self.settings.groq_api_key
+        return None
 
     async def _load_monthly_usage(self, workspace_id: UUID) -> dict[str, Decimal]:
         month_start = datetime.now(UTC).replace(day=1, hour=0, minute=0, second=0, microsecond=0)

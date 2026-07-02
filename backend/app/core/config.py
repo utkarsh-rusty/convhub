@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30
 
-    ai_provider: Literal["mock", "anthropic", "ollama"] = "mock"
+    ai_provider: Literal["mock", "anthropic", "ollama", "openai", "gemini", "groq"] = "mock"
     ai_model: str = "claude-sonnet-4-20250514"
     ai_system_prompt: str = "You are a helpful assistant."
     ollama_base_url: str = "http://localhost:11434"
@@ -46,6 +46,21 @@ class Settings(BaseSettings):
         default=None,
         description="Development-only fallback when no workspace AI account is configured",
     )
+    openai_api_key: str | None = Field(
+        default=None,
+        description="Development-only fallback for OpenAI when no workspace AI account is configured",
+    )
+    openai_model: str = "gpt-4o"
+    gemini_api_key: str | None = Field(
+        default=None,
+        description="Development-only fallback for Gemini when no workspace AI account is configured",
+    )
+    gemini_model: str = "gemini-2.0-flash"
+    groq_api_key: str | None = Field(
+        default=None,
+        description="Development-only fallback for Groq when no workspace AI account is configured",
+    )
+    groq_model: str = "llama-3.3-70b-versatile"
     credentials_encryption_key: str = Field(
         default="lHOGnkjdkIA2CqtPkQKagGz7u7JIwHBDO5x0V3Z2yjY=",
         description="Fernet key for encrypting workspace AI account credentials",

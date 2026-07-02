@@ -1,7 +1,10 @@
 from app.ai.providers.anthropic import AnthropicProvider
 from app.ai.providers.base import AIProvider
+from app.ai.providers.gemini import GeminiProvider
+from app.ai.providers.groq import GroqProvider
 from app.ai.providers.mock import MockProvider
 from app.ai.providers.ollama import OllamaProvider
+from app.ai.providers.openai import OpenAIProvider
 from app.core.config import Settings
 from app.demo.context import get_demo_runtime
 from app.demo.runtime import SimulatedFailureProvider
@@ -46,6 +49,36 @@ def _create_base_provider(
             raise ValueError("No Anthropic credentials configured for this workspace")
 
         return AnthropicProvider(api_key=api_key)
+
+    if provider_name == "openai":
+        api_key = credentials.get("api_key") if credentials else None
+        if not api_key and allow_dev_fallback and settings.app_env == "development":
+            api_key = settings.openai_api_key
+
+        if not api_key:
+            raise ValueError("No OpenAI credentials configured for this workspace")
+
+        return OpenAIProvider(api_key=api_key)
+
+    if provider_name == "gemini":
+        api_key = credentials.get("api_key") if credentials else None
+        if not api_key and allow_dev_fallback and settings.app_env == "development":
+            api_key = settings.gemini_api_key
+
+        if not api_key:
+            raise ValueError("No Gemini credentials configured for this workspace")
+
+        return GeminiProvider(api_key=api_key)
+
+    if provider_name == "groq":
+        api_key = credentials.get("api_key") if credentials else None
+        if not api_key and allow_dev_fallback and settings.app_env == "development":
+            api_key = settings.groq_api_key
+
+        if not api_key:
+            raise ValueError("No Groq credentials configured for this workspace")
+
+        return GroqProvider(api_key=api_key)
 
     if provider_name == "ollama":
         return OllamaProvider(base_url=settings.ollama_base_url)

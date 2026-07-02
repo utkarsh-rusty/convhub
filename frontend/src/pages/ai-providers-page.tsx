@@ -23,6 +23,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const PROVIDER_MODEL_PLACEHOLDERS: Record<AIProviderName, string> = {
+  mock: "mock",
+  anthropic: "claude-sonnet-4-20250514",
+  openai: "gpt-4o",
+  gemini: "gemini-2.0-flash",
+  groq: "llama-3.3-70b-versatile",
+  ollama: "llama3.2",
+};
+
 export function AIProvidersPage() {
   const queryClient = useQueryClient();
   const { activeWorkspace, activeWorkspaceId } = useWorkspace();
@@ -145,6 +154,9 @@ export function AIProvidersPage() {
                   <SelectContent>
                     <SelectItem value="mock">Mock</SelectItem>
                     <SelectItem value="anthropic">Anthropic</SelectItem>
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem value="gemini">Google Gemini</SelectItem>
+                    <SelectItem value="groq">Groq</SelectItem>
                     <SelectItem value="ollama">Ollama</SelectItem>
                   </SelectContent>
                 </Select>
@@ -167,6 +179,14 @@ export function AIProvidersPage() {
                   )}
                 </div>
               )}
+              <div className="space-y-2">
+                <Label htmlFor="default_model">Default model (optional)</Label>
+                <Input
+                  id="default_model"
+                  placeholder={PROVIDER_MODEL_PLACEHOLDERS[selectedProvider]}
+                  {...register("default_model")}
+                />
+              </div>
               <Button type="submit" className="w-full" disabled={createMutation.isPending}>
                 {createMutation.isPending ? "Saving..." : "Save provider"}
               </Button>
