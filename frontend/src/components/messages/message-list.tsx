@@ -1,7 +1,10 @@
+import { useLayoutEffect, useRef } from "react";
+
 import type { MessageResponse } from "@/types/api";
 import { MessageBubble, StreamingAssistantBubble, TypingIndicator } from "@/components/messages/message-bubble";
 
 interface MessageListProps {
+  conversationId: string;
   messages: MessageResponse[];
   currentUserId?: string;
   memberNames?: Record<string, string>;
@@ -11,6 +14,7 @@ interface MessageListProps {
 }
 
 export function MessageList({
+  conversationId,
   messages,
   currentUserId,
   memberNames = {},
@@ -18,6 +22,24 @@ export function MessageList({
   streamingContent = null,
   typingLabel = null,
 }: MessageListProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+      return;
+    }
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  };
+
+  useLayoutEffect(() => {
+    scrollToBottom();
+    const frame = requestAnimationFrame(scrollToBottom);
+    return () => cancelAnimationFrame(frame);
+  }, [conversationId, messages, streamingContent, typingLabel, isAiGenerating]);
+
   if (!messages.length && !isAiGenerating && !typingLabel) {
     return (
       <div className="flex flex-1 items-center justify-center px-6 text-sm text-[var(--color-muted-foreground)]">
@@ -27,7 +49,10 @@ export function MessageList({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-6 py-6">
+    <div
+      ref={scrollContainerRef}
+      className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-6"
+    >
       {messages.map((message) => (
         <MessageBubble
           key={message.id}
@@ -41,6 +66,7 @@ export function MessageList({
       {streamingContent ? <StreamingAssistantBubble content={streamingContent} /> : null}
       {typingLabel ? <TypingIndicator label={typingLabel} /> : null}
       {!streamingContent && !typingLabel && isAiGenerating ? <TypingIndicator /> : null}
+      <div ref={bottomRef} className="h-px shrink-0" aria-hidden="true" />
     </div>
   );
 }

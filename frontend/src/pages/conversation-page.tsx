@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Navigate, useParams } from "react-router-dom";
 
 import { conversationApi, messageApi, workspaceApi } from "@/lib/api";
+import { APP_HOME } from "@/lib/site";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspace } from "@/context/workspace-context";
 import { useSocket } from "@/context/socket-context";
@@ -59,7 +60,7 @@ export function ConversationPage() {
   }
 
   if (!conversationId) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={APP_HOME} replace />;
   }
 
   if (conversationLoading || messagesLoading) {
@@ -84,6 +85,7 @@ export function ConversationPage() {
     <div className="flex min-h-0 flex-1 flex-col">
       <ConversationHeader conversation={conversation} connectionStatus={connectionStatus} />
       <MessageList
+        conversationId={conversation.id}
         messages={messages}
         currentUserId={user?.id}
         memberNames={memberNames}

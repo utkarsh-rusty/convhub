@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { invitationApi, showApiError } from "@/lib/api";
+import { APP_HOME } from "@/lib/site";
 import { useWorkspace } from "@/context/workspace-context";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,7 +26,7 @@ export function AcceptInvitePage() {
       toast.success(`Joined ${result.workspace_name}`);
       setActiveWorkspaceId(result.workspace_id);
       await queryClient.invalidateQueries({ queryKey: ["workspaces"] });
-      navigate("/", { replace: true });
+      navigate(APP_HOME, { replace: true });
     },
     onError: (error) => showApiError(error, "Unable to accept invitation"),
   });

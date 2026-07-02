@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { authApi, demoApi, showApiError } from "@/lib/api";
+import { APP_HOME } from "@/lib/site";
 import { authStorage } from "@/lib/auth-storage";
 import { useAuth } from "@/context/auth-context";
 import { loginSchema, type DemoPersona, type LoginForm } from "@/types/api";
@@ -48,7 +49,7 @@ export function LoginPage() {
     }
     completeLogin();
     toast.success("Welcome back");
-    navigate("/", { replace: true });
+    navigate(APP_HOME, { replace: true });
   };
 
   const loginMutation = useMutation({
@@ -76,6 +77,12 @@ export function LoginPage() {
   return (
     <Card>
       <CardHeader>
+        <Link
+          to="/"
+          className="mb-2 inline-block text-xs uppercase tracking-[0.2em] text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)]"
+        >
+          ConvHub
+        </Link>
         <CardTitle>Sign in to ConvHub</CardTitle>
         <CardDescription>Access your team workspace and conversations.</CardDescription>
       </CardHeader>

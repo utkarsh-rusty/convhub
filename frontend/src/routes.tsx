@@ -11,6 +11,7 @@ import { DemoToolkitPage } from "@/pages/demo-toolkit-page";
 import { ResourceSharingPage } from "@/pages/resource-sharing-page";
 import { ConversationPage } from "@/pages/conversation-page";
 import { HomePage } from "@/pages/home-page";
+import { LandingPage } from "@/pages/landing-page";
 import { LoginPage } from "@/pages/login-page";
 import { MembersPage } from "@/pages/members-page";
 import { RegisterPage } from "@/pages/register-page";
@@ -21,6 +22,8 @@ export function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
+
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -28,7 +31,7 @@ export function AppRoutes() {
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/app" element={<HomePage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/c/:conversationId" element={<ConversationPage />} />
             <Route path="/members" element={<MembersPage />} />

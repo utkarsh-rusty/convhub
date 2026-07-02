@@ -10,6 +10,11 @@ import { queryClient } from "@/lib/query-client";
 import { AppRoutes } from "@/routes";
 import "./index.css";
 
+const storedTheme = localStorage.getItem("convhub-theme");
+const systemTheme = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+document.documentElement.dataset.theme =
+  storedTheme === "light" || storedTheme === "dark" ? storedTheme : systemTheme;
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>

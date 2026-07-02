@@ -1,4 +1,4 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { Outlet } from "react-router-dom";
 import { LogOut } from "lucide-react";
 
@@ -13,22 +13,26 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspaceRealtime } from "@/hooks/use-workspace-realtime";
 import { getInitials } from "@/lib/utils";
+import { APP_HOME } from "@/lib/site";
 
 export function AppLayout() {
   const { user, logout } = useAuth();
   useWorkspaceRealtime();
   const location = useLocation();
   const showConversationSidebar =
-    location.pathname === "/" || location.pathname.startsWith("/c/");
+    location.pathname === APP_HOME || location.pathname.startsWith("/c/");
 
   return (
     <div className="flex h-screen bg-[var(--color-background)] text-[var(--color-foreground)]">
       <aside className="flex w-72 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-card)]">
         <div className="flex items-center justify-between px-4 py-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted-foreground)]">
+            <Link
+              to="/"
+              className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted-foreground)] transition-colors hover:text-[var(--color-foreground)]"
+            >
               ConvHub
-            </p>
+            </Link>
             <h1 className="text-lg font-semibold">Workspace</h1>
           </div>
           <CreateWorkspaceDialog />

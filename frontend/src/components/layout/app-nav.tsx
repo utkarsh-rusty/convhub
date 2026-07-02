@@ -3,11 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Activity, Bot, Coins, FlaskConical, LayoutDashboard, MessageSquare, Settings, Share2, Users } from "lucide-react";
 
 import { demoApi } from "@/lib/api";
+import { APP_HOME } from "@/lib/site";
 import { useWorkspace } from "@/context/workspace-context";
 import { cn } from "@/lib/utils";
 
 const baseNavItems = [
-  { to: "/", label: "Conversations", icon: MessageSquare, section: "conversations" as const },
+  { to: APP_HOME, label: "Conversations", icon: MessageSquare, section: "conversations" as const },
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "dashboard" as const },
   { to: "/members", label: "Members", icon: Users, section: "members" as const },
   { to: "/ai-providers", label: "AI Providers", icon: Bot, section: "ai-providers" as const },
@@ -26,7 +27,7 @@ const demoNavItem = {
 
 function isActiveSection(pathname: string, section: string) {
   if (section === "conversations") {
-    return pathname === "/" || pathname.startsWith("/c/");
+    return pathname === APP_HOME || pathname.startsWith("/c/");
   }
   return pathname.startsWith(`/${section}`);
 }

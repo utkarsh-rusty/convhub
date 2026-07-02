@@ -20,6 +20,23 @@
   --radius-lg: 0.75rem;
 }
 
+:root[data-theme="light"] {
+  --color-background: #fafafa;
+  --color-foreground: #09090b;
+  --color-card: #ffffff;
+  --color-card-foreground: #09090b;
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #71717a;
+  --color-border: #e4e4e7;
+  --color-input: #e4e4e7;
+  --color-primary: #09090b;
+  --color-primary-foreground: #fafafa;
+  --color-accent: #f4f4f5;
+  --color-accent-foreground: #09090b;
+  --color-destructive: #dc2626;
+  --color-ring: #a1a1aa;
+}
+
 * {
   border-color: var(--color-border);
 }
@@ -41,4 +58,56 @@ body {
 
 #root {
   min-height: 100vh;
+}
+
+.landing-hero-gradient {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.18), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(56, 189, 248, 0.1), transparent);
+}
+
+.landing-glow {
+  background: radial-gradient(circle at center, rgba(120, 119, 198, 0.15), transparent 70%);
+}
+
+.landing-typing-dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.landing-typing-dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--color-muted-foreground);
+  animation: landing-typing-bounce 1.2s infinite ease-in-out;
+}
+
+.landing-typing-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.landing-typing-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes landing-typing-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-typing-dots span {
+    animation: none;
+    opacity: 0.7;
+  }
 }

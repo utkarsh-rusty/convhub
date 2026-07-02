@@ -17,6 +17,11 @@ export function useConversationRealtime(
   }, [initialMessages]);
 
   useEffect(() => {
+    setStreamingContent(null);
+    setTypingUsers({});
+  }, [conversationId]);
+
+  useEffect(() => {
     if (!conversationId) {
       return;
     }
