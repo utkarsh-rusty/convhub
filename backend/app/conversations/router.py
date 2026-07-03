@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.conversations.commits import ConversationCommitService
 from app.conversations.deps import (
     WorkspaceContext,
     get_conversation,
@@ -14,7 +15,14 @@ from app.conversations.deps import (
 )
 from app.conversations.insights import ConversationInsightsService
 from app.conversations.schemas import (
+    BranchFamilyOverviewResponse,
+    BranchManagerResponse,
     BranchTreeResponse,
+    CommitCreate,
+    CommitDetailResponse,
+    CommitGraphResponse,
+    CommitListItem,
+    CommitSearchResponse,
     ConversationBranchCreate,
     ConversationCompareResponse,
     ConversationCreate,
@@ -33,6 +41,7 @@ from app.conversations.service import ConversationService
 from app.models.conversation import Conversation
 
 conversations_router = APIRouter(prefix="/conversations", tags=["conversations"])
+commits_router = APIRouter(prefix="/commits", tags=["commits"])
 
 
 def get_conversation_service(db: AsyncSession = Depends(get_db)) -> ConversationService:
@@ -41,6 +50,10 @@ def get_conversation_service(db: AsyncSession = Depends(get_db)) -> Conversation
 
 def get_insights_service(db: AsyncSession = Depends(get_db)) -> ConversationInsightsService:
     return ConversationInsightsService(db=db)
+
+
+def get_commit_service(db: AsyncSession = Depends(get_db)) -> ConversationCommitService:
+    return ConversationCommitService(db=db)
 
 
 @conversations_router.post(
@@ -216,9 +229,67 @@ async def get_conversation_lineage(
 )
 async def get_branch_tree(
     conversation: Conversation = Depends(get_conversation),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
     service: ConversationInsightsService = Depends(get_insights_service),
 ) -> BranchTreeResponse:
-    return await service.get_branch_tree(conversation)
+    return await service.get_branch_tree(conversation, viewer_user_id=ctx.user.id)
+
+
+@conversations_router.get(
+    "/{conversation_id}/branch-manager",
+    response_model=BranchManagerResponse,
+)
+async def get_branch_manager(
+    conversation: Conversation = Depends(get_conversation),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: ConversationInsightsService = Depends(get_insights_service),
+) -> BranchManagerResponse:
+    return await service.get_branch_manager(conversation, viewer_user_id=ctx.user.id)
+
+
+@conversations_router.get(
+    "/{conversation_id}/commit-graph",
+    response_model=CommitGraphResponse,
+)
+async def get_commit_graph(
+    conversation: Conversation = Depends(get_conversation),
+    service: ConversationInsightsService = Depends(get_insights_service),
+) -> CommitGraphResponse:
+    return await service.get_commit_graph(conversation)
+
+
+@conversations_router.get(
+    "/{conversation_id}/family-overview",
+    response_model=BranchFamilyOverviewResponse,
+)
+async def get_family_overview(
+    conversation: Conversation = Depends(get_conversation),
+    service: ConversationInsightsService = Depends(get_insights_service),
+) -> BranchFamilyOverviewResponse:
+    return await service.get_family_overview(conversation)
+
+
+@conversations_router.get(
+    "/{conversation_id}/commits/search",
+    response_model=CommitSearchResponse,
+)
+async def search_commits(
+    conversation: Conversation = Depends(get_conversation),
+    q: str = Query(default="", max_length=500),
+    author: str = Query(default="", max_length=255),
+    provider: str = Query(default="", max_length=100),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    service: ConversationInsightsService = Depends(get_insights_service),
+) -> CommitSearchResponse:
+    return await service.search_commits_advanced(
+        conversation,
+        query=q,
+        author=author,
+        provider=provider,
+        date_from=date_from,
+        date_to=date_to,
+    )
 
 
 @conversations_router.get(
@@ -269,6 +340,46 @@ async def search_conversation_messages(
     service: ConversationInsightsService = Depends(get_insights_service),
 ) -> ConversationSearchResponse:
     return await service.search(conversation, q)
+
+
+@conversations_router.post(
+    "/{conversation_id}/commit",
+    response_model=CommitDetailResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_conversation_commit(
+    data: CommitCreate,
+    conversation: Conversation = Depends(get_participant_conversation),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: ConversationCommitService = Depends(get_commit_service),
+) -> CommitDetailResponse:
+    return await service.create_commit(conversation, ctx.user, data)
+
+
+@conversations_router.get(
+    "/{conversation_id}/commits",
+    response_model=list[CommitListItem],
+)
+async def list_conversation_commits(
+    conversation: Conversation = Depends(get_conversation),
+    service: ConversationCommitService = Depends(get_commit_service),
+) -> list[CommitListItem]:
+    return await service.list_commits(conversation.id)
+
+
+@commits_router.get("/{commit_hash}", response_model=CommitDetailResponse)
+async def get_commit_by_hash(
+    commit_hash: str,
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: ConversationCommitService = Depends(get_commit_service),
+) -> CommitDetailResponse:
+    detail = await service.get_commit_by_hash(commit_hash)
+    if detail.workspace_id != ctx.workspace_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Commit not found",
+        )
+    return detail
 
 
 async def _load_workspace_conversation(

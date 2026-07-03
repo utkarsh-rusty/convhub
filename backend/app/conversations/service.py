@@ -6,6 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.conversations.commits import ConversationCommitService
 from app.conversations.deps import WorkspaceContext
 from app.conversations.execution import load_execution_summaries
 from app.conversations.schemas import (
@@ -400,6 +401,9 @@ class ConversationService:
         user_names = await self._load_user_names(user_ids)
         message_counts = await self._load_message_counts(conversation_ids)
         ai_request_counts = await self._load_ai_request_counts(conversation_ids)
+        commit_counts = await ConversationCommitService(self.db).load_commit_counts(
+            conversation_ids
+        )
         return [
             self._to_conversation_response(
                 conversation,
@@ -413,6 +417,7 @@ class ConversationService:
                 ),
                 message_count=message_counts.get(conversation.id, 0),
                 ai_request_count=ai_request_counts.get(conversation.id, 0),
+                commit_count=commit_counts.get(conversation.id, 0),
             )
             for conversation in conversations
         ]
@@ -437,6 +442,7 @@ class ConversationService:
         created_by_name: str | None = None,
         message_count: int = 0,
         ai_request_count: int = 0,
+        commit_count: int = 0,
     ) -> ConversationResponse:
         is_participant = viewer_user_id is not None and any(
             participant.user_id == viewer_user_id for participant in participants
@@ -473,6 +479,7 @@ class ConversationService:
             participant_count=len(participants),
             message_count=message_count,
             ai_request_count=ai_request_count,
+            commit_count=commit_count,
             participants=participants,
         )
 

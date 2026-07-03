@@ -55,6 +55,7 @@ class ConversationResponse(BaseModel):
     participant_count: int = 0
     message_count: int = 0
     ai_request_count: int = 0
+    commit_count: int = 0
     participants: list[ConversationParticipantSummary] = Field(default_factory=list)
 
 
@@ -68,11 +69,85 @@ class BranchTreeNode(BaseModel):
     latest_activity_at: datetime
     message_count: int = 0
     participant_count: int = 0
+    commit_count: int = 0
+    commits_ahead: int = 0
+    commits_behind: int = 0
+    common_ancestor_commit_hash: str | None = None
+    archived_at: datetime | None = None
+    is_participant: bool = False
+    is_owned_by_viewer: bool = False
+    created_at: datetime | None = None
     children: list["BranchTreeNode"] = Field(default_factory=list)
 
 
 class BranchTreeResponse(BaseModel):
     root: BranchTreeNode
+
+
+class BranchManagerResponse(BaseModel):
+    root: BranchTreeNode
+    total_branches: int = 0
+    total_commits: int = 0
+    total_messages: int = 0
+    total_participants: int = 0
+
+
+class CommitGraphNode(BaseModel):
+    commit_hash: str
+    title: str
+    description: str | None = None
+    author_id: UUID
+    author_name: str
+    created_at: datetime
+    conversation_id: UUID
+    branch_name: str | None = None
+    conversation_title: str
+    parent_commit_hash: str | None = None
+    latest_message_id: UUID
+    providers: list[str] = Field(default_factory=list)
+    credits_used: str = "0"
+    borrowed_requests: int = 0
+
+
+class CommitGraphEdge(BaseModel):
+    source: str
+    target: str
+
+
+class CommitGraphResponse(BaseModel):
+    nodes: list[CommitGraphNode] = Field(default_factory=list)
+    edges: list[CommitGraphEdge] = Field(default_factory=list)
+
+
+class BranchFamilyOverviewResponse(BaseModel):
+    root_id: UUID
+    total_commits: int = 0
+    total_branches: int = 0
+    total_participants: int = 0
+    total_messages: int = 0
+    ai_request_count: int = 0
+    latest_activity: datetime | None = None
+    providers_used: list[str] = Field(default_factory=list)
+    credits_used: str = "0"
+
+
+class CommitSearchResult(BaseModel):
+    commit_hash: str
+    title: str
+    description: str | None = None
+    author_name: str
+    created_at: datetime
+    conversation_id: UUID
+    branch_name: str | None = None
+    latest_message_id: UUID
+    providers: list[str] = Field(default_factory=list)
+    match_reason: str
+
+
+class CommitSearchResponse(BaseModel):
+    conversation_id: UUID
+    query: str
+    results: list[CommitSearchResult] = Field(default_factory=list)
 
 
 class ComparisonMessage(BaseModel):
@@ -125,10 +200,76 @@ class SearchMessageMatch(BaseModel):
     context_after: list[ComparisonMessage] = Field(default_factory=list)
 
 
+class SearchCommitMatch(BaseModel):
+    commit_hash: str
+    title: str
+    description: str | None = None
+    created_by_name: str
+    created_at: datetime
+    latest_message_id: UUID
+
+
 class ConversationSearchResponse(BaseModel):
     conversation_id: UUID
     query: str
     matches: list[SearchMessageMatch] = Field(default_factory=list)
+    commit_matches: list[SearchCommitMatch] = Field(default_factory=list)
+
+
+class CommitCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=2000)
+    latest_message_id: UUID
+
+
+class CommitListItem(BaseModel):
+    commit_hash: str
+    title: str
+    description: str | None = None
+    created_by_id: UUID
+    created_by_name: str
+    created_at: datetime
+    latest_message_id: UUID
+    parent_commit_id: UUID | None = None
+    parent_commit_hash: str | None = None
+
+
+class CommitMessageSummary(BaseModel):
+    id: UUID
+    role: MessageRole
+    content: str
+    created_at: datetime
+    author_id: UUID | None = None
+
+
+class CommitRangeMetadata(BaseModel):
+    providers: list[str] = Field(default_factory=list)
+    models: list[str] = Field(default_factory=list)
+    execution_types: list[str] = Field(default_factory=list)
+    routing_policies: list[str] = Field(default_factory=list)
+    credits_used: str = "0"
+    borrowed_requests: int = 0
+    borrowed_from: list[str] = Field(default_factory=list)
+
+
+class CommitDetailResponse(BaseModel):
+    id: UUID
+    commit_hash: str
+    title: str
+    description: str | None = None
+    conversation_id: UUID
+    conversation_title: str
+    workspace_id: UUID
+    checkpoint_id: UUID
+    latest_message_id: UUID
+    parent_commit_id: UUID | None = None
+    parent_commit_hash: str | None = None
+    child_commit_hashes: list[str] = Field(default_factory=list)
+    created_by_id: UUID
+    created_by_name: str
+    created_at: datetime
+    message: CommitMessageSummary
+    range_metadata: CommitRangeMetadata
 
 
 class ConversationBranchCreate(BaseModel):

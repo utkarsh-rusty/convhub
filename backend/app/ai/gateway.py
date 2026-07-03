@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.ai.prompt_builder import PromptBuilder
 from app.ai.providers.factory import create_provider
 from app.ai_accounts.service import AIAccountService
+from app.conversations.commits import ConversationCommitService
 from app.conversations.execution import build_execution_summary
 from app.conversations.schemas import MessageResponse
 from app.core.config import Settings
@@ -250,6 +251,10 @@ class AIGateway:
                 )
                 self.db.add(assistant_message)
                 await self.db.flush()
+                await ConversationCommitService(self.db).create_checkpoint_for_message(
+                    conversation.id,
+                    assistant_message.id,
+                )
 
                 conversation.last_activity_at = completed_at
                 ai_request.assistant_message_id = assistant_message.id
