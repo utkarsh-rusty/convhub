@@ -93,8 +93,6 @@ See [docs/architecture/](docs/architecture/) for diagrams and ADRs.
 
 ## Screenshots
 
-Add PNG files under [`docs/images/`](docs/images/) using the names below, then commit them. GitHub will render each image automatically.
-
 ### Landing
 
 ![Landing](docs/images/landing.png)
