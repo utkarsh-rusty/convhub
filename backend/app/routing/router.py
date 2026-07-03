@@ -70,7 +70,11 @@ async def _routing_response(
     preview_context = RoutingContext(
         workspace=workspace,
         requesting_user=ctx.user,
-        conversation=Conversation(workspace_id=ctx.workspace_id, title="Routing Preview"),
+        conversation=Conversation(
+            workspace_id=ctx.workspace_id,
+            owner_id=ctx.user.id,
+            title="Routing Preview",
+        ),
         provider=None,
         model=None,
         estimated_cost=Decimal("0"),

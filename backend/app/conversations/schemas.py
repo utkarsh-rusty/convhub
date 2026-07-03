@@ -26,19 +26,53 @@ class ConversationUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
 
 
+class ConversationOwnerSummary(BaseModel):
+    user_id: UUID
+    name: str
+
+
 class ConversationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     workspace_id: UUID
     created_by_id: UUID | None
+    owner_id: UUID
+    owner: ConversationOwnerSummary | None = None
     title: str
     last_activity_at: datetime
     archived_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    parent_conversation_id: UUID | None = None
+    branch_from_message_id: UUID | None = None
+    branch_name: str | None = None
+    is_participant: bool = False
     participant_count: int = 0
     participants: list[ConversationParticipantSummary] = Field(default_factory=list)
+
+
+class ConversationBranchCreate(BaseModel):
+    message_id: UUID
+    branch_name: str | None = Field(default=None, max_length=255)
+
+
+class ConversationSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    title: str
+    branch_name: str | None = None
+    parent_conversation_id: UUID | None = None
+    branch_from_message_id: UUID | None = None
+    created_at: datetime
+    last_activity_at: datetime
+
+
+class ConversationLineageResponse(BaseModel):
+    root: ConversationSummary
+    ancestors: list[ConversationSummary] = Field(default_factory=list)
+    current: ConversationSummary
 
 
 class ConversationParticipantCreate(BaseModel):

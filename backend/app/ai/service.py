@@ -60,15 +60,9 @@ class ChatService:
         user_id: UUID,
     ) -> Conversation:
         result = await self.db.execute(
-            select(Conversation)
-            .join(
-                ConversationParticipant,
-                ConversationParticipant.conversation_id == Conversation.id,
-            )
-            .where(
+            select(Conversation).where(
                 Conversation.id == conversation_id,
                 Conversation.workspace_id == workspace_id,
-                ConversationParticipant.user_id == user_id,
             )
         )
         conversation = result.scalar_one_or_none()
@@ -76,6 +70,18 @@ class ChatService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Conversation not found",
+            )
+
+        participant_result = await self.db.execute(
+            select(ConversationParticipant).where(
+                ConversationParticipant.conversation_id == conversation.id,
+                ConversationParticipant.user_id == user_id,
+            )
+        )
+        if participant_result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not a participant in this conversation",
             )
         return conversation
 

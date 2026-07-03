@@ -46,5 +46,9 @@ class Message(UUIDPrimaryKeyMixin, Base):
         nullable=False,
     )
 
-    conversation: Mapped[Conversation] = relationship(back_populates="messages", lazy="selectin")
+    conversation: Mapped[Conversation] = relationship(
+        back_populates="messages",
+        lazy="selectin",
+        foreign_keys=[conversation_id],
+    )
     author: Mapped[User | None] = relationship(back_populates="messages", lazy="selectin")

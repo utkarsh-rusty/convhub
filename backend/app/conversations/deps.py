@@ -11,7 +11,6 @@ from app.auth.deps import get_current_user
 from app.demo.activation import bind_workspace_demo_context, reset_demo_context
 from app.models.conversation import Conversation
 from app.models.conversation_participant import ConversationParticipant
-from app.models.enums import ConversationParticipantRole
 from app.models.user import User
 from app.models.workspace_member import WorkspaceMember
 
@@ -94,18 +93,10 @@ async def get_participant_conversation(
 async def require_conversation_owner(
     conversation: Conversation = Depends(get_conversation),
     ctx: WorkspaceContext = Depends(get_workspace_context),
-    db: AsyncSession = Depends(get_db),
 ) -> Conversation:
-    result = await db.execute(
-        select(ConversationParticipant).where(
-            ConversationParticipant.conversation_id == conversation.id,
-            ConversationParticipant.user_id == ctx.user.id,
-            ConversationParticipant.role == ConversationParticipantRole.OWNER,
-        )
-    )
-    if result.scalar_one_or_none() is None:
+    if conversation.owner_id != ctx.user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only conversation owners can manage participants",
+            detail="Only the conversation owner can perform this action",
         )
     return conversation

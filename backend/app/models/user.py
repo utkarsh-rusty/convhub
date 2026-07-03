@@ -32,6 +32,12 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     conversations: Mapped[list[Conversation]] = relationship(
         back_populates="created_by",
+        foreign_keys="Conversation.created_by_id",
+        lazy="selectin",
+    )
+    owned_conversations: Mapped[list[Conversation]] = relationship(
+        back_populates="owner",
+        foreign_keys="Conversation.owner_id",
         lazy="selectin",
     )
     owned_workspaces: Mapped[list[Workspace]] = relationship(

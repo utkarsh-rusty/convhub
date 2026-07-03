@@ -98,7 +98,12 @@ async def test_consume_credits_deducts_balance(db_session: AsyncSession) -> None
     from app.models.enums import AIRequestStatus, MessageRole
     from app.models.message import Message
 
-    conversation = Conversation(id=uuid4(), workspace_id=workspace.id, title="Test")
+    conversation = Conversation(
+        id=uuid4(),
+        workspace_id=workspace.id,
+        owner_id=user.id,
+        title="Test",
+    )
     message = Message(
         id=uuid4(),
         conversation_id=conversation.id,

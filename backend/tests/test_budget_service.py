@@ -98,6 +98,7 @@ async def test_record_usage_updates_budget_and_ledger(db_session: AsyncSession) 
     conversation = Conversation(
         id=uuid4(),
         workspace_id=workspace.id,
+        owner_id=user.id,
         title="Budget Test",
     )
     user_message = Message(

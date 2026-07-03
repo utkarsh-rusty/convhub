@@ -124,6 +124,7 @@ async def test_load_execution_summaries(db_session: AsyncSession) -> None:
     conversation = Conversation(
         id=uuid4(),
         workspace_id=workspace.id,
+        owner_id=user.id,
         title="Exec Test",
         last_activity_at=datetime.now(UTC),
     )

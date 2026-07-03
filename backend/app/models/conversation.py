@@ -26,6 +26,8 @@ class Conversation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __table_args__ = (
         Index("ix_conversations_workspace_id", "workspace_id"),
         Index("ix_conversations_project_id", "project_id"),
+        Index("ix_conversations_parent_conversation_id", "parent_conversation_id"),
+        Index("ix_conversations_owner_id", "owner_id"),
     )
 
     workspace_id: Mapped[UUID] = mapped_column(
@@ -43,6 +45,11 @@ class Conversation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
+    owner_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
     title: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
@@ -55,16 +62,44 @@ class Conversation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    parent_conversation_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    branch_from_message_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("messages.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    branch_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     workspace: Mapped[Workspace] = relationship(back_populates="conversations", lazy="selectin")
     project: Mapped[Project | None] = relationship(back_populates="conversations", lazy="selectin")
-    created_by: Mapped[User | None] = relationship(back_populates="conversations", lazy="selectin")
+    created_by: Mapped[User | None] = relationship(
+        back_populates="conversations",
+        foreign_keys=[created_by_id],
+        lazy="selectin",
+    )
+    owner: Mapped[User] = relationship(
+        back_populates="owned_conversations",
+        foreign_keys=[owner_id],
+        lazy="selectin",
+    )
     messages: Mapped[list[Message]] = relationship(
         back_populates="conversation",
         lazy="selectin",
         cascade="all, delete-orphan",
+        foreign_keys="Message.conversation_id",
     )
     participants: Mapped[list[ConversationParticipant]] = relationship(
         back_populates="conversation",
         lazy="selectin",
         cascade="all, delete-orphan",
+    )
+    parent_conversation: Mapped[Conversation | None] = relationship(
+        "Conversation",
+        remote_side="Conversation.id",
+        foreign_keys=[parent_conversation_id],
+        lazy="selectin",
     )
