@@ -1,5 +1,9 @@
 # ConvHub Architecture
 
+ConvHub is **GitHub for AI Conversations** — a collaborative workspace where teams share conversation threads while each participant keeps ownership of their own AI providers.
+
+See [architecture/architecture-overview.md](architecture/architecture-overview.md) for the end-to-end flow.
+
 ## Core Principles
 
 ### 1. Workspace owns collaboration

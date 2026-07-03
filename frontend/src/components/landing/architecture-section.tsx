@@ -5,9 +5,10 @@ import {
   Building2,
   Coins,
   Factory,
-  GitBranch,
   MessageSquare,
+  Radio,
   Route,
+  Users,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -18,49 +19,70 @@ const NODES = [
     title: "Workspace",
     icon: Building2,
     summary: "Team boundary for members, roles, and budgets.",
-    detail: "Every request is scoped to a workspace with owner/admin/member roles and shared settings.",
+    detail: "Every request is scoped to a workspace with owner, admin, and member roles.",
   },
   {
     id: "conversation",
     title: "Conversation",
     icon: MessageSquare,
     summary: "Shared thread with participants and history.",
-    detail: "Multiple teammates collaborate in one conversation with live updates and presence.",
+    detail: "Multiple teammates collaborate in one conversation with full message history.",
+  },
+  {
+    id: "participants",
+    title: "Participants",
+    icon: Users,
+    summary: "Who is in the thread — and who can lend providers.",
+    detail: "Borrowing is limited to conversation participants who opted into auto-share.",
   },
   {
     id: "prompt",
     title: "Prompt Builder",
     icon: Brain,
-    summary: "Assembles context for the AI gateway.",
-    detail: "Messages, system context, and workspace policy are composed into a provider-ready prompt.",
+    summary: "Assembles context for the model.",
+    detail: "Messages, system context, and workspace policy become a provider-ready prompt.",
   },
   {
     id: "routing",
-    title: "Routing Engine",
+    title: "Ownership-first Routing",
     icon: Route,
-    summary: "Picks the best eligible AI account.",
-    detail: "Policies like priority, balanced, or cheapest select among active provider accounts.",
+    summary: "Uses the sender's AI accounts first.",
+    detail: "Routing policy selects among the sender's active providers before any fallback.",
+  },
+  {
+    id: "sender",
+    title: "Sender Providers",
+    icon: Factory,
+    summary: "The sender's own Claude, GPT, Groq, or Ollama accounts.",
+    detail: "Each user connects and owns their providers — ConvHub never replaces that ownership.",
   },
   {
     id: "borrow",
     title: "Borrow Engine",
     icon: Coins,
-    summary: "Extends credits across teammates.",
-    detail: "When personal credits run low, borrowing can pull from teammates who opted in to share.",
-  },
-  {
-    id: "factory",
-    title: "Provider Factory",
-    icon: Factory,
-    summary: "Unified interface to every LLM.",
-    detail: "Anthropic, OpenAI, Gemini, Groq, Ollama, and Mock share one abstraction layer.",
+    summary: "Only when the sender has no usable provider.",
+    detail: "Finds an eligible participant lender with remaining share credits.",
   },
   {
     id: "llm",
-    title: "LLM",
-    icon: GitBranch,
-    summary: "Streaming response back to the team.",
-    detail: "Responses stream over WebSockets so everyone sees tokens arrive in real time.",
+    title: "LLM Provider",
+    icon: Factory,
+    summary: "Executes the request and streams tokens.",
+    detail: "Anthropic, OpenAI, Gemini, Groq, Ollama, and Mock share one abstraction.",
+  },
+  {
+    id: "message",
+    title: "Assistant Message",
+    icon: MessageSquare,
+    summary: "Persisted reply with execution metadata.",
+    detail: "Own provider vs borrowed provider is recorded for transparency.",
+  },
+  {
+    id: "realtime",
+    title: "Realtime Broadcast",
+    icon: Radio,
+    summary: "Everyone sees updates instantly.",
+    detail: "WebSockets deliver messages, streaming tokens, presence, and credit events.",
   },
 ] as const;
 
@@ -70,11 +92,9 @@ export function ArchitectureSection() {
   return (
     <section id="architecture" className="border-y border-[var(--color-border)] bg-[var(--color-muted)]/20 px-6 py-20 md:py-28">
       <div className="mx-auto max-w-6xl">
-        <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
-          Designed like modern developer infrastructure.
-        </h2>
+        <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Architecture</h2>
         <p className="mt-4 max-w-2xl text-[var(--color-muted-foreground)]">
-          Hover or focus each layer to see how a prompt flows from workspace to model.
+          From shared conversation to assistant reply — ownership-first, borrow only when needed.
         </p>
 
         <div className="mt-12 hidden flex-col items-center gap-2 md:flex">

@@ -11,7 +11,7 @@ const NAV_LINKS: Array<
 > = [
   { href: "#features", label: "Features" },
   { href: "#architecture", label: "Architecture" },
-  { href: "#showcase", label: "Showcase" },
+  { href: "#roadmap", label: "Roadmap" },
   { href: SITE_LINKS.docs, label: "Docs", external: true },
 ];
 
@@ -90,8 +90,11 @@ export function LandingFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-8 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-lg font-semibold">ConvHub</p>
+          <p className="mt-1 max-w-sm text-sm text-[var(--color-muted-foreground)]">
+            Built in public. MIT licensed. Contributions welcome.
+          </p>
           <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-            Collaborative AI workspace for development teams.
+            GitHub for AI Conversations.
           </p>
           <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">v{APP_VERSION}</p>
         </div>

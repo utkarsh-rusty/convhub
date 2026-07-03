@@ -305,6 +305,7 @@ export const creditTransactionResponseSchema = z.object({
   transaction_type: z.enum(["allocation", "usage", "borrow", "lend", "adjustment"]),
   amount: z.string(),
   description: z.string(),
+  display_description: z.string(),
   created_at: z.string(),
 });
 

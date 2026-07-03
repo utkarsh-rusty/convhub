@@ -2,6 +2,8 @@
 
 Thank you for helping improve ConvHub!
 
+ConvHub is **GitHub for AI Conversations** — a collaborative AI workspace where teams share conversation threads while each person keeps ownership of their own providers. The project is in **early beta**; contributions to code, documentation, and issue triage are welcome.
+
 ## Local setup
 
 1. Fork and clone the repository.
@@ -22,9 +24,9 @@ Thank you for helping improve ConvHub!
 Use clear, imperative subjects:
 
 ```
-feat: add system health page for workspace admins
-fix: map 402 errors to friendly credit messages
-docs: expand architecture diagrams for realtime events
+feat: add conversation branching UI
+fix: show lender names in credit history
+docs: refresh landing page positioning
 ```
 
 ## Running tests
@@ -64,6 +66,10 @@ npm run build
 - Ensure backend tests pass and frontend builds.
 - Do not include secrets or `.env` files.
 - Fill out the PR template.
+
+## Documentation
+
+Positioning should describe ConvHub as **GitHub for AI Conversations**, not as an AI gateway or proxy. See [README.md](README.md) and [docs/](docs/) for the canonical messaging.
 
 ## Questions
 

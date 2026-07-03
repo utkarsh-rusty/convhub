@@ -7,6 +7,7 @@ from app.api.deps import get_db
 from app.models.enums import WorkspaceRole
 from app.models.workspace_member import WorkspaceMember
 from app.resource_management.budget_service import BudgetService
+from app.resource_management.transaction_labels import format_credit_transaction_display
 from app.resource_management.schemas import (
     BudgetResponse,
     CreditTransactionListResponse,
@@ -48,7 +49,24 @@ async def list_my_credit_history(
         offset=offset,
     )
     return CreditTransactionListResponse(
-        items=[CreditTransactionResponse.model_validate(item) for item in transactions],
+        items=[
+            CreditTransactionResponse(
+                id=item.id,
+                workspace_id=item.workspace_id,
+                request_id=item.request_id,
+                from_user_id=item.from_user_id,
+                to_user_id=item.to_user_id,
+                transaction_type=item.transaction_type,
+                amount=item.amount,
+                description=item.description,
+                display_description=format_credit_transaction_display(
+                    item,
+                    membership.user_id,
+                ),
+                created_at=item.created_at,
+            )
+            for item in transactions
+        ],
         total=total,
         limit=limit,
         offset=offset,

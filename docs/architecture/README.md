@@ -1,6 +1,12 @@
 # Architecture documentation
 
-ConvHub backend architecture notes and decision records.
+ConvHub is **GitHub for AI Conversations**. These documents describe how the system is structured and why key decisions were made.
+
+## Overview
+
+| Document | Description |
+|----------|-------------|
+| [architecture-overview.md](architecture-overview.md) | End-to-end request flow with diagram |
 
 ## Flow diagrams
 
@@ -16,6 +22,17 @@ ConvHub backend architecture notes and decision records.
 | Providers | [provider-abstraction.md](provider-abstraction.md) |
 | AI account ownership | [ai-account-ownership.md](ai-account-ownership.md) |
 | Prompt builder | [ADR-005-prompt-builder.md](ADR-005-prompt-builder.md) |
+
+## Architecture Decision Records (ADRs)
+
+| ADR | Title |
+|-----|-------|
+| [ADR-005](ADR-005-prompt-builder.md) | Prompt builder |
+| [ADR-006](ADR-006-credit-ledger.md) | Credit ledger |
+| [ADR-007](ADR-007-credit-policy.md) | Credit policy |
+| [ADR-008](ADR-008-routing-engine.md) | Routing engine |
+| [ADR-009](ADR-009-resource-sharing.md) | Resource sharing |
+| [ADR-010](ADR-010-ownership-first-routing.md) | Ownership-first routing |
 
 ## Principles
 

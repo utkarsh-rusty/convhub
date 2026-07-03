@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
+import { GitHubIcon } from "@/components/landing/github-icon";
 import { HeroConversationMock } from "@/components/landing/hero-conversation-mock";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { demoApi } from "@/lib/api";
-import { APP_HOME } from "@/lib/site";
+import { APP_HOME, SITE_LINKS } from "@/lib/site";
 
 export function HeroSection() {
   const { isAuthenticated } = useAuth();
@@ -24,37 +25,31 @@ export function HeroSection() {
       <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <div>
           <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-muted-foreground)]">
-            Open-source collaborative AI
+            ConvHub
           </p>
           <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight md:text-5xl lg:text-6xl">
-            Collaborate on AI conversations like developers collaborate on code.
+            GitHub for AI Conversations
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--color-muted-foreground)]">
-            ConvHub is an open-source collaborative AI workspace that lets teams share conversations,
-            route requests across multiple AI providers and accounts, manage budgets, borrow credits,
-            and collaborate in real time.
+            Continue conversations across Claude, ChatGPT, Groq, Gemini, and local models while
+            collaborating with your entire team in one shared workspace.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            {isAuthenticated ? (
-              <Button asChild size="lg" className="h-11 px-6 text-base">
-                <Link to={APP_HOME}>Open App</Link>
-              </Button>
-            ) : (
-              <>
-                <Button asChild size="lg" className="h-11 px-6 text-base">
-                  <Link to="/login">Launch App</Link>
-                </Button>
-                <Button asChild variant="outline" size="lg" className="h-11 px-6 text-base">
-                  <Link to="/login">Log in</Link>
-                </Button>
-              </>
-            )}
+            <Button asChild size="lg" className="h-11 px-6 text-base">
+              <Link to={isAuthenticated ? APP_HOME : "/login"}>Launch App</Link>
+            </Button>
             {demoEnabled ? (
               <Button asChild variant="outline" size="lg" className="h-11 px-6 text-base">
                 <Link to="/login">View Demo</Link>
               </Button>
             ) : null}
+            <Button asChild variant="outline" size="lg" className="h-11 px-6 text-base">
+              <a href={SITE_LINKS.github} target="_blank" rel="noreferrer">
+                <GitHubIcon className="mr-2 h-4 w-4" />
+                GitHub
+              </a>
+            </Button>
           </div>
         </div>
 

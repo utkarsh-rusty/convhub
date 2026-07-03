@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.credit_transaction import CreditTransaction
 from app.models.enums import CreditTransactionType
@@ -259,6 +260,10 @@ class BudgetService:
         result = await self.db.execute(
             select(CreditTransaction)
             .where(*base_filter)
+            .options(
+                selectinload(CreditTransaction.from_user),
+                selectinload(CreditTransaction.to_user),
+            )
             .order_by(CreditTransaction.created_at.desc())
             .limit(limit)
             .offset(offset)

@@ -34,6 +34,7 @@ class CreditTransactionResponse(BaseModel):
     transaction_type: CreditTransactionType
     amount: Decimal
     description: str
+    display_description: str
     created_at: datetime
 
 

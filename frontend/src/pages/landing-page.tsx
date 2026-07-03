@@ -3,9 +3,9 @@ import { DemoWorkspaceSection } from "@/components/landing/demo-workspace-sectio
 import { FeaturesSection } from "@/components/landing/features-section";
 import { HeroSection } from "@/components/landing/hero-section";
 import { LandingFooter, LandingHeader } from "@/components/landing/landing-chrome";
-import { OpenSourceSection } from "@/components/landing/open-source-section";
-import { ProductShowcase } from "@/components/landing/product-showcase";
-import { StoryTimeline } from "@/components/landing/story-timeline";
+import { OneConversationSection } from "@/components/landing/one-conversation-section";
+import { OwnershipFirstSection } from "@/components/landing/ownership-first-section";
+import { RoadmapSection } from "@/components/landing/roadmap-section";
 
 export function LandingPage() {
   return (
@@ -13,12 +13,12 @@ export function LandingPage() {
       <LandingHeader />
       <main>
         <HeroSection />
-        <StoryTimeline />
+        <OneConversationSection />
+        <OwnershipFirstSection />
         <FeaturesSection />
         <ArchitectureSection />
-        <ProductShowcase />
+        <RoadmapSection />
         <DemoWorkspaceSection />
-        <OpenSourceSection />
       </main>
       <LandingFooter />
     </div>

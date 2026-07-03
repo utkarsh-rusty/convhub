@@ -1,28 +1,45 @@
 # ConvHub Roadmap
 
-## ✅ v0.1
-Authentication
+ConvHub is **GitHub for AI Conversations** — a collaborative workspace where teams share AI threads while each person keeps ownership of their providers.
 
-## ✅ v0.2
-Workspaces
+## Phase 1 — Completed
 
-## ✅ v0.3
-Conversations
+- Authentication
+- Workspaces
+- Shared conversations
+- AI providers
+- Ownership routing
+- Borrow engine
+- Credits
+- Realtime collaboration
 
-## ✅ v0.4
-Frontend
+## Phase 2 — Next
 
-## 🚧 v0.5
-AI Gateway
+- Conversation branching
+- Fork conversations
+- Merge conversations
+- Timeline
+- Snapshots
 
-## 📅 v0.6
-VS Code Extension
+## Phase 3
 
-## 📅 v0.7
-Shared Provider Pools
+- Import ChatGPT conversations
+- Import Claude conversations
+- Import Gemini conversations
+- Markdown import/export
 
-## 📅 v0.8
-Provider Routing
+## Phase 4
 
-## 📅 v0.9
-Enterprise
+- Knowledge packs
+- Files
+- Search
+- Shared context
+- Long-term memory
+
+## Phase 5
+
+- Enterprise SSO
+- Analytics
+- Audit dashboard
+- Billing
+- Team administration

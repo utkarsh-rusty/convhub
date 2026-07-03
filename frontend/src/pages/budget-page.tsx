@@ -100,9 +100,9 @@ export function BudgetPage() {
                   className="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium capitalize">{tx.transaction_type}</p>
-                    <p className="truncate text-sm text-[var(--color-muted-foreground)]">
-                      {tx.description}
+                    <p className="font-medium">{tx.display_description}</p>
+                    <p className="truncate text-sm capitalize text-[var(--color-muted-foreground)]">
+                      {tx.transaction_type}
                     </p>
                   </div>
                   <div className="ml-4 text-right">

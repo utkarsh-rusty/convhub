@@ -316,3 +316,332 @@ async def test_zero_budget_sender_uses_own_provider(
     )
     assert response.status_code == 200
     assert response.json()["execution"]["execution_type"] == "own_provider"
+
+
+async def _enable_workspace_borrowing(
+    workspace_id: str,
+    *,
+    lender_user_id: str,
+    lender_name: str = "Alice",
+) -> None:
+    from app.resource_sharing.preference_service import LendingPreferenceService
+
+    session_factory = app.state.session_factory
+    async with session_factory() as db:
+        settings = await BudgetService(db).get_workspace_budget_settings(workspace_id)
+        settings.allow_credit_borrowing = True
+        pref = await LendingPreferenceService(db).get_my_preference(workspace_id, lender_user_id)
+        pref.auto_share_enabled = True
+        pref.monthly_share_limit = Decimal("2000")
+        await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_borrower_with_zero_providers_uses_lender_account(
+    client: AsyncClient,
+    member_workspace: tuple[WorkspaceContext, AuthContext],
+    monkeypatch,
+) -> None:
+    from app.ai.providers.mock import MockProvider
+
+    monkeypatch.setenv("AI_PROVIDER", "anthropic")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    monkeypatch.setattr("app.ai.gateway.create_provider", lambda **_: MockProvider())
+
+    workspace, borrower = member_workspace
+    await _enable_workspace_borrowing(
+        workspace.workspace_id,
+        lender_user_id=workspace.auth.user_id,
+        lender_name=workspace.auth.name,
+    )
+    await client.post(
+        "/ai-accounts",
+        headers=workspace.headers,
+        json={
+            "provider": "mock",
+            "display_name": "Alice Mock",
+            "api_key": "alice-key",
+            "priority": 0,
+        },
+    )
+
+    conv = await client.post(
+        "/conversations",
+        headers=borrower.headers,
+        json={"title": "Borrow zero providers"},
+    )
+    conv_id = conv.json()["id"]
+    await client.post(
+        f"/conversations/{conv_id}/participants",
+        headers=borrower.headers,
+        json={"user_ids": [workspace.auth.user_id]},
+    )
+
+    response = await client.post(
+        "/chat/send",
+        headers=borrower.headers,
+        json={"conversation_id": conv_id, "content": "Need Alice provider"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["execution"]["execution_type"] == "borrowed_provider"
+    assert body["execution"]["owner_name"] == workspace.auth.name
+    assert body["execution"]["borrowed_from"] == workspace.auth.name
+
+    get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_borrower_unhealthy_own_provider_borrows_lender(
+    client: AsyncClient,
+    member_workspace: tuple[WorkspaceContext, AuthContext],
+    monkeypatch,
+) -> None:
+    from app.ai.providers.mock import MockProvider
+
+    monkeypatch.setenv("AI_PROVIDER", "anthropic")
+    monkeypatch.setenv("APP_ENV", "production")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    monkeypatch.setattr("app.ai.gateway.create_provider", lambda **_: MockProvider())
+
+    workspace, borrower = member_workspace
+    await _enable_workspace_borrowing(
+        workspace.workspace_id,
+        lender_user_id=workspace.auth.user_id,
+    )
+
+    await client.post(
+        "/ai-accounts",
+        headers=borrower.headers,
+        json={
+            "provider": "openai",
+            "display_name": "Broken Bob",
+            "api_key": "",
+            "priority": 0,
+        },
+    )
+    await client.post(
+        "/ai-accounts",
+        headers=workspace.headers,
+        json={
+            "provider": "mock",
+            "display_name": "Alice Mock",
+            "api_key": "alice-key",
+            "priority": 0,
+        },
+    )
+
+    conv = await client.post(
+        "/conversations",
+        headers=borrower.headers,
+        json={"title": "Borrow after unhealthy"},
+    )
+    conv_id = conv.json()["id"]
+    await client.post(
+        f"/conversations/{conv_id}/participants",
+        headers=borrower.headers,
+        json={"user_ids": [workspace.auth.user_id]},
+    )
+
+    response = await client.post(
+        "/chat/send",
+        headers=borrower.headers,
+        json={"conversation_id": conv_id, "content": "Fallback to Alice"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["execution"]["execution_type"] == "borrowed_provider"
+
+    get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_borrower_zero_providers_no_lenders_returns_error(
+    client: AsyncClient,
+    member_workspace: tuple[WorkspaceContext, AuthContext],
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("AI_PROVIDER", "anthropic")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+
+    workspace, borrower = member_workspace
+    session_factory = app.state.session_factory
+    async with session_factory() as db:
+        settings = await BudgetService(db).get_workspace_budget_settings(workspace.workspace_id)
+        settings.allow_credit_borrowing = True
+        await db.commit()
+
+    conv = await client.post(
+        "/conversations",
+        headers=borrower.headers,
+        json={"title": "No lenders"},
+    )
+    conv_id = conv.json()["id"]
+    await client.post(
+        f"/conversations/{conv_id}/participants",
+        headers=borrower.headers,
+        json={"user_ids": [workspace.auth.user_id]},
+    )
+
+    response = await client.post(
+        "/chat/send",
+        headers=borrower.headers,
+        json={"conversation_id": conv_id, "content": "Should fail"},
+    )
+    assert response.status_code == 402
+    assert "All eligible AI accounts failed" in response.json()["detail"]
+
+    get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_borrower_zero_providers_creates_borrow_record_for_paid_provider(
+    client: AsyncClient,
+    member_workspace: tuple[WorkspaceContext, AuthContext],
+    monkeypatch,
+) -> None:
+    from app.ai.providers.mock import MockProvider
+
+    monkeypatch.setenv("AI_PROVIDER", "anthropic")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    monkeypatch.setattr("app.ai.gateway.create_provider", lambda **_: MockProvider())
+
+    workspace, borrower = member_workspace
+    await _enable_workspace_borrowing(
+        workspace.workspace_id,
+        lender_user_id=workspace.auth.user_id,
+    )
+
+    await client.post(
+        "/ai-accounts",
+        headers=workspace.headers,
+        json={
+            "provider": "anthropic",
+            "display_name": "Alice Anthropic",
+            "api_key": "alice-key",
+            "priority": 0,
+        },
+    )
+
+    conv = await client.post(
+        "/conversations",
+        headers=borrower.headers,
+        json={"title": "Borrow record"},
+    )
+    conv_id = conv.json()["id"]
+    await client.post(
+        f"/conversations/{conv_id}/participants",
+        headers=borrower.headers,
+        json={"user_ids": [workspace.auth.user_id]},
+    )
+
+    response = await client.post(
+        "/chat/send",
+        headers=borrower.headers,
+        json={"conversation_id": conv_id, "content": "Paid borrow"},
+    )
+    assert response.status_code == 200, response.text
+    execution = response.json()["execution"]
+    assert execution["execution_type"] == "borrowed_provider"
+    assert execution["borrowed_from"] == workspace.auth.name
+
+    session_factory = app.state.session_factory
+    async with session_factory() as db:
+        from sqlalchemy import select
+        from app.models.borrow_record import BorrowRecord
+
+        records = (
+            await db.execute(
+                select(BorrowRecord).where(BorrowRecord.workspace_id == workspace.workspace_id)
+            )
+        ).scalars().all()
+        assert len(records) == 1
+
+    get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_sender_provider_runtime_failure_retries_with_borrow(
+    client: AsyncClient,
+    member_workspace: tuple[WorkspaceContext, AuthContext],
+    monkeypatch,
+) -> None:
+    from app.ai.providers.mock import MockProvider
+
+    monkeypatch.setenv("AI_PROVIDER", "anthropic")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+
+    attempts = {"count": 0}
+
+    class FailOnceProvider:
+        supports_streaming = False
+
+        async def generate(self, prompt_context, model_name):
+            attempts["count"] += 1
+            if attempts["count"] == 1:
+                raise RuntimeError("rate limited")
+            return await MockProvider().generate(prompt_context, model_name)
+
+    monkeypatch.setattr(
+        "app.ai.gateway.create_provider",
+        lambda **_: FailOnceProvider(),
+    )
+
+    workspace, borrower = member_workspace
+    await _enable_workspace_borrowing(
+        workspace.workspace_id,
+        lender_user_id=workspace.auth.user_id,
+    )
+
+    await client.post(
+        "/ai-accounts",
+        headers=borrower.headers,
+        json={
+            "provider": "mock",
+            "display_name": "Bob Mock",
+            "api_key": "bob-key",
+            "priority": 0,
+        },
+    )
+    await client.post(
+        "/ai-accounts",
+        headers=workspace.headers,
+        json={
+            "provider": "mock",
+            "display_name": "Alice Mock",
+            "api_key": "alice-key",
+            "priority": 0,
+        },
+    )
+
+    conv = await client.post(
+        "/conversations",
+        headers=borrower.headers,
+        json={"title": "Runtime borrow retry"},
+    )
+    conv_id = conv.json()["id"]
+    await client.post(
+        f"/conversations/{conv_id}/participants",
+        headers=borrower.headers,
+        json={"user_ids": [workspace.auth.user_id]},
+    )
+
+    response = await client.post(
+        "/chat/send",
+        headers=borrower.headers,
+        json={"conversation_id": conv_id, "content": "Retry borrow"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["execution"]["execution_type"] == "borrowed_provider"
+    assert attempts["count"] == 2
+
+    get_settings.cache_clear()

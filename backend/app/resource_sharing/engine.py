@@ -11,6 +11,7 @@ from app.models.borrow_record import BorrowRecord
 from app.models.credit_transaction import CreditTransaction
 from app.models.enums import BorrowStrategyType, CreditTransactionType
 from app.models.lending_preference import LendingPreference
+from app.models.user import User
 from app.models.user_budget import UserBudget
 from app.models.workspace_member import WorkspaceMember
 from app.resource_management.budget_service import BudgetService
@@ -179,6 +180,10 @@ class BorrowEngine:
         if not self.validate_lender(lender.preference, lender_budget, amount):
             return None
 
+        user_names = await self._load_user_names(lender.user_id, borrower_user_id)
+        lender_name = user_names[lender.user_id]
+        borrower_name = user_names[borrower_user_id]
+
         lend_transaction = CreditTransaction(
             workspace_id=workspace_id,
             request_id=None,
@@ -186,7 +191,7 @@ class BorrowEngine:
             to_user_id=borrower_user_id,
             transaction_type=CreditTransactionType.LEND,
             amount=amount,
-            description=f"Lend credits to user {borrower_user_id}",
+            description=f"{lender_name} lent credits to {borrower_name}",
         )
         self.db.add(lend_transaction)
 
@@ -200,7 +205,7 @@ class BorrowEngine:
             to_user_id=borrower_user_id,
             transaction_type=CreditTransactionType.BORROW,
             amount=amount,
-            description=f"Borrow credits from user {lender.user_id}",
+            description=f"{borrower_name} borrowed credits from {lender_name}",
         )
         self.db.add(borrow_transaction)
 
@@ -247,6 +252,13 @@ class BorrowEngine:
             reservation.borrower_user_id,
         )
 
+        user_names = await self._load_user_names(
+            reservation.lender_user_id,
+            reservation.borrower_user_id,
+        )
+        lender_name = user_names[reservation.lender_user_id]
+        borrower_name = user_names[reservation.borrower_user_id]
+
         self.db.add(
             CreditTransaction(
                 workspace_id=reservation.workspace_id,
@@ -255,9 +267,7 @@ class BorrowEngine:
                 to_user_id=reservation.lender_user_id,
                 transaction_type=CreditTransactionType.ADJUSTMENT,
                 amount=reservation.amount,
-                description=(
-                    f"Release borrowed credits back to lender {reservation.lender_user_id}"
-                ),
+                description=f"{borrower_name} returned borrowed credits to {lender_name}",
             )
         )
         lender_budget.remaining_credits += reservation.amount
@@ -273,3 +283,13 @@ class BorrowEngine:
         )
 
         await self.db.flush()
+
+    async def _load_user_names(self, *user_ids: UUID) -> dict[UUID, str]:
+        unique_ids = list(dict.fromkeys(user_ids))
+        if not unique_ids:
+            return {}
+
+        result = await self.db.execute(select(User).where(User.id.in_(unique_ids)))
+        users = result.scalars().all()
+        names = {user.id: user.name.strip() for user in users if user.name.strip()}
+        return {user_id: names.get(user_id, "Unknown user") for user_id in unique_ids}
