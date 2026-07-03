@@ -8,8 +8,7 @@
 
 > Git versions code. ConvHub versions knowledge.
 
-<!-- Screenshot placeholder: Landing page -->
-<!-- ![Landing](docs/images/landing.png) -->
+![Landing](docs/images/landing.png)
 
 ## Vision
 
@@ -94,14 +93,31 @@ See [docs/architecture/](docs/architecture/) for diagrams and ADRs.
 
 ## Screenshots
 
-| Screen | Placeholder |
-|--------|-------------|
-| Landing | `docs/images/landing.png` |
-| Conversation | `docs/images/conversation.png` |
-| Branching | `docs/images/branching.png` |
-| Commit graph | `docs/images/commit-graph.png` |
-| Dashboard | `docs/images/dashboard.png` |
-| Providers | `docs/images/providers.png` |
+Add PNG files under [`docs/images/`](docs/images/) using the names below, then commit them. GitHub will render each image automatically.
+
+### Landing
+
+![Landing](docs/images/landing.png)
+
+### Conversation
+
+![Conversation](docs/images/conversation.png)
+
+### Branching
+
+![Branching](docs/images/branching.png)
+
+### Commit graph
+
+![Commit graph](docs/images/commit-graph.png)
+
+### Dashboard
+
+![Dashboard](docs/images/dashboard.png)
+
+### Providers
+
+![Providers](docs/images/providers.png)
 
 ## Development
 
