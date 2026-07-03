@@ -11,7 +11,6 @@ import { useSocket } from "@/context/socket-context";
 import { useWorkspace } from "@/context/workspace-context";
 import { messageCreateSchema, type MessageCreateForm } from "@/types/api";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 
 interface MessageComposerProps {
   conversationId: string;
@@ -23,17 +22,34 @@ export function MessageComposer({ conversationId, onGeneratingChange }: MessageC
   const { activeWorkspaceId } = useWorkspace();
   const { sendTyping } = useSocket();
   const typingTimeoutRef = useRef<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const {
     register,
     handleSubmit,
     reset,
     getValues,
+    watch,
     formState: { errors },
   } = useForm<MessageCreateForm>({
     resolver: zodResolver(messageCreateSchema),
     defaultValues: { content: "" },
   });
+
+  const contentValue = watch("content");
+  const { ref: contentRef, ...contentRegister } = register("content");
+
+  const resizeTextarea = (element: HTMLTextAreaElement | null) => {
+    if (!element) {
+      return;
+    }
+    element.style.height = "auto";
+    element.style.height = `${Math.min(element.scrollHeight, 160)}px`;
+  };
+
+  useEffect(() => {
+    resizeTextarea(textareaRef.current);
+  }, [contentValue]);
 
   const invalidateMessages = () => {
     void queryClient.invalidateQueries({ queryKey: ["messages", conversationId] });
@@ -101,15 +117,21 @@ export function MessageComposer({ conversationId, onGeneratingChange }: MessageC
   const isPending = sendMutation.isPending || askAiMutation.isPending;
 
   return (
-    <div className="border-t border-[var(--color-border)] bg-[var(--color-card)] px-6 py-4">
-      <form onSubmit={onSubmit} className="flex items-end gap-3">
-        <div className="flex-1 space-y-2">
-          <Textarea
+    <div className="shrink-0 border-t border-[var(--color-border)] bg-[var(--color-card)] px-4 py-2.5 sm:px-5">
+      <form onSubmit={onSubmit} className="relative">
+        <div className="flex items-end gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-2 py-1.5 shadow-sm focus-within:ring-1 focus-within:ring-[var(--color-ring)]">
+          <textarea
             placeholder="Write a message..."
-            rows={3}
-            {...register("content")}
+            rows={1}
+            className="max-h-40 min-h-[36px] flex-1 resize-none bg-transparent px-2 py-1.5 text-sm leading-5 outline-none placeholder:text-[var(--color-muted-foreground)]"
+            {...contentRegister}
+            ref={(element) => {
+              contentRef(element);
+              textareaRef.current = element;
+            }}
             onChange={(event) => {
-              register("content").onChange(event);
+              void contentRegister.onChange(event);
+              resizeTextarea(event.currentTarget);
               if (event.target.value.trim()) {
                 handleTyping();
               } else {
@@ -126,27 +148,34 @@ export function MessageComposer({ conversationId, onGeneratingChange }: MessageC
               }
             }}
           />
-          {errors.content && (
-            <p className="text-sm text-[var(--color-destructive)]">{errors.content.message}</p>
-          )}
-          <p className="text-xs text-[var(--color-muted-foreground)]">
-            Press Enter to send · Shift+Enter for a new line
-          </p>
+          <div className="flex shrink-0 items-center gap-0.5 pb-0.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              disabled={isPending}
+              onClick={() => void onAskAi()}
+              aria-label="Ask AI"
+              title="Ask AI"
+            >
+              <Sparkles className={cn("h-4 w-4", askAiMutation.isPending && "animate-spin")} />
+            </Button>
+            <Button
+              type="submit"
+              size="icon"
+              className="h-8 w-8"
+              disabled={isPending}
+              aria-label="Send message"
+              title="Send"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={isPending}
-            onClick={() => void onAskAi()}
-          >
-            <Sparkles className={cn("mr-2 h-4 w-4", askAiMutation.isPending && "animate-spin")} />
-            {askAiMutation.isPending ? "Generating..." : "Ask AI"}
-          </Button>
-          <Button type="submit" disabled={isPending} aria-label="Send message">
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
+        {errors.content ? (
+          <p className="mt-1 text-xs text-[var(--color-destructive)]">{errors.content.message}</p>
+        ) : null}
       </form>
     </div>
   );

@@ -23,8 +23,20 @@ import {
   pendingInvitationResponseSchema,
   invitationPreviewResponseSchema,
   workspaceBudgetSettingsSchema,
+  branchFamilyOverviewResponseSchema,
+  branchManagerResponseSchema,
+  branchTreeResponseSchema,
+  commitDetailResponseSchema,
+  commitGraphResponseSchema,
+  commitListItemSchema,
+  commitSearchResponseSchema,
+  conversationCompareResponseSchema,
+  conversationLineageResponseSchema,
   conversationParticipantResponseSchema,
   conversationResponseSchema,
+  conversationSearchResponseSchema,
+  conversationStatsResponseSchema,
+  conversationTimelineResponseSchema,
   messageResponseSchema,
   tokenResponseSchema,
   userResponseSchema,
@@ -259,6 +271,99 @@ export const conversationApi = {
 
   async removeParticipant(conversationId: string, userId: string) {
     await api.delete(`/conversations/${conversationId}/participants/${userId}`);
+  },
+
+  async createBranch(
+    conversationId: string,
+    payload: { message_id: string; branch_name?: string },
+  ) {
+    const { data } = await api.post(`/conversations/${conversationId}/branch`, payload);
+    return conversationResponseSchema.parse(data);
+  },
+
+  async listBranches(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/branches`);
+    return conversationResponseSchema.array().parse(data);
+  },
+
+  async getLineage(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/lineage`);
+    return conversationLineageResponseSchema.parse(data);
+  },
+
+  async getBranchTree(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/branch-tree`);
+    return branchTreeResponseSchema.parse(data);
+  },
+
+  async getBranchManager(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/branch-manager`);
+    return branchManagerResponseSchema.parse(data);
+  },
+
+  async getCommitGraph(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/commit-graph`);
+    return commitGraphResponseSchema.parse(data);
+  },
+
+  async getFamilyOverview(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/family-overview`);
+    return branchFamilyOverviewResponseSchema.parse(data);
+  },
+
+  async searchCommits(
+    conversationId: string,
+    params: {
+      q?: string;
+      author?: string;
+      provider?: string;
+      date_from?: string;
+      date_to?: string;
+    },
+  ) {
+    const { data } = await api.get(`/conversations/${conversationId}/commits/search`, { params });
+    return commitSearchResponseSchema.parse(data);
+  },
+
+
+  async compare(leftId: string, rightId: string) {
+    const { data } = await api.get(`/conversations/${leftId}/compare/${rightId}`);
+    return conversationCompareResponseSchema.parse(data);
+  },
+
+  async getTimeline(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/timeline`);
+    return conversationTimelineResponseSchema.parse(data);
+  },
+
+  async getStats(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/stats`);
+    return conversationStatsResponseSchema.parse(data);
+  },
+
+  async search(conversationId: string, query: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/search`, {
+      params: { q: query },
+    });
+    return conversationSearchResponseSchema.parse(data);
+  },
+
+  async createCommit(
+    conversationId: string,
+    payload: { title: string; description?: string; latest_message_id: string },
+  ) {
+    const { data } = await api.post(`/conversations/${conversationId}/commit`, payload);
+    return commitDetailResponseSchema.parse(data);
+  },
+
+  async listCommits(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/commits`);
+    return commitListItemSchema.array().parse(data);
+  },
+
+  async getCommit(commitHash: string) {
+    const { data } = await api.get(`/commits/${commitHash}`);
+    return commitDetailResponseSchema.parse(data);
   },
 };
 

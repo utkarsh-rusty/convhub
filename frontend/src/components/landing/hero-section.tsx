@@ -6,7 +6,7 @@ import { HeroConversationMock } from "@/components/landing/hero-conversation-moc
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/auth-context";
 import { demoApi } from "@/lib/api";
-import { APP_HOME, SITE_LINKS } from "@/lib/site";
+import { APP_HOME, APP_VERSION, SITE_LINKS } from "@/lib/site";
 
 export function HeroSection() {
   const { isAuthenticated } = useAuth();
@@ -24,15 +24,29 @@ export function HeroSection() {
 
       <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <div>
-          <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-muted-foreground)]">
-            ConvHub
-          </p>
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-[var(--color-muted-foreground)]">
+              ConvHub
+            </p>
+            <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+              v{APP_VERSION}
+            </span>
+            <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+              Early beta
+            </span>
+            <span className="rounded-full border border-[var(--color-border)] px-2 py-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+              MIT
+            </span>
+          </div>
           <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight md:text-5xl lg:text-6xl">
-            GitHub for AI Conversations
+            Git for AI-native Project Memory
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--color-muted-foreground)]">
-            Continue conversations across Claude, ChatGPT, Groq, Gemini, and local models while
-            collaborating with your entire team in one shared workspace.
+            Shared AI conversations with ownership-first routing, branching, commits, and realtime
+            collaboration — while everyone keeps their own providers.
+          </p>
+          <p className="mt-4 text-sm font-medium text-[var(--color-foreground)]">
+            Git versions code. ConvHub versions project knowledge.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">

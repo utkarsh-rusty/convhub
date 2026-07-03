@@ -1,45 +1,95 @@
 # ConvHub Roadmap
 
-ConvHub is **GitHub for AI Conversations** — a collaborative workspace where teams share AI threads while each person keeps ownership of their providers.
+**Git for AI-native Project Memory.**
 
-## Phase 1 — Completed
+Every item is categorized. Future work is never described as shipped.
 
-- Authentication
-- Workspaces
-- Shared conversations
-- AI providers
-- Ownership routing
-- Borrow engine
-- Credits
-- Realtime collaboration
+| Status | Meaning |
+|--------|---------|
+| **Implemented** | Available in the current codebase |
+| **In Progress** | Actively being built right now |
+| **Planned** | Intended for a named release; not built yet |
+| **Research** | Exploratory; design may change |
 
-## Phase 2 — Next
+---
 
+## Implemented — v1.0
+
+**Status: Implemented**
+
+- Authentication and workspaces
+- Shared conversations and participants
+- Multi-provider AI accounts
+- Ownership-first routing
+- Borrowing engine
+- Budgets and credit ledger
+- Realtime collaboration (WebSockets, streaming, presence)
 - Conversation branching
-- Fork conversations
-- Merge conversations
-- Timeline
-- Snapshots
+- Conversation commits and checkpoints
+- Branch manager, commit graph, and overview visualization
+- Open-source MIT distribution
 
-## Phase 3
+---
 
-- Import ChatGPT conversations
-- Import Claude conversations
-- Import Gemini conversations
-- Markdown import/export
+## In Progress
 
-## Phase 4
+**Status: In Progress**
 
-- Knowledge packs
-- Files
-- Search
-- Shared context
-- Long-term memory
+_Nothing currently marked in progress. Active work will be listed here when a release track is underway._
 
-## Phase 5
+---
 
-- Enterprise SSO
-- Analytics
-- Audit dashboard
-- Billing
-- Team administration
+## Planned — v1.1 Project Memory
+
+**Status: Planned**
+
+- Project Memory model
+- Context Packages
+- Context Restore
+- Decision Tracking
+- Timeline of project knowledge events
+
+---
+
+## Planned — v1.2 Projects & Git linkage
+
+**Status: Planned**
+
+- First-class Projects
+- Git metadata on projects
+- Git repository linkage
+- Map conversations and commits to repos/branches (metadata only)
+
+---
+
+## Planned — v1.3 VS Code Extension
+
+**Status: Planned**
+
+- VS Code extension
+- Push Context from the IDE
+- Pull Context into the IDE
+- Git synchronization with ConvHub project memory
+
+---
+
+## Planned — v1.4 IDE adapters
+
+**Status: Planned**
+
+- Claude Code adapter
+- Cursor adapter
+- Codex adapter
+- Continue adapter
+
+---
+
+## Research — v2.0 Semantic memory & merge
+
+**Status: Research**
+
+- Semantic Context Restore
+- Conversation Merge
+- Knowledge Graph
+- Cross-repository Memory
+- AI Merge Assistant

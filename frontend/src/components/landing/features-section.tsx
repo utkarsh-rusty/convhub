@@ -1,9 +1,10 @@
 import {
   Coins,
-  MessageSquare,
+  GitBranch,
+  GitCommit,
+  Network,
   Radio,
   Server,
-  Shield,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -13,58 +14,85 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const CATEGORIES = [
   {
-    title: "Collaboration",
+    title: "Workspace collaboration",
     icon: Users,
     features: [
-      "Shared conversations with multiple participants",
-      "Live collaboration, presence, and typing indicators",
-      "Conversation permissions per workspace",
+      "Shared workspaces and invitations",
+      "Conversation participants and ownership",
+      "Live presence and typing indicators",
     ],
   },
   {
-    title: "AI Orchestration",
+    title: "Ownership-first routing",
     icon: Sparkles,
     features: [
-      "Ownership-first routing across your providers",
-      "Automatic failover and participant borrowing",
+      "Routes through the sender's own providers first",
+      "Multi-provider accounts per user",
       "Anthropic, OpenAI, Gemini, Groq, and Ollama",
     ],
     providers: ["OpenAI", "Anthropic", "Gemini", "Groq", "Ollama"] as const,
   },
   {
-    title: "Realtime",
+    title: "Borrowing engine",
+    icon: Coins,
+    features: [
+      "Borrow providers from conversation participants",
+      "Lending preferences and share limits",
+      "Transparent borrowed execution metadata",
+    ],
+  },
+  {
+    title: "Conversation branching",
+    icon: GitBranch,
+    features: [
+      "Branch from any message",
+      "Independent branch ownership",
+      "Lineage and read-only branch viewing",
+    ],
+  },
+  {
+    title: "Conversation commits",
+    icon: GitCommit,
+    features: [
+      "Manual commits with Git-like hashes",
+      "Automatic checkpoints after assistant replies",
+      "Commit history and deep links",
+    ],
+  },
+  {
+    title: "Branch visualization",
+    icon: Network,
+    features: [
+      "Branch manager and overview",
+      "Commit graph across a conversation family",
+      "Ahead / behind status metadata",
+    ],
+  },
+  {
+    title: "Realtime collaboration",
     icon: Radio,
     features: [
       "WebSocket streaming responses",
       "Live credit and routing events",
-      "Instant message sync for every participant",
+      "Instant message sync for participants",
     ],
   },
   {
-    title: "Governance",
+    title: "Budget management",
     icon: Coins,
     features: [
       "Workspace budgets and credit ledger",
       "Borrow limits and lending preferences",
-      "Routing policies and AI account ownership",
+      "Routing policies and account ownership",
     ],
   },
   {
-    title: "Open Source",
+    title: "Provider management",
     icon: Server,
     features: [
-      "MIT licensed — clone and run locally",
-      "Docker Compose for quick setup",
-      "REST API and documented architecture",
-    ],
-  },
-  {
-    title: "Enterprise Ready",
-    icon: Shield,
-    features: [
-      "JWT authentication and workspace isolation",
-      "Role-based permissions and audit trail",
-      "Provider abstraction — no vendor lock-in",
+      "Connect and own your AI accounts",
+      "Provider health and priority",
+      "No vendor lock-in",
     ],
   },
 ] as const;
@@ -73,16 +101,13 @@ export function FeaturesSection() {
   return (
     <section id="features" className="px-6 py-20 md:py-28">
       <div className="mx-auto max-w-6xl">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-muted)]">
-            <MessageSquare className="h-5 w-5" aria-hidden="true" />
-          </div>
-          <div>
-            <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Features</h2>
-            <p className="mt-4 max-w-2xl text-[var(--color-muted-foreground)]">
-              Everything your team needs to collaborate on AI conversations — with governance built in.
-            </p>
-          </div>
+        <div>
+          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
+            Features available today
+          </h2>
+          <p className="mt-4 max-w-2xl text-[var(--color-muted-foreground)]">
+            Only implemented capabilities. Roadmap items live in the Vision section below.
+          </p>
         </div>
 
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

@@ -21,15 +21,23 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 interface InviteParticipantsDialogProps {
   conversationId: string;
   participantUserIds: string[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 export function InviteParticipantsDialog({
   conversationId,
   participantUserIds,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger = false,
 }: InviteParticipantsDialogProps) {
   const queryClient = useQueryClient();
   const { activeWorkspaceId } = useWorkspace();
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = onOpenChange ?? setUncontrolledOpen;
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -78,12 +86,14 @@ export function InviteParticipantsDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <UserPlus className="mr-2 h-4 w-4" />
-          Invite
-        </Button>
-      </DialogTrigger>
+      {hideTrigger ? null : (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">
+            <UserPlus className="mr-2 h-4 w-4" />
+            Invite
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Invite participants</DialogTitle>

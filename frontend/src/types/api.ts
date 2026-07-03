@@ -192,17 +192,272 @@ export const conversationParticipantSummarySchema = z.object({
   role: conversationParticipantRoleSchema,
 });
 
+export const conversationOwnerSummarySchema = z.object({
+  user_id: z.string().uuid(),
+  name: z.string(),
+});
+
 export const conversationResponseSchema = z.object({
   id: z.string().uuid(),
   workspace_id: z.string().uuid(),
   created_by_id: z.string().uuid().nullable(),
+  owner_id: z.string().uuid(),
+  owner: conversationOwnerSummarySchema.nullable().optional(),
+  owner_name: z.string().nullable().optional(),
+  created_by_name: z.string().nullable().optional(),
   title: z.string(),
   last_activity_at: z.string(),
+  latest_activity_at: z.string().nullable().optional(),
   archived_at: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
+  parent_conversation_id: z.string().uuid().nullable().optional(),
+  branch_from_message_id: z.string().uuid().nullable().optional(),
+  branch_name: z.string().nullable().optional(),
+  is_participant: z.boolean().default(false),
   participant_count: z.number().default(0),
+  message_count: z.number().default(0),
+  ai_request_count: z.number().default(0),
+  commit_count: z.number().default(0),
   participants: z.array(conversationParticipantSummarySchema).default([]),
+});
+
+export type BranchTreeNode = {
+  id: string;
+  title: string;
+  branch_name?: string | null;
+  parent_conversation_id?: string | null;
+  owner_id: string;
+  owner_name?: string | null;
+  latest_activity_at: string;
+  message_count: number;
+  participant_count: number;
+  commit_count: number;
+  commits_ahead: number;
+  commits_behind: number;
+  common_ancestor_commit_hash?: string | null;
+  archived_at?: string | null;
+  is_participant: boolean;
+  is_owned_by_viewer: boolean;
+  created_at?: string | null;
+  children: BranchTreeNode[];
+};
+
+export const branchTreeNodeSchema: z.ZodType<BranchTreeNode> = z.lazy(() =>
+  z.object({
+    id: z.string().uuid(),
+    title: z.string(),
+    branch_name: z.string().nullable().optional(),
+    parent_conversation_id: z.string().uuid().nullable().optional(),
+    owner_id: z.string().uuid(),
+    owner_name: z.string().nullable().optional(),
+    latest_activity_at: z.string(),
+    message_count: z.number().default(0),
+    participant_count: z.number().default(0),
+    commit_count: z.number().default(0),
+    commits_ahead: z.number().default(0),
+    commits_behind: z.number().default(0),
+    common_ancestor_commit_hash: z.string().nullable().optional(),
+    archived_at: z.string().nullable().optional(),
+    is_participant: z.boolean().default(false),
+    is_owned_by_viewer: z.boolean().default(false),
+    created_at: z.string().nullable().optional(),
+    children: z.array(branchTreeNodeSchema).default([]),
+  }),
+);
+
+export const branchTreeResponseSchema = z.object({
+  root: branchTreeNodeSchema,
+});
+
+export const branchManagerResponseSchema = z.object({
+  root: branchTreeNodeSchema,
+  total_branches: z.number().default(0),
+  total_commits: z.number().default(0),
+  total_messages: z.number().default(0),
+  total_participants: z.number().default(0),
+});
+
+export const commitGraphNodeSchema = z.object({
+  commit_hash: z.string(),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  author_id: z.string().uuid(),
+  author_name: z.string(),
+  created_at: z.string(),
+  conversation_id: z.string().uuid(),
+  branch_name: z.string().nullable().optional(),
+  conversation_title: z.string(),
+  parent_commit_hash: z.string().nullable().optional(),
+  latest_message_id: z.string().uuid(),
+  providers: z.array(z.string()).default([]),
+  credits_used: z.string().default("0"),
+  borrowed_requests: z.number().default(0),
+});
+
+export const commitGraphEdgeSchema = z.object({
+  source: z.string(),
+  target: z.string(),
+});
+
+export const commitGraphResponseSchema = z.object({
+  nodes: z.array(commitGraphNodeSchema).default([]),
+  edges: z.array(commitGraphEdgeSchema).default([]),
+});
+
+export const branchFamilyOverviewResponseSchema = z.object({
+  root_id: z.string().uuid(),
+  total_commits: z.number(),
+  total_branches: z.number(),
+  total_participants: z.number(),
+  total_messages: z.number(),
+  ai_request_count: z.number(),
+  latest_activity: z.string().nullable().optional(),
+  providers_used: z.array(z.string()).default([]),
+  credits_used: z.string(),
+});
+
+export const commitSearchResultSchema = z.object({
+  commit_hash: z.string(),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  author_name: z.string(),
+  created_at: z.string(),
+  conversation_id: z.string().uuid(),
+  branch_name: z.string().nullable().optional(),
+  latest_message_id: z.string().uuid(),
+  providers: z.array(z.string()).default([]),
+  match_reason: z.string(),
+});
+
+export const commitSearchResponseSchema = z.object({
+  conversation_id: z.string().uuid(),
+  query: z.string(),
+  results: z.array(commitSearchResultSchema).default([]),
+});
+
+export const comparisonMessageSchema = z.object({
+  id: z.string().uuid(),
+  role: messageRoleSchema,
+  content: z.string(),
+  created_at: z.string(),
+  author_id: z.string().uuid().nullable().optional(),
+});
+
+export const conversationCompareResponseSchema = z.object({
+  left_id: z.string().uuid(),
+  right_id: z.string().uuid(),
+  common_ancestor_id: z.string().uuid().nullable().optional(),
+  shared_messages: z.array(comparisonMessageSchema).default([]),
+  left_only: z.array(comparisonMessageSchema).default([]),
+  right_only: z.array(comparisonMessageSchema).default([]),
+  divergence_message_id: z.string().uuid().nullable().optional(),
+});
+
+export const timelineEventSchema = z.object({
+  event_type: z.string(),
+  occurred_at: z.string(),
+  actor_id: z.string().uuid().nullable().optional(),
+  actor_name: z.string().nullable().optional(),
+  summary: z.string(),
+  metadata: z.record(z.string(), z.unknown()).default({}),
+});
+
+export const conversationTimelineResponseSchema = z.object({
+  conversation_id: z.string().uuid(),
+  events: z.array(timelineEventSchema).default([]),
+});
+
+export const conversationStatsResponseSchema = z.object({
+  conversation_id: z.string().uuid(),
+  message_count: z.number(),
+  assistant_messages: z.number(),
+  user_messages: z.number(),
+  participants: z.number(),
+  providers_used: z.array(z.string()).default([]),
+  borrowed_requests: z.number(),
+  credits_used: z.string(),
+  latest_activity: z.string(),
+});
+
+export const searchMessageMatchSchema = z.object({
+  message: comparisonMessageSchema,
+  context_before: z.array(comparisonMessageSchema).default([]),
+  context_after: z.array(comparisonMessageSchema).default([]),
+});
+
+export const searchCommitMatchSchema = z.object({
+  commit_hash: z.string(),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  created_by_name: z.string(),
+  created_at: z.string(),
+  latest_message_id: z.string().uuid(),
+});
+
+export const conversationSearchResponseSchema = z.object({
+  conversation_id: z.string().uuid(),
+  query: z.string(),
+  matches: z.array(searchMessageMatchSchema).default([]),
+  commit_matches: z.array(searchCommitMatchSchema).default([]),
+});
+
+export const commitListItemSchema = z.object({
+  commit_hash: z.string(),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  created_by_id: z.string().uuid(),
+  created_by_name: z.string(),
+  created_at: z.string(),
+  latest_message_id: z.string().uuid(),
+  parent_commit_id: z.string().uuid().nullable().optional(),
+  parent_commit_hash: z.string().nullable().optional(),
+});
+
+export const commitRangeMetadataSchema = z.object({
+  providers: z.array(z.string()).default([]),
+  models: z.array(z.string()).default([]),
+  execution_types: z.array(z.string()).default([]),
+  routing_policies: z.array(z.string()).default([]),
+  credits_used: z.string(),
+  borrowed_requests: z.number(),
+  borrowed_from: z.array(z.string()).default([]),
+});
+
+export const commitDetailResponseSchema = z.object({
+  id: z.string().uuid(),
+  commit_hash: z.string(),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  conversation_id: z.string().uuid(),
+  conversation_title: z.string(),
+  workspace_id: z.string().uuid(),
+  checkpoint_id: z.string().uuid(),
+  latest_message_id: z.string().uuid(),
+  parent_commit_id: z.string().uuid().nullable().optional(),
+  parent_commit_hash: z.string().nullable().optional(),
+  child_commit_hashes: z.array(z.string()).default([]),
+  created_by_id: z.string().uuid(),
+  created_by_name: z.string(),
+  created_at: z.string(),
+  message: comparisonMessageSchema,
+  range_metadata: commitRangeMetadataSchema,
+});
+
+export const conversationSummarySchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  branch_name: z.string().nullable().optional(),
+  parent_conversation_id: z.string().uuid().nullable().optional(),
+  branch_from_message_id: z.string().uuid().nullable().optional(),
+  created_at: z.string(),
+  last_activity_at: z.string(),
+});
+
+export const conversationLineageResponseSchema = z.object({
+  root: conversationSummarySchema,
+  ancestors: z.array(conversationSummarySchema).default([]),
+  current: conversationSummarySchema,
 });
 
 export const conversationParticipantResponseSchema = z.object({
@@ -377,6 +632,22 @@ export type WorkspaceResponse = z.infer<typeof workspaceResponseSchema>;
 export type WorkspaceMemberResponse = z.infer<typeof workspaceMemberResponseSchema>;
 export type InvitationResponse = z.infer<typeof invitationResponseSchema>;
 export type ConversationResponse = z.infer<typeof conversationResponseSchema>;
+export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
+export type ConversationLineageResponse = z.infer<typeof conversationLineageResponseSchema>;
+export type BranchTreeResponse = z.infer<typeof branchTreeResponseSchema>;
+export type BranchManagerResponse = z.infer<typeof branchManagerResponseSchema>;
+export type CommitGraphResponse = z.infer<typeof commitGraphResponseSchema>;
+export type CommitGraphNode = z.infer<typeof commitGraphNodeSchema>;
+export type BranchFamilyOverviewResponse = z.infer<typeof branchFamilyOverviewResponseSchema>;
+export type CommitSearchResponse = z.infer<typeof commitSearchResponseSchema>;
+export type ConversationCompareResponse = z.infer<typeof conversationCompareResponseSchema>;
+export type ConversationTimelineResponse = z.infer<typeof conversationTimelineResponseSchema>;
+export type ConversationStatsResponse = z.infer<typeof conversationStatsResponseSchema>;
+export type ConversationSearchResponse = z.infer<typeof conversationSearchResponseSchema>;
+export type CommitListItem = z.infer<typeof commitListItemSchema>;
+export type CommitDetailResponse = z.infer<typeof commitDetailResponseSchema>;
+export type SearchCommitMatch = z.infer<typeof searchCommitMatchSchema>;
+export type ComparisonMessage = z.infer<typeof comparisonMessageSchema>;
 export type ConversationParticipantSummary = z.infer<typeof conversationParticipantSummarySchema>;
 export type ConversationParticipantResponse = z.infer<typeof conversationParticipantResponseSchema>;
 export type ExecutionSummary = z.infer<typeof executionSummarySchema>;
@@ -411,6 +682,12 @@ export const conversationUpdateSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
 });
 
+export const conversationBranchSchema = z.object({
+  branch_name: z
+    .string()
+    .max(255, "Branch name must be at most 255 characters"),
+});
+
 export const messageCreateSchema = z.object({
   content: z.string().min(1, "Message cannot be empty"),
 });
@@ -438,6 +715,7 @@ export type LoginForm = z.infer<typeof loginSchema>;
 export type RegisterForm = z.infer<typeof registerSchema>;
 export type WorkspaceCreateForm = z.infer<typeof workspaceCreateSchema>;
 export type ConversationUpdateForm = z.infer<typeof conversationUpdateSchema>;
+export type ConversationBranchForm = z.infer<typeof conversationBranchSchema>;
 export type MessageCreateForm = z.infer<typeof messageCreateSchema>;
 export type AIAccountCreateForm = z.infer<typeof aiAccountCreateSchema>;
 export type InvitationCreateForm = z.infer<typeof invitationCreateSchema>;

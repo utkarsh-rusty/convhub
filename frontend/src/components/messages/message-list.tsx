@@ -11,6 +11,10 @@ interface MessageListProps {
   isAiGenerating?: boolean;
   streamingContent?: string | null;
   typingLabel?: string | null;
+  onBranch?: (messageId: string) => void;
+  highlightedMessageIds?: Set<string>;
+  highlightQuery?: string;
+  focusMessageId?: string | null;
 }
 
 export function MessageList({
@@ -21,6 +25,10 @@ export function MessageList({
   isAiGenerating = false,
   streamingContent = null,
   typingLabel = null,
+  onBranch,
+  highlightedMessageIds,
+  highlightQuery,
+  focusMessageId = null,
 }: MessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -35,10 +43,15 @@ export function MessageList({
   };
 
   useLayoutEffect(() => {
+    if (focusMessageId) {
+      const target = document.getElementById(`message-${focusMessageId}`);
+      target?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
     scrollToBottom();
     const frame = requestAnimationFrame(scrollToBottom);
     return () => cancelAnimationFrame(frame);
-  }, [conversationId, messages, streamingContent, typingLabel, isAiGenerating]);
+  }, [conversationId, messages, streamingContent, typingLabel, isAiGenerating, focusMessageId]);
 
   if (!messages.length && !isAiGenerating && !typingLabel) {
     return (
@@ -51,7 +64,7 @@ export function MessageList({
   return (
     <div
       ref={scrollContainerRef}
-      className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 py-6"
+      className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-3 sm:px-5"
     >
       {messages.map((message) => (
         <MessageBubble
@@ -61,6 +74,9 @@ export function MessageList({
           authorName={
             message.author_id ? memberNames[message.author_id] ?? "Member" : undefined
           }
+          onBranch={onBranch}
+          highlighted={highlightedMessageIds?.has(message.id)}
+          highlightQuery={highlightQuery}
         />
       ))}
       {streamingContent ? <StreamingAssistantBubble content={streamingContent} /> : null}

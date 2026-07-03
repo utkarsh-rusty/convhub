@@ -1,8 +1,26 @@
 # Architecture Overview
 
-ConvHub is **GitHub for AI Conversations** — a collaborative workspace where teams share conversation threads while each participant keeps ownership of their own AI providers.
+ConvHub is **Git for AI-native Project Memory** — a collaborative system that versions conversations, commits, and branches while each participant keeps ownership of their own AI providers.
 
-## Request flow
+## High-level layers (implemented)
+
+```
+Developer
+    ↓
+ConvHub
+    ↓
+AI Providers
+```
+
+| Layer | Status | Role |
+|-------|--------|------|
+| Developer | **Implemented** | Works in workspaces, conversations, commits, and branches |
+| ConvHub | **Implemented** | Memory primitives, routing, borrowing, budgets, realtime |
+| AI Providers | **Implemented** | Claude, OpenAI, Gemini, Groq, Ollama, Mock |
+
+**Planned (not implemented):** Git repository linkage — see [git-integration.md](git-integration.md).
+
+## Request flow (implemented)
 
 ```
 Authentication
@@ -15,13 +33,13 @@ Prompt Builder
         ↓
 Ownership Routing
         ↓
-Borrow Engine
+Borrow Engine (only when needed)
         ↓
 Provider Factory
         ↓
 Provider
         ↓
-Persistence
+Persistence (+ checkpoint)
         ↓
 Realtime
 ```
@@ -38,54 +56,29 @@ flowchart TD
     H --> I[Provider]
     I --> J[Persistence]
     J --> K[Realtime Broadcast]
+    J --> L[Checkpoint]
 ```
 
-## Layers
+## Memory model (implemented)
 
-### Authentication
+```
+Conversation
+  ├── Messages
+  ├── Checkpoints (automatic)
+  ├── Commits (manual)
+  └── Branches
+```
 
-JWT-based sign-in. Every API and WebSocket request is tied to an authenticated user.
+## Planned / Research (not implemented)
 
-### Workspace
+| Component | Status |
+|-----------|--------|
+| Context Packages | Planned |
+| Context Restore | Planned |
+| Git Integration | Planned |
+| VS Code Extension | Planned |
+| IDE adapters | Planned |
+| Conversation Merge | Research |
+| Knowledge Graph | Research |
 
-The team boundary: members, roles, budgets, routing policy, and lending preferences.
-
-### Conversation
-
-A shared thread with participants, messages, and permissions. All AI requests are scoped to a conversation.
-
-### Prompt Builder
-
-Assembles conversation history, system context, and workspace policy into a provider-ready prompt.
-
-### Ownership Routing
-
-When a user sends a message, ConvHub routes through **that user's** AI accounts first. Provider selection respects routing policy, account health, and budget settings.
-
-### Borrow Engine
-
-If the sender has no usable provider, ConvHub looks for an eligible **conversation participant** who opted into auto-share with remaining credits. Borrowing never leaves the conversation.
-
-### Provider Factory
-
-A single abstraction over Anthropic, OpenAI, Gemini, Groq, Ollama, and Mock — so conversations are not locked to one vendor.
-
-### Provider
-
-Executes the LLM call and streams tokens back to the gateway.
-
-### Persistence
-
-Messages, AI requests, execution metadata, credit transactions, and borrow records are stored in PostgreSQL.
-
-### Realtime
-
-WebSockets broadcast new messages, streaming tokens, presence, typing indicators, credit updates, and routing events to connected clients.
-
-## Related documents
-
-- [Architecture index](README.md)
-- [AI account ownership](ai-account-ownership.md)
-- [ADR-010: Ownership-first routing](ADR-010-ownership-first-routing.md)
-- [ADR-009: Resource sharing](ADR-009-resource-sharing.md)
-- [Realtime events](realtime-events.md)
+See [project-memory.md](project-memory.md) and [roadmap.md](../../roadmap.md).

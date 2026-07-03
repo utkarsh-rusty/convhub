@@ -11,7 +11,8 @@ const NAV_LINKS: Array<
 > = [
   { href: "#features", label: "Features" },
   { href: "#architecture", label: "Architecture" },
-  { href: "#roadmap", label: "Roadmap" },
+  { href: "#how-it-works", label: "How it works" },
+  { href: "#vision", label: "Vision" },
   { href: SITE_LINKS.docs, label: "Docs", external: true },
 ];
 
@@ -82,7 +83,7 @@ export function LandingFooter() {
     { href: SITE_LINKS.architecture, label: "Architecture" },
     { href: SITE_LINKS.contributing, label: "Contributing" },
     { href: SITE_LINKS.license, label: "License" },
-    { href: SITE_LINKS.roadmap, label: "Roadmap" },
+    { href: SITE_LINKS.roadmap, label: "Roadmap (planned)" },
   ] as const;
 
   return (
@@ -94,7 +95,7 @@ export function LandingFooter() {
             Built in public. MIT licensed. Contributions welcome.
           </p>
           <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-            GitHub for AI Conversations.
+            Git for AI-native Project Memory.
           </p>
           <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">v{APP_VERSION}</p>
         </div>

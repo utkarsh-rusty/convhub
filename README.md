@@ -1,139 +1,111 @@
 # ConvHub
 
-**GitHub for AI Conversations.**
+**Git for AI-native Project Memory.**
 
-ConvHub is a collaborative AI workspace where teams can build, share, and continue AI conversations together while every user keeps ownership of their own AI providers.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-early%20beta-yellow.svg)](roadmap.md)
+[![Version](https://img.shields.io/badge/version-0.1.0-informational.svg)](#implemented-today)
 
-```
-Developer A (Claude)
-Developer B (OpenAI)
-Developer C (Groq)
-        ↓
-Shared Conversation
-        ↓
-Realtime Collaboration
-        ↓
-Ownership-first Routing
-        ↓
-Assistant Responses
-```
+> Git versions code. ConvHub versions knowledge.
 
-## Features
+<!-- Screenshot placeholder: Landing page -->
+<!-- ![Landing](docs/images/landing.png) -->
 
-### Collaboration
+## Vision
 
-- Shared conversations
-- Multiple participants
-- Live collaboration
-- Presence
-- Typing indicators
-- Conversation permissions
+Git stores files, commits, and branches — the history of *code*.
 
-### AI Orchestration
+ConvHub aims to store conversations, commits, branches, architecture decisions, provider ownership, and collaboration history — the history of *project understanding*.
 
-- Multi-provider support
-- Ownership-first routing
-- Automatic provider failover
-- Borrowing between conversation participants
-- Local models via Ollama
+That long-term direction is real. **What ships today** is the collaborative foundation below — not Context Packages, Git linkage, or IDE extensions.
 
-### Governance
+## Why ConvHub
 
-- Workspace budgets
-- Credit ledger
-- Borrow limits
-- Routing policies
-- AI account ownership
+- **AI chats disappear** — browser tabs and vendor UIs are not durable team memory.
+- **People leave teams** — decisions leave with them.
+- **Context is lost** — the next developer restarts from zero.
+- **Git stores files, not decisions** — architecture choices live in chat, not in `git log`.
 
-### Realtime
+ConvHub keeps AI collaboration versioned and shareable — while every developer keeps ownership of their own AI providers.
 
-- WebSockets
-- Streaming responses
-- Live credit updates
-- Live routing events
+## Implemented today
 
-### Enterprise
+Only features that exist in the current codebase:
 
-- JWT authentication
-- Workspace isolation
-- Role-based permissions
-- Audit trail
-- Provider abstraction
+- Multi-provider AI routing (Anthropic, OpenAI, Gemini, Groq, Ollama, Mock)
+- Ownership-first provider routing
+- Borrowing engine between conversation participants
+- Workspace collaboration and permissions
+- Conversation branching
+- Conversation commits and automatic checkpoints
+- Branch visualization (manager, commit graph, overview)
+- Realtime collaboration (WebSockets, streaming, presence)
+- Budget management and credit ledger
+- Message, commit, and lineage history
+- Open source (MIT)
 
-## Architecture
+### How it works today
 
 ```
-Workspace
+Create Workspace
         ↓
-Conversation
+Invite Team Members
         ↓
-Participants
+Connect AI Providers
         ↓
-Prompt Builder
+Start Shared Conversations
         ↓
-Ownership-first Routing
+Branch Conversations
         ↓
-Sender Providers
+Commit Important Milestones
         ↓
-Borrow Engine (only when needed)
-        ↓
-LLM Provider
-        ↓
-Assistant Message
-        ↓
-Realtime Broadcast
+Continue Collaborating
+```
+
+## Architecture (implemented)
+
+```
+Developer
+    ↓
+ConvHub
+    ↓
+AI Providers
 ```
 
 | Layer | Role |
 |-------|------|
-| **Workspace** | Team boundary for members, roles, budgets, and settings. |
-| **Conversation** | Shared thread where participants collaborate on messages and context. |
-| **Participants** | Users in the conversation; borrowing is limited to this group. |
-| **Prompt Builder** | Assembles conversation history and policy into a provider-ready prompt. |
-| **Ownership-first Routing** | Routes each message through the sender's own AI accounts first. |
-| **Sender Providers** | The sender's configured providers (Claude, GPT, Groq, Gemini, Ollama, …). |
-| **Borrow Engine** | When the sender has no usable provider, borrows from an eligible participant. |
-| **LLM Provider** | Executes the request through the selected account and streams the response. |
-| **Assistant Message** | Persists the reply and execution metadata for the conversation. |
-| **Realtime Broadcast** | Pushes messages, presence, credits, and routing events to connected clients. |
+| **Developer** | Creates workspaces, invites teammates, connects providers, chats, branches, commits. |
+| **ConvHub** | Shared conversations, ownership-first routing, borrowing, budgets, commits, branches, realtime. |
+| **AI Providers** | Claude, OpenAI, Gemini, Groq, Ollama — each user owns their accounts. |
 
-See [docs/architecture/](docs/architecture/) for diagrams, flow notes, and ADRs.
-
-## Project Structure
+Inside ConvHub today:
 
 ```
-convhub/
-├── backend/
-│   ├── app/
-│   │   ├── ai/                 # AI orchestration, providers, prompt builder
-│   │   ├── ai_accounts/        # Per-user provider accounts
-│   │   ├── auth/               # JWT authentication
-│   │   ├── conversations/    # Conversations, messages, participants
-│   │   ├── demo/               # Demo mode toolkit
-│   │   ├── realtime/           # WebSocket events and streaming
-│   │   ├── resource_management/# Budgets and credit ledger
-│   │   ├── resource_sharing/   # Borrow engine and lending preferences
-│   │   ├── routing/            # Ownership-first routing engine
-│   │   ├── system/             # Health and workspace diagnostics
-│   │   └── workspaces/         # Workspaces, members, invitations
-│   ├── alembic/                # Database migrations
-│   └── tests/
-├── frontend/
-│   └── src/
-│       ├── components/         # UI components (conversation, layout, landing)
-│       ├── context/            # Auth and workspace state
-│       ├── hooks/              # Realtime and theme hooks
-│       ├── lib/                # API client and utilities
-│       └── pages/              # App and landing pages
-├── docs/
-│   └── architecture/           # Architecture overview and ADRs
-├── scripts/                    # Demo seed and utilities
-├── docker-compose.yml
-├── CONTRIBUTING.md
-└── roadmap.md
+Workspace → Conversation
+              ├── Messages (working directory)
+              ├── Checkpoints (automatic)
+              ├── Commits (manual milestones)
+              └── Branches (lineage)
 ```
 
-## Getting Started
+**Planned (not implemented):** Git repository linkage, Context Packages, VS Code extension.
+
+See [docs/architecture/](docs/architecture/) for diagrams and ADRs.
+
+## Screenshots
+
+Placeholders — assets to be added under `docs/images/`.
+
+| Screen | Placeholder |
+|--------|-------------|
+| Landing | `docs/images/landing.png` |
+| Conversation | `docs/images/conversation.png` |
+| Branching | `docs/images/branching.png` |
+| Commit graph | `docs/images/commit-graph.png` |
+| Dashboard | `docs/images/dashboard.png` |
+| Providers | `docs/images/providers.png` |
+
+## Development
 
 ### Prerequisites
 
@@ -174,21 +146,17 @@ App: http://localhost:5173
 
 ### Demo mode
 
-Enable one-click demo logins:
-
 ```env
 # backend/.env
 DEMO_MODE=true
 ```
-
-Seed demo users and workspace:
 
 ```bash
 cd backend && PYTHONPATH=.. python ../scripts/seed_demo.py
 docker compose up -d --force-recreate backend
 ```
 
-On the login page you will see **Continue as Alice / Bob / Charlie**.
+On the login page: **Continue as Alice / Bob / Charlie**.
 
 ### Testing
 
@@ -205,53 +173,29 @@ npm run lint
 
 ## Roadmap
 
-### Phase 1 (Completed)
+Future work is **not** implemented. Categories:
 
-- Authentication
-- Workspaces
-- Shared conversations
-- AI providers
-- Ownership routing
-- Borrow engine
-- Credits
-- Realtime collaboration
+| Status | Meaning |
+|--------|---------|
+| **Implemented** | Available now |
+| **In Progress** | Actively being built |
+| **Planned** | Intended for a named release |
+| **Research** | Exploratory |
 
-### Phase 2 (Next)
+| Version | Focus | Status |
+|---------|--------|--------|
+| **v1.0** | Workspace, routing, borrowing, branching, commits, visualization, realtime, budgets | Implemented |
+| **v1.1** | Project memory, context packages, restore, decision tracking, timeline | Planned |
+| **v1.2** | Projects, Git metadata, Git linkage | Planned |
+| **v1.3** | VS Code extension, push/pull context, Git sync | Planned |
+| **v1.4** | Claude Code / Cursor / Codex / Continue adapters | Planned |
+| **v2.0** | Semantic restore, conversation merge, knowledge graph | Research |
 
-- Conversation branching
-- Fork conversations
-- Merge conversations
-- Timeline
-- Snapshots
-
-### Phase 3
-
-- Import ChatGPT conversations
-- Import Claude conversations
-- Import Gemini conversations
-- Markdown import/export
-
-### Phase 4
-
-- Knowledge packs
-- Files
-- Search
-- Shared context
-- Long-term memory
-
-### Phase 5
-
-- Enterprise SSO
-- Analytics
-- Audit dashboard
-- Billing
-- Team administration
-
-See [roadmap.md](roadmap.md) for details.
+See [roadmap.md](roadmap.md) for the full breakdown.
 
 ## Contributing
 
-Contributions are welcome. ConvHub is in **early beta** — issues, docs improvements, and pull requests help shape the project.
+Contributions are welcome. ConvHub is in **early beta**.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
