@@ -73,3 +73,11 @@ async def test_demo_users_and_login_when_enabled(
     assert login.status_code == 200
     assert login.json()["access_token"]
     assert login.json()["workspace_slug"] == "demo"
+
+    me = await client.get(
+        "/users/me",
+        headers={"Authorization": f"Bearer {login.json()['access_token']}"},
+    )
+    assert me.status_code == 200
+    assert me.json()["email"] == "alice@demo.convhub.local"
+    assert me.json()["name"] == "Alice"

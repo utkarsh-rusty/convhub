@@ -42,7 +42,11 @@ export function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
-  const finishLogin = (accessToken: string, refreshToken: string, workspaceId?: string | null) => {
+  const finishLogin = (
+    accessToken: string,
+    refreshToken: string,
+    workspaceId?: string | null,
+  ) => {
     authStorage.setTokens(accessToken, refreshToken);
     if (workspaceId) {
       authStorage.setWorkspaceId(workspaceId);
@@ -54,14 +58,17 @@ export function LoginPage() {
 
   const loginMutation = useMutation({
     mutationFn: authApi.login,
-    onSuccess: (tokens) => finishLogin(tokens.access_token, tokens.refresh_token),
+    onSuccess: (tokens) => {
+      finishLogin(tokens.access_token, tokens.refresh_token);
+    },
     onError: (error) => showApiError(error, "Unable to sign in"),
   });
 
   const demoLoginMutation = useMutation({
     mutationFn: (persona: DemoPersona) => demoApi.login(persona),
-    onSuccess: (tokens) =>
-      finishLogin(tokens.access_token, tokens.refresh_token, tokens.workspace_id),
+    onSuccess: (tokens) => {
+      finishLogin(tokens.access_token, tokens.refresh_token, tokens.workspace_id);
+    },
     onError: (error) => showApiError(error, "Unable to sign in as demo user"),
   });
 

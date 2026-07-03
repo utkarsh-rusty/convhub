@@ -26,10 +26,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [sessionVersion, setSessionVersion] = useState(0);
 
-  const hasSession = useMemo(() => {
-    void sessionVersion;
-    return authStorage.isAuthenticated();
-  }, [sessionVersion]);
+  // sessionVersion forces a re-render after login/logout; always read tokens live from storage
+  // so navigation after async mutations (e.g. demo login) does not see a stale session flag.
+  void sessionVersion;
+  const hasSession = authStorage.isAuthenticated();
 
   const { data: user, isLoading, isError } = useQuery({
     queryKey: ["auth", "me"],
@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const completeLogin = useCallback(() => {
     setSessionVersion((version) => version + 1);
     void queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+    void queryClient.invalidateQueries({ queryKey: ["workspaces"] });
   }, [queryClient]);
 
   const logout = useCallback(() => {
