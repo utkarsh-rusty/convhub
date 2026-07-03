@@ -2,10 +2,8 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import uuid4
 
-import pytest
-
 from app.models.ai_request import AIRequest
-from app.models.enums import AIRequestStatus, CreditTransactionType
+from app.models.enums import AIRequestStatus
 from app.resource_management.credit_calculator import calculate_credits
 
 

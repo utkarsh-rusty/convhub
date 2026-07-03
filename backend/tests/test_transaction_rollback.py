@@ -11,7 +11,9 @@ from app.models.user import User
 
 
 @pytest.mark.asyncio
-async def test_failed_duplicate_registration_leaves_single_user(client: AsyncClient) -> None:
+async def test_failed_duplicate_registration_leaves_single_user(
+    client: AsyncClient,
+) -> None:
     email = f"rollback-{uuid4().hex}@example.com"
     first = await client.post(
         "/auth/register",

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.gateway import AIGateway
 from app.ai.schemas import ChatSendRequest
 from app.ai.service import ChatService
-from app.ai_accounts.deps import get_ai_account_service, get_credential_encryption
+from app.ai_accounts.deps import get_credential_encryption
 from app.ai_accounts.service import AIAccountService
 from app.api.deps import get_db
 from app.conversations.deps import WorkspaceContext, get_workspace_context

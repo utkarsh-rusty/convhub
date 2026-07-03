@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import AuthContext, register_user
+from tests.conftest import register_user
 
 
 @pytest.mark.asyncio
@@ -56,7 +56,11 @@ async def test_register_invalid_email_returns_422(client: AsyncClient) -> None:
 async def test_register_short_password_returns_422(client: AsyncClient) -> None:
     response = await client.post(
         "/auth/register",
-        json={"name": "Short PW", "email": f"short-{uuid4().hex}@example.com", "password": "short"},
+        json={
+            "name": "Short PW",
+            "email": f"short-{uuid4().hex}@example.com",
+            "password": "short",
+        },
     )
     assert response.status_code == 422
 

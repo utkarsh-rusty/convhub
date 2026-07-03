@@ -10,10 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.credit_transaction import CreditTransaction
-from app.models.enums import CreditTransactionType
+from app.models.enums import CreditTransactionType, RoutingPolicyType
 from app.models.user_budget import UserBudget
 from app.models.workspace_budget_settings import WorkspaceBudgetSettings
-from app.models.enums import RoutingPolicyType
 from app.resource_management.constants import DEFAULT_MONTHLY_CREDIT_LIMIT
 from app.resource_management.exceptions import InsufficientCreditsError
 
@@ -251,9 +250,7 @@ class BudgetService:
         )
 
         count_result = await self.db.execute(
-            select(func.count())
-            .select_from(CreditTransaction)
-            .where(*base_filter)
+            select(func.count()).select_from(CreditTransaction).where(*base_filter)
         )
         total = int(count_result.scalar_one())
 

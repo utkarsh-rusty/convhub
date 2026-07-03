@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from decimal import Decimal
+from typing import TYPE_CHECKING
 
-from app.models.enums import RoutingPolicyType
 from app.routing.context import RoutingContext
 from app.routing.engine import RoutingEngine
 from app.routing.sender_resolution import SenderFirstAccountResolver
+
+if TYPE_CHECKING:
+    from app.routing.decision import RoutingDecision
 
 
 class AccountRoutingOrchestrator:
@@ -20,7 +22,6 @@ class AccountRoutingOrchestrator:
         self.sender_resolver = sender_resolver or SenderFirstAccountResolver()
 
     async def select(self, context: RoutingContext) -> RoutingDecision:
-        from app.routing.decision import RoutingDecision
 
         owner_id = context.scoped_owner_id or context.requesting_user.id
         budget_settings = await self.routing_engine.budget_service.get_workspace_budget_settings(

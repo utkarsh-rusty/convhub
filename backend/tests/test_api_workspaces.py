@@ -10,7 +10,6 @@ from tests.conftest import (
     WorkspaceContext,
     create_workspace,
     invite_and_accept,
-    register_user,
 )
 
 

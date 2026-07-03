@@ -246,7 +246,10 @@ def test_multiple_clients_receive_broadcast(api_client: TestClient) -> None:
     )
     conversation_id = conv.json()["id"]
 
-    with _connect_ws(api_client, alice_token) as alice_ws, _connect_ws(api_client, bob_token) as bob_ws:
+    with (
+        _connect_ws(api_client, alice_token) as alice_ws,
+        _connect_ws(api_client, bob_token) as bob_ws,
+    ):
         alice_ws.receive_json()
         bob_ws.receive_json()
         _subscribe_ws(

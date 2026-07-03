@@ -83,12 +83,11 @@ class WorkspaceService:
             .where(WorkspaceMember.user_id == user.id)
             .order_by(Workspace.created_at.desc())
         )
-        return [
-            self._to_workspace_response(workspace, role)
-            for workspace, role in result.all()
-        ]
+        return [self._to_workspace_response(workspace, role) for workspace, role in result.all()]
 
-    async def get_workspace(self, workspace: Workspace, membership: WorkspaceMember) -> WorkspaceResponse:
+    async def get_workspace(
+        self, workspace: Workspace, membership: WorkspaceMember
+    ) -> WorkspaceResponse:
         return self._to_workspace_response(workspace, membership.role)
 
     async def update_workspace(

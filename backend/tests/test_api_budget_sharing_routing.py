@@ -1,7 +1,6 @@
 """Budget, sharing, routing, and chat API QA tests."""
 
 from decimal import Decimal
-from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -70,7 +69,9 @@ async def test_owner_can_update_workspace_budget_settings(
 
 
 @pytest.mark.asyncio
-async def test_sharing_preferences_happy_path(client: AsyncClient, workspace: WorkspaceContext) -> None:
+async def test_sharing_preferences_happy_path(
+    client: AsyncClient, workspace: WorkspaceContext
+) -> None:
     current = await client.get(
         f"/workspaces/{workspace.workspace_id}/sharing/me",
         headers=workspace.headers,
@@ -111,7 +112,9 @@ async def test_sharing_overview_admin_only(
 
 
 @pytest.mark.asyncio
-async def test_routing_settings_happy_path(client: AsyncClient, workspace: WorkspaceContext) -> None:
+async def test_routing_settings_happy_path(
+    client: AsyncClient, workspace: WorkspaceContext
+) -> None:
     current = await client.get(
         f"/workspaces/{workspace.workspace_id}/routing",
         headers=workspace.headers,
@@ -201,13 +204,17 @@ async def test_borrow_flow_creates_ledger_and_borrow_record(
     async with session_factory() as db:
         settings = await BudgetService(db).get_workspace_budget_settings(workspace.workspace_id)
         settings.allow_credit_borrowing = True
-        borrower_budget = await BudgetService(db).get_budget(workspace.workspace_id, borrower.user_id)
+        borrower_budget = await BudgetService(db).get_budget(
+            workspace.workspace_id, borrower.user_id
+        )
         borrower_budget.remaining_credits = Decimal("0")
         borrower_budget.used_credits = borrower_budget.monthly_credit_limit
 
         from app.resource_sharing.preference_service import LendingPreferenceService
 
-        pref = await LendingPreferenceService(db).get_my_preference(workspace.workspace_id, owner.user_id)
+        pref = await LendingPreferenceService(db).get_my_preference(
+            workspace.workspace_id, owner.user_id
+        )
         pref.auto_share_enabled = True
         pref.monthly_share_limit = Decimal("2000")
         lender_budget = await BudgetService(db).get_budget(workspace.workspace_id, owner.user_id)
@@ -226,7 +233,9 @@ async def test_borrow_flow_creates_ledger_and_borrow_record(
             "priority": 0,
         },
     )
-    conv = await client.post("/conversations", headers=borrower_headers, json={"title": "Borrow QA"})
+    conv = await client.post(
+        "/conversations", headers=borrower_headers, json={"title": "Borrow QA"}
+    )
     conv_id = conv.json()["id"]
     await client.post(
         f"/conversations/{conv_id}/participants",
@@ -243,22 +252,30 @@ async def test_borrow_flow_creates_ledger_and_borrow_record(
 
     async with session_factory() as db:
         records = (
-            await db.execute(
-                select(BorrowRecord).where(BorrowRecord.workspace_id == workspace.workspace_id)
+            (
+                await db.execute(
+                    select(BorrowRecord).where(BorrowRecord.workspace_id == workspace.workspace_id)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(records) == 1
 
         tx_types = (
-            await db.execute(
-                select(CreditTransaction.transaction_type).where(
-                    CreditTransaction.workspace_id == workspace.workspace_id,
-                    CreditTransaction.transaction_type.in_(
-                        [CreditTransactionType.BORROW, CreditTransactionType.LEND]
-                    ),
+            (
+                await db.execute(
+                    select(CreditTransaction.transaction_type).where(
+                        CreditTransaction.workspace_id == workspace.workspace_id,
+                        CreditTransaction.transaction_type.in_(
+                            [CreditTransactionType.BORROW, CreditTransactionType.LEND]
+                        ),
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         assert CreditTransactionType.BORROW in tx_types
         assert CreditTransactionType.LEND in tx_types
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import random
 from typing import Protocol
-from uuid import UUID
 
 from app.ai.prompt_builder import PromptContext
 from app.ai.providers.base import AIProvider
@@ -21,8 +20,7 @@ class RoutingOverrideProvider(Protocol):
         *,
         policy_type,
         monthly_usage: dict[str, object],
-    ) -> RoutingDecision | None:
-        ...
+    ) -> RoutingDecision | None: ...
 
 
 class NoOpRoutingOverride:

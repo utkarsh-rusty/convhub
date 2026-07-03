@@ -152,11 +152,15 @@ class WebSocketManager:
             if connection.workspace_id is not None and connection.workspace_id != workspace_id:
                 old_workspace = connection.workspace_id
                 self._workspace_connections.get(old_workspace, set()).discard(connection_id)
-                self._update_presence_locked(old_workspace, connection.user_id, connection.user_name, "offline")
+                self._update_presence_locked(
+                    old_workspace, connection.user_id, connection.user_name, "offline"
+                )
 
             connection.workspace_id = workspace_id
             self._workspace_connections.setdefault(workspace_id, set()).add(connection_id)
-            self._update_presence_locked(workspace_id, connection.user_id, connection.user_name, "online")
+            self._update_presence_locked(
+                workspace_id, connection.user_id, connection.user_name, "online"
+            )
 
         await self._broadcast_presence_unlocked(workspace_id)
         await self.broadcast_workspace(

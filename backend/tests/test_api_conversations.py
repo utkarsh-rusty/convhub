@@ -5,10 +5,17 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 
-from tests.conftest import AuthContext, WorkspaceContext, invite_and_accept, register_user
+from tests.conftest import (
+    AuthContext,
+    WorkspaceContext,
+    invite_and_accept,
+    register_user,
+)
 
 
-async def _create_conversation(client: AsyncClient, workspace: WorkspaceContext, title: str = "QA Chat"):
+async def _create_conversation(
+    client: AsyncClient, workspace: WorkspaceContext, title: str = "QA Chat"
+):
     response = await client.post(
         "/conversations",
         headers=workspace.headers,
@@ -19,7 +26,9 @@ async def _create_conversation(client: AsyncClient, workspace: WorkspaceContext,
 
 
 @pytest.mark.asyncio
-async def test_conversation_crud_happy_path(client: AsyncClient, workspace: WorkspaceContext) -> None:
+async def test_conversation_crud_happy_path(
+    client: AsyncClient, workspace: WorkspaceContext
+) -> None:
     created = await _create_conversation(client, workspace, "Planning")
     conv_id = created["id"]
 
@@ -185,7 +194,9 @@ async def test_message_create_and_list(
 
 
 @pytest.mark.asyncio
-async def test_message_rejects_empty_content(client: AsyncClient, workspace: WorkspaceContext) -> None:
+async def test_message_rejects_empty_content(
+    client: AsyncClient, workspace: WorkspaceContext
+) -> None:
     created = await _create_conversation(client, workspace)
     response = await client.post(
         f"/conversations/{created['id']}/messages",

@@ -23,8 +23,8 @@ from app.models.conversation_participant import ConversationParticipant
 from app.models.enums import ConversationParticipantRole, MessageRole
 from app.models.message import Message
 from app.models.user import User
-from app.realtime.broadcaster import get_broadcaster
 from app.models.workspace_member import WorkspaceMember
+from app.realtime.broadcaster import get_broadcaster
 
 
 class ConversationService:
@@ -277,7 +277,9 @@ class ConversationService:
                 role=message.role,
                 content=message.content,
                 created_at=message.created_at,
-                provider=execution.provider if (execution := execution_map.get(message.id)) else None,
+                provider=(
+                    execution.provider if (execution := execution_map.get(message.id)) else None
+                ),
                 execution=execution_map.get(message.id),
             )
             for message in messages
@@ -319,7 +321,9 @@ class ConversationService:
         return participant_map
 
     @staticmethod
-    def _participant_summary(user: User, role: ConversationParticipantRole) -> ConversationParticipantSummary:
+    def _participant_summary(
+        user: User, role: ConversationParticipantRole
+    ) -> ConversationParticipantSummary:
         return ConversationParticipantSummary(
             user_id=user.id,
             name=user.name,

@@ -11,13 +11,13 @@ from app.auth.router import get_auth_service
 from app.auth.schemas import LoginRequest
 from app.auth.service import AuthService
 from app.core.config import Settings, get_settings
-from app.demo.constants import DEMO_PERSONAS, DEMO_PASSWORD, DEMO_WORKSPACE_SLUG
+from app.demo.constants import DEMO_PASSWORD, DEMO_PERSONAS, DEMO_WORKSPACE_SLUG
 from app.demo.deps import get_demo_service, require_demo_mode
 from app.demo.schemas import (
     DemoActionResponse,
     DemoConfigResponse,
-    DemoEventsResponse,
     DemoEventResponse,
+    DemoEventsResponse,
     DemoLoginRequest,
     DemoLoginResponse,
     DemoSettingsResponse,
@@ -34,14 +34,16 @@ from app.demo.service import DemoService
 from app.models.enums import WorkspaceRole
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
-from app.workspaces.deps import get_workspace_membership, require_workspace_roles
+from app.workspaces.deps import require_workspace_roles
 
 router = APIRouter(tags=["demo"])
 workspace_router = APIRouter(prefix="/workspaces", tags=["demo"])
 
 
 @router.get("/demo/config", response_model=DemoConfigResponse)
-async def get_demo_config(settings: Settings = Depends(get_settings)) -> DemoConfigResponse:
+async def get_demo_config(
+    settings: Settings = Depends(get_settings),
+) -> DemoConfigResponse:
     return DemoConfigResponse(enabled=settings.enable_demo_mode)
 
 
@@ -118,7 +120,9 @@ async def update_pricing_profile(
     return DemoSettingsResponse.model_validate(settings_row)
 
 
-@workspace_router.patch("/{workspace_id}/demo/provider-simulation", response_model=DemoSettingsResponse)
+@workspace_router.patch(
+    "/{workspace_id}/demo/provider-simulation", response_model=DemoSettingsResponse
+)
 async def update_provider_simulation(
     workspace_id: UUID,
     data: ProviderSimulationUpdate,
@@ -135,7 +139,9 @@ async def update_provider_simulation(
     return DemoSettingsResponse.model_validate(settings_row)
 
 
-@workspace_router.patch("/{workspace_id}/demo/routing-override", response_model=DemoSettingsResponse)
+@workspace_router.patch(
+    "/{workspace_id}/demo/routing-override", response_model=DemoSettingsResponse
+)
 async def update_routing_override(
     workspace_id: UUID,
     data: RoutingOverrideUpdate,
@@ -182,7 +188,9 @@ async def set_user_credits(
     return UserCreditsResponse(budget=UserBudgetSummary.model_validate(budget))
 
 
-@workspace_router.post("/{workspace_id}/demo/credits/reset-user", response_model=UserCreditsResponse)
+@workspace_router.post(
+    "/{workspace_id}/demo/credits/reset-user", response_model=UserCreditsResponse
+)
 async def reset_user_credits(
     workspace_id: UUID,
     user_id: UUID = Query(...),

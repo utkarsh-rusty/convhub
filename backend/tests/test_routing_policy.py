@@ -5,7 +5,6 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 from app.models.ai_account import AIAccount
-from app.models.enums import RoutingPolicyType
 from app.routing.context import RoutingContext
 from app.routing.health import ProviderHealth
 from app.routing.policy import (
@@ -17,7 +16,9 @@ from app.routing.policy import (
 )
 
 
-def _account(*, provider: str, priority: int = 0, spent: Decimal = Decimal("0"), owner_id=None) -> AIAccount:
+def _account(
+    *, provider: str, priority: int = 0, spent: Decimal = Decimal("0"), owner_id=None
+) -> AIAccount:
     owner_id = owner_id or uuid4()
     return AIAccount(
         id=uuid4(),

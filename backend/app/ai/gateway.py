@@ -10,8 +10,8 @@ from sqlalchemy.orm import selectinload
 from app.ai.prompt_builder import PromptBuilder
 from app.ai.providers.factory import create_provider
 from app.ai_accounts.service import AIAccountService
-from app.conversations.schemas import MessageResponse
 from app.conversations.execution import build_execution_summary
+from app.conversations.schemas import MessageResponse
 from app.core.config import Settings
 from app.models.ai_request import AIRequest
 from app.models.conversation import Conversation
@@ -20,12 +20,12 @@ from app.models.enums import AIRequestStatus, MessageRole
 from app.models.message import Message
 from app.models.user import User
 from app.models.workspace import Workspace
+from app.realtime.broadcaster import RealtimeBroadcaster, get_broadcaster
 from app.resource_management.budget_service import BudgetService
 from app.resource_management.credit_calculator import calculate_credits
 from app.resource_management.credit_policy import CreditPolicy
 from app.resource_management.exceptions import InsufficientCreditsError
 from app.resource_sharing.engine import BorrowEngine, BorrowReservation
-from app.realtime.broadcaster import RealtimeBroadcaster, get_broadcaster
 from app.routing.context import RoutingContext
 from app.routing.decision import RoutingDecision
 from app.routing.engine import RoutingEngine
@@ -91,13 +91,15 @@ class AIGateway:
             prompt_context=prompt_context,
         )
 
-        routing_decision, lender_user_id, using_borrowed_provider = (
-            await self._resolve_execution_routing(
-                routing_context,
-                borrower_user_id=user_message.author_id,
-                participant_user_ids=participant_user_ids,
-                budget_settings=budget_settings,
-            )
+        (
+            routing_decision,
+            lender_user_id,
+            using_borrowed_provider,
+        ) = await self._resolve_execution_routing(
+            routing_context,
+            borrower_user_id=user_message.author_id,
+            participant_user_ids=participant_user_ids,
+            budget_settings=budget_settings,
         )
 
         borrow_after_sender_failure = False
@@ -212,8 +214,7 @@ class AIGateway:
 
             if user_message.author_id is not None and reserved_cost > Decimal("0"):
                 allow_insufficient = (
-                    not budget_settings.hard_budget_enforcement
-                    and not using_borrowed_provider
+                    not budget_settings.hard_budget_enforcement and not using_borrowed_provider
                 )
                 await self.budget_service.consume_credits(
                     workspace_id=conversation.workspace_id,
@@ -275,8 +276,7 @@ class AIGateway:
                     actual_cost = calculate_credits(ai_request, self.credit_policy)
 
                     allow_insufficient = (
-                        not budget_settings.hard_budget_enforcement
-                        and not using_borrowed_provider
+                        not budget_settings.hard_budget_enforcement and not using_borrowed_provider
                     )
                     if reserved_cost == Decimal("0") and actual_cost > Decimal("0"):
                         await self.budget_service.consume_credits(
@@ -403,10 +403,7 @@ class AIGateway:
                         participant_user_ids=participant_user_ids,
                         budget_settings=budget_settings,
                     )
-                    if (
-                        borrowed[0] is not None
-                        and borrowed[0].selected_account is not None
-                    ):
+                    if borrowed[0] is not None and borrowed[0].selected_account is not None:
                         borrow_after_sender_failure = True
                         routing_decision = borrowed[0]
                         lender_user_id = borrowed[1]

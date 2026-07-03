@@ -5,13 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai_accounts.deps import get_ai_account_service, get_credential_encryption
+from app.ai_accounts.deps import get_ai_account_service
 from app.ai_accounts.service import AIAccountService
 from app.api.deps import get_db
 from app.auth.deps import get_current_user
 from app.conversations.deps import WorkspaceContext
-from app.core.config import Settings, get_settings
-from app.core.credentials import CredentialEncryption
 from app.models.conversation import Conversation
 from app.models.enums import RoutingPolicyType, WorkspaceRole
 from app.models.user import User
@@ -19,8 +17,8 @@ from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
 from app.resource_management.budget_service import BudgetService
 from app.routing.context import RoutingContext
-from app.routing.deps import get_budget_service, get_routing_engine
 from app.routing.decision import RoutingDecision
+from app.routing.deps import get_budget_service, get_routing_engine
 from app.routing.engine import RoutingEngine
 from app.routing.schemas import (
     RoutingAccountSummary,
@@ -47,7 +45,7 @@ def _build_preview(decision: RoutingDecision, routing_policy: RoutingPolicyType)
     else:
         provider = decision.selected_model.split("-")[0] if decision.selected_model else "env"
     return RoutingPreview(
-        selected_account_id=decision.selected_account.id if decision.selected_account else None,
+        selected_account_id=(decision.selected_account.id if decision.selected_account else None),
         selected_provider=provider,
         selected_model=decision.selected_model,
         policy_used=decision.policy_used,
@@ -83,7 +81,9 @@ async def _routing_response(
     return RoutingSettingsResponse(
         routing_policy=settings.routing_policy,
         active_accounts=[
-            RoutingAccountSummary.model_validate(account) for account in accounts if account.is_active
+            RoutingAccountSummary.model_validate(account)
+            for account in accounts
+            if account.is_active
         ],
         preview=_build_preview(decision, settings.routing_policy),
     )
@@ -113,7 +113,9 @@ async def get_routing_settings(
 async def update_routing_settings(
     workspace_id: UUID,
     data: RoutingSettingsUpdate,
-    membership: WorkspaceMember = Depends(require_workspace_roles(WorkspaceRole.OWNER, WorkspaceRole.ADMIN)),
+    membership: WorkspaceMember = Depends(
+        require_workspace_roles(WorkspaceRole.OWNER, WorkspaceRole.ADMIN)
+    ),
     current_user: User = Depends(get_current_user),
     engine: RoutingEngine = Depends(get_routing_engine),
     ai_account_service: AIAccountService = Depends(get_ai_account_service),

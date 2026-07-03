@@ -4,7 +4,12 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.conversation import DEFAULT_CONVERSATION_TITLE
-from app.models.enums import ConversationParticipantRole, ExecutionType, MessageRole, RoutingPolicyType
+from app.models.enums import (
+    ConversationParticipantRole,
+    ExecutionType,
+    MessageRole,
+    RoutingPolicyType,
+)
 
 
 class ConversationParticipantSummary(BaseModel):

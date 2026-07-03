@@ -19,7 +19,7 @@ from app.models.enums import (
 )
 from app.resource_management.credit_policy import CreditPolicy
 from app.resource_management.pricing_engine import PricingEngine
-from tests.conftest import AuthContext, WorkspaceContext, create_workspace, register_user
+from tests.conftest import AuthContext, WorkspaceContext
 
 
 @pytest.fixture
@@ -58,7 +58,9 @@ def test_pricing_engine_free_profile() -> None:
     assert engine.multiplier_for(PricingProfileType.FREE, "anthropic") == Decimal("0.00")
 
 
-def test_credit_policy_uses_demo_profile_from_context(demo_runtime: DemoRuntimeContext) -> None:
+def test_credit_policy_uses_demo_profile_from_context(
+    demo_runtime: DemoRuntimeContext,
+) -> None:
     policy = CreditPolicy()
     token = set_demo_runtime(demo_runtime)
     try:

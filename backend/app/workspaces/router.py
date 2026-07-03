@@ -9,7 +9,11 @@ from app.models.enums import WorkspaceRole
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
-from app.workspaces.deps import get_workspace, get_workspace_membership, require_workspace_roles
+from app.workspaces.deps import (
+    get_workspace,
+    get_workspace_membership,
+    require_workspace_roles,
+)
 from app.workspaces.schemas import (
     AcceptInvitationResponse,
     InvitationCreate,
@@ -90,9 +94,7 @@ async def delete_workspace(
 async def invite_member(
     data: InvitationCreate,
     workspace: Workspace = Depends(get_workspace),
-    _: WorkspaceMember = Depends(
-        require_workspace_roles(WorkspaceRole.OWNER, WorkspaceRole.ADMIN)
-    ),
+    _: WorkspaceMember = Depends(require_workspace_roles(WorkspaceRole.OWNER, WorkspaceRole.ADMIN)),
     current_user: User = Depends(get_current_user),
     service: WorkspaceService = Depends(get_workspace_service),
 ) -> InvitationResponse:
@@ -105,9 +107,7 @@ async def invite_member(
 )
 async def list_pending_invitations(
     workspace_id: UUID,
-    _: WorkspaceMember = Depends(
-        require_workspace_roles(WorkspaceRole.OWNER, WorkspaceRole.ADMIN)
-    ),
+    _: WorkspaceMember = Depends(require_workspace_roles(WorkspaceRole.OWNER, WorkspaceRole.ADMIN)),
     service: WorkspaceService = Depends(get_workspace_service),
 ) -> list[PendingInvitationResponse]:
     return await service.list_pending_invitations(workspace_id)
@@ -120,9 +120,7 @@ async def list_pending_invitations(
 async def refresh_invitation_link(
     workspace_id: UUID,
     invitation_id: UUID,
-    _: WorkspaceMember = Depends(
-        require_workspace_roles(WorkspaceRole.OWNER, WorkspaceRole.ADMIN)
-    ),
+    _: WorkspaceMember = Depends(require_workspace_roles(WorkspaceRole.OWNER, WorkspaceRole.ADMIN)),
     service: WorkspaceService = Depends(get_workspace_service),
 ) -> InvitationResponse:
     return await service.refresh_invitation_link(workspace_id, invitation_id)

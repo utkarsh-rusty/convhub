@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.ai.prompt_builder import PromptBuilder, PromptContext
+from app.ai.prompt_builder import PromptContext
 from app.ai.providers.base import ChatMessage
 from app.ai.providers.factory import create_provider
 from app.ai.providers.ollama import OllamaProvider
@@ -68,8 +68,7 @@ class AIAccountService:
         accounts = list(result.scalars().all())
         stats = await self._load_account_stats([account.id for account in accounts])
         return [
-            self._to_response(account, ctx.user.id, stats.get(account.id))
-            for account in accounts
+            self._to_response(account, ctx.user.id, stats.get(account.id)) for account in accounts
         ]
 
     async def _load_account_stats(
@@ -161,7 +160,9 @@ class AIAccountService:
     async def test_account(self, account: AIAccount) -> AIAccountTestResponse:
         try:
             credentials = (
-                None if account.provider == "ollama" else self.encryption.decrypt(account.encrypted_credentials)
+                None
+                if account.provider == "ollama"
+                else self.encryption.decrypt(account.encrypted_credentials)
             )
             model = self.resolve_model(account.provider, account)
             provider = create_provider(

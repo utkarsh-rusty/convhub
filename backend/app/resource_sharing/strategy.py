@@ -59,9 +59,7 @@ class HighestRemainingStrategy(BorrowStrategy):
         amount: Decimal,
     ) -> LenderCandidate | None:
         eligible = [
-            candidate
-            for candidate in candidates
-            if candidate.remaining_share_capacity >= amount
+            candidate for candidate in candidates if candidate.remaining_share_capacity >= amount
         ]
         if not eligible:
             return None

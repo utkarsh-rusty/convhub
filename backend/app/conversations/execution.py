@@ -39,9 +39,7 @@ async def load_execution_summaries(
     accounts: dict[UUID, AIAccount] = {}
     owner_names: dict[UUID, str] = {}
     if account_ids:
-        account_result = await db.execute(
-            select(AIAccount).where(AIAccount.id.in_(account_ids))
-        )
+        account_result = await db.execute(select(AIAccount).where(AIAccount.id.in_(account_ids)))
         accounts = {account.id: account for account in account_result.scalars().all()}
         owner_ids = {account.owner_user_id for account in accounts.values()}
         if owner_ids:
@@ -60,9 +58,7 @@ async def load_execution_summaries(
         lender_names = {user.id: user.name for user in lender_result.scalars().all()}
 
     user_message_ids = {
-        request.user_message_id
-        for request in ai_requests
-        if request.user_message_id is not None
+        request.user_message_id for request in ai_requests if request.user_message_id is not None
     }
     author_by_message: dict[UUID, UUID] = {}
     if user_message_ids:
@@ -88,9 +84,7 @@ async def load_execution_summaries(
             else None
         )
         borrow_record = borrow_by_request.get(request.id)
-        lender_name = (
-            lender_names.get(borrow_record.lender_user_id) if borrow_record else None
-        )
+        lender_name = lender_names.get(borrow_record.lender_user_id) if borrow_record else None
         sender_user_id = (
             author_by_message.get(request.user_message_id)
             if request.user_message_id is not None

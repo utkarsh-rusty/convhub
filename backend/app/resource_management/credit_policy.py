@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_CEILING
+from decimal import ROUND_CEILING, Decimal
 
 from app.ai.prompt_builder import PromptContext
 from app.demo.context import get_active_pricing_profile

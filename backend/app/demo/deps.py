@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from uuid import UUID
-
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.core.config import Settings, get_settings
+from app.demo.service import DemoService
 from app.resource_management.budget_service import BudgetService
 from app.resource_management.pricing_engine import PricingEngine
-from app.demo.service import DemoService
 
 
 def require_demo_mode(settings: Settings = Depends(get_settings)) -> Settings:

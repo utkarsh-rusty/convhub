@@ -37,9 +37,7 @@ def test_borrow_transaction_uses_names_for_borrower_view() -> None:
         description="Borrow credits from user old-id",
     )
 
-    assert format_credit_transaction_display(tx, borrower.id) == (
-        "You borrowed credits from Alice"
-    )
+    assert format_credit_transaction_display(tx, borrower.id) == ("You borrowed credits from Alice")
 
 
 def test_lend_transaction_uses_names_for_lender_view() -> None:
@@ -65,6 +63,4 @@ def test_borrow_transaction_shows_both_parties_for_lender_view() -> None:
         to_user=borrower,
     )
 
-    assert format_credit_transaction_display(tx, lender.id) == (
-        "Bob borrowed credits from you"
-    )
+    assert format_credit_transaction_display(tx, lender.id) == ("Bob borrowed credits from you")

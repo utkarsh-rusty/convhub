@@ -27,7 +27,9 @@ from app.resource_sharing.preference_service import LendingPreferenceService
 async def client() -> AsyncIterator[AsyncClient]:
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://testserver/api/v1") as http_client:
+        async with AsyncClient(
+            transport=transport, base_url="http://testserver/api/v1"
+        ) as http_client:
             yield http_client
 
 
@@ -142,7 +144,9 @@ async def test_zero_credits_borrow_succeeds(client: AsyncClient, monkeypatch) ->
     lender_token, lender_id = await _register(client, "Lender")
 
     borrower_headers = {"Authorization": f"Bearer {borrower_token}"}
-    workspace = await client.post("/workspaces", headers=borrower_headers, json={"name": "Borrow WS"})
+    workspace = await client.post(
+        "/workspaces", headers=borrower_headers, json={"name": "Borrow WS"}
+    )
     workspace_id = workspace.json()["id"]
     borrower_headers["X-Workspace-ID"] = workspace_id
 
@@ -208,10 +212,14 @@ async def test_zero_credits_borrow_succeeds(client: AsyncClient, monkeypatch) ->
 
     async with session_factory() as db:
         borrow_records = (
-            await db.execute(
-                select(BorrowRecord).where(BorrowRecord.workspace_id == workspace_id)
+            (
+                await db.execute(
+                    select(BorrowRecord).where(BorrowRecord.workspace_id == workspace_id)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(borrow_records) == 1
         record = borrow_records[0]
         assert str(record.borrower_user_id) == borrower_id
@@ -222,15 +230,19 @@ async def test_zero_credits_borrow_succeeds(client: AsyncClient, monkeypatch) ->
         assert lender_budget.remaining_credits >= Decimal("500")
 
         tx_types = (
-            await db.execute(
-                select(CreditTransaction.transaction_type).where(
-                    CreditTransaction.workspace_id == workspace_id,
-                    CreditTransaction.transaction_type.in_(
-                        [CreditTransactionType.BORROW, CreditTransactionType.LEND]
-                    ),
+            (
+                await db.execute(
+                    select(CreditTransaction.transaction_type).where(
+                        CreditTransaction.workspace_id == workspace_id,
+                        CreditTransaction.transaction_type.in_(
+                            [CreditTransactionType.BORROW, CreditTransactionType.LEND]
+                        ),
+                    )
                 )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         assert CreditTransactionType.BORROW in tx_types
         assert CreditTransactionType.LEND in tx_types
 
@@ -263,7 +275,11 @@ async def test_lender_never_goes_below_reserve(db_session: AsyncSession) -> None
             borrower,
             workspace,
             WorkspaceMember(workspace_id=workspace.id, user_id=user.id, role=WorkspaceRole.OWNER),
-            WorkspaceMember(workspace_id=workspace.id, user_id=borrower.id, role=WorkspaceRole.MEMBER),
+            WorkspaceMember(
+                workspace_id=workspace.id,
+                user_id=borrower.id,
+                role=WorkspaceRole.MEMBER,
+            ),
         ]
     )
     await db_session.flush()

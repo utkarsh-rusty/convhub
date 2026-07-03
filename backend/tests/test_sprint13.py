@@ -202,11 +202,10 @@ async def test_admin_can_view_all_accounts_with_owners(
 
 @pytest.mark.asyncio
 async def test_borrow_engine_limits_to_conversation_participants(db_session) -> None:
-    from datetime import UTC, datetime
+    from app.models.enums import WorkspaceRole
     from app.models.user import User
     from app.models.workspace import Workspace
     from app.models.workspace_member import WorkspaceMember
-    from app.models.enums import WorkspaceRole
     from app.resource_management.budget_service import BudgetService
     from app.resource_sharing.engine import BorrowEngine
     from app.resource_sharing.preference_service import LendingPreferenceService
@@ -242,8 +241,16 @@ async def test_borrow_engine_limits_to_conversation_participants(db_session) -> 
             borrower,
             workspace,
             WorkspaceMember(workspace_id=workspace.id, user_id=lender.id, role=WorkspaceRole.OWNER),
-            WorkspaceMember(workspace_id=workspace.id, user_id=outsider.id, role=WorkspaceRole.MEMBER),
-            WorkspaceMember(workspace_id=workspace.id, user_id=borrower.id, role=WorkspaceRole.MEMBER),
+            WorkspaceMember(
+                workspace_id=workspace.id,
+                user_id=outsider.id,
+                role=WorkspaceRole.MEMBER,
+            ),
+            WorkspaceMember(
+                workspace_id=workspace.id,
+                user_id=borrower.id,
+                role=WorkspaceRole.MEMBER,
+            ),
         ]
     )
     await db_session.flush()
@@ -555,13 +562,18 @@ async def test_borrower_zero_providers_creates_borrow_record_for_paid_provider(
     session_factory = app.state.session_factory
     async with session_factory() as db:
         from sqlalchemy import select
+
         from app.models.borrow_record import BorrowRecord
 
         records = (
-            await db.execute(
-                select(BorrowRecord).where(BorrowRecord.workspace_id == workspace.workspace_id)
+            (
+                await db.execute(
+                    select(BorrowRecord).where(BorrowRecord.workspace_id == workspace.workspace_id)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(records) == 1
 
     get_settings.cache_clear()

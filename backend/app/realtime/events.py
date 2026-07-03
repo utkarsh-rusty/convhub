@@ -41,6 +41,6 @@ class RealtimeEvent(BaseModel):
             "type": self.type.value,
             "timestamp": self.timestamp.isoformat(),
             "workspace_id": str(self.workspace_id),
-            "conversation_id": str(self.conversation_id) if self.conversation_id else None,
+            "conversation_id": (str(self.conversation_id) if self.conversation_id else None),
             "payload": self.payload,
         }

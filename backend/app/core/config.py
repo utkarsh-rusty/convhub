@@ -49,12 +49,16 @@ class Settings(BaseSettings):
     )
     openai_api_key: str | None = Field(
         default=None,
-        description="Development-only fallback for OpenAI when no workspace AI account is configured",
+        description=(
+            "Development-only fallback for OpenAI when no workspace AI account is configured"
+        ),
     )
     openai_model: str = "gpt-4o"
     gemini_api_key: str | None = Field(
         default=None,
-        description="Development-only fallback for Gemini when no workspace AI account is configured",
+        description=(
+            "Development-only fallback for Gemini when no workspace AI account is configured"
+        ),
     )
     gemini_model: str = "gemini-2.0-flash"
     groq_api_key: str | None = Field(

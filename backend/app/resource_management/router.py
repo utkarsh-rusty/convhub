@@ -7,7 +7,6 @@ from app.api.deps import get_db
 from app.models.enums import WorkspaceRole
 from app.models.workspace_member import WorkspaceMember
 from app.resource_management.budget_service import BudgetService
-from app.resource_management.transaction_labels import format_credit_transaction_display
 from app.resource_management.schemas import (
     BudgetResponse,
     CreditTransactionListResponse,
@@ -15,6 +14,7 @@ from app.resource_management.schemas import (
     WorkspaceBudgetSettingsResponse,
     WorkspaceBudgetSettingsUpdate,
 )
+from app.resource_management.transaction_labels import format_credit_transaction_display
 from app.workspaces.deps import get_workspace_membership, require_workspace_roles
 
 router = APIRouter(prefix="/workspaces", tags=["credits"])

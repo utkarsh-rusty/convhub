@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from app.models.enums import RoutingPolicyType
 from app.routing.context import RoutingContext
 from app.routing.decision import RoutingScore
 from app.routing.health import ProviderHealth

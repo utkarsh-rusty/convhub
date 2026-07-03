@@ -7,7 +7,10 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.conversations.execution import build_execution_summary, load_execution_summaries
+from app.conversations.execution import (
+    build_execution_summary,
+    load_execution_summaries,
+)
 from app.core.config import get_settings
 from app.main import app
 from app.models.ai_account import AIAccount
@@ -23,7 +26,9 @@ from app.models.workspace import Workspace
 async def client() -> AsyncClient:
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://testserver/api/v1") as http_client:
+        async with AsyncClient(
+            transport=transport, base_url="http://testserver/api/v1"
+        ) as http_client:
             yield http_client
 
 
@@ -156,7 +161,9 @@ async def test_load_execution_summaries(db_session: AsyncSession) -> None:
         selected_account_id=account.id,
         routing_policy=RoutingPolicyType.OWNER_FIRST,
     )
-    db_session.add_all([user, workspace, conversation, user_message, assistant, account, ai_request])
+    db_session.add_all(
+        [user, workspace, conversation, user_message, assistant, account, ai_request]
+    )
     await db_session.flush()
 
     summaries = await load_execution_summaries(db_session, [assistant.id])
@@ -169,7 +176,10 @@ async def test_load_execution_summaries(db_session: AsyncSession) -> None:
 async def test_invitation_preview(client: AsyncClient) -> None:
     email = f"preview-{uuid4().hex}@example.com"
     password = "password123"
-    await client.post("/auth/register", json={"name": "Preview Host", "email": email, "password": password})
+    await client.post(
+        "/auth/register",
+        json={"name": "Preview Host", "email": email, "password": password},
+    )
     login = await client.post("/auth/login", json={"email": email, "password": password})
     token = login.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

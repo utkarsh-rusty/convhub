@@ -23,7 +23,9 @@ def get_budget_service(db: AsyncSession = Depends(get_db)) -> BudgetService:
     return BudgetService(db=db)
 
 
-def get_lending_preference_service(db: AsyncSession = Depends(get_db)) -> LendingPreferenceService:
+def get_lending_preference_service(
+    db: AsyncSession = Depends(get_db),
+) -> LendingPreferenceService:
     return LendingPreferenceService(db=db)
 
 

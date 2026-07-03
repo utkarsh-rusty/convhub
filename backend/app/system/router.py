@@ -53,9 +53,7 @@ async def get_system_status(
     try:
         budget_settings = await budget_service.get_workspace_budget_settings(ctx.workspace_id)
         borrow_detail = (
-            "Borrowing enabled"
-            if budget_settings.allow_credit_borrowing
-            else "Borrowing disabled"
+            "Borrowing enabled" if budget_settings.allow_credit_borrowing else "Borrowing disabled"
         )
         components.append(
             ComponentStatus(

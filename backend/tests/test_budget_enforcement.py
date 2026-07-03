@@ -69,7 +69,9 @@ async def test_has_available_credits(db_session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_consume_credits_fails_when_insufficient(db_session: AsyncSession) -> None:
+async def test_consume_credits_fails_when_insufficient(
+    db_session: AsyncSession,
+) -> None:
     workspace, user = await _seed_member(db_session)
     service = BudgetService(db_session)
     await service.create_workspace_budget_settings(workspace.id)
@@ -91,7 +93,6 @@ async def test_consume_credits_deducts_balance(db_session: AsyncSession) -> None
     await service.create_workspace_budget_settings(workspace.id)
     await service.create_budget(workspace.id, user.id)
 
-    from datetime import UTC, datetime
     from app.models.ai_request import AIRequest
     from app.models.conversation import Conversation
     from app.models.enums import AIRequestStatus, MessageRole

@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
 from app.conversations.deps import (
     WorkspaceContext,
-    get_conversation,
     get_participant_conversation,
     get_workspace_context,
     require_conversation_owner,

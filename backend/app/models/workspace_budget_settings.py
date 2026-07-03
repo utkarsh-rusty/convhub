@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import Boolean, ForeignKey, Index, Numeric, String
+from sqlalchemy import Boolean, ForeignKey, Index, Numeric
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,7 +20,9 @@ if TYPE_CHECKING:
 
 class WorkspaceBudgetSettings(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "workspace_budget_settings"
-    __table_args__ = (Index("ix_workspace_budget_settings_workspace_id", "workspace_id", unique=True),)
+    __table_args__ = (
+        Index("ix_workspace_budget_settings_workspace_id", "workspace_id", unique=True),
+    )
 
     workspace_id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True),

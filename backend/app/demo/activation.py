@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from contextvars import Token
-from contextvars import Token
 from uuid import UUID
 
 from sqlalchemy import select

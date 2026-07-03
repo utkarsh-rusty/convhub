@@ -1,11 +1,12 @@
 from fastapi import APIRouter
 
-from app.ai_accounts.router import ai_accounts_router
 from app.ai.router import chat_router
+from app.ai_accounts.router import ai_accounts_router
 from app.api.v1.endpoints import health
 from app.auth.router import auth_router, users_router
 from app.conversations.router import conversations_router
-from app.demo.router import router as demo_router, workspace_router as demo_workspace_router
+from app.demo.router import router as demo_router
+from app.demo.router import workspace_router as demo_workspace_router
 from app.realtime.router import router as realtime_router
 from app.resource_management.router import router as credits_router
 from app.resource_sharing.router import router as sharing_router

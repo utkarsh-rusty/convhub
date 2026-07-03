@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai_accounts.service import AIAccountService
 from app.core.config import Settings
 from app.core.credentials import CredentialEncryption
+from app.demo.runtime import NoOpRoutingOverride, RoutingOverrideProvider
 from app.models.ai_account import AIAccount
 from app.models.ai_request import AIRequest
 from app.models.conversation import Conversation
@@ -20,7 +21,6 @@ from app.routing.context import RoutingContext
 from app.routing.decision import RoutingDecision, RoutingScore
 from app.routing.health import ProviderHealth
 from app.routing.policy import FREE_PROVIDERS, get_policy
-from app.demo.runtime import NoOpRoutingOverride, RoutingOverrideProvider
 
 
 class RoutingEngine:
@@ -65,7 +65,9 @@ class RoutingEngine:
         )
         return list(result.scalars().all())
 
-    async def select_for_owner(self, context: RoutingContext, owner_user_id: UUID) -> RoutingDecision:
+    async def select_for_owner(
+        self, context: RoutingContext, owner_user_id: UUID
+    ) -> RoutingDecision:
         from app.routing.orchestrator import AccountRoutingOrchestrator
 
         scoped = RoutingContext(
@@ -152,7 +154,9 @@ class RoutingEngine:
 
     def _check_credentials(self, account: AIAccount) -> ProviderHealth:
         if account.provider in FREE_PROVIDERS:
-            return ProviderHealth(account=account, is_healthy=True, reason="No credentials required")
+            return ProviderHealth(
+                account=account, is_healthy=True, reason="No credentials required"
+            )
 
         try:
             credentials = self.encryption.decrypt(account.encrypted_credentials)

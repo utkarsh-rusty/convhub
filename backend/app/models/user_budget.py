@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import Date, ForeignKey, Index, Numeric, Text, UniqueConstraint
+from sqlalchemy import Date, ForeignKey, Index, Numeric, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -36,13 +36,17 @@ class UserBudget(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
     )
     monthly_credit_limit: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    used_credits: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    used_credits: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), nullable=False, default=Decimal("0")
+    )
     borrowed_credits: Mapped[Decimal] = mapped_column(
         Numeric(12, 2),
         nullable=False,
         default=Decimal("0"),
     )
-    lent_credits: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0"))
+    lent_credits: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), nullable=False, default=Decimal("0")
+    )
     remaining_credits: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     reset_date: Mapped[date] = mapped_column(Date, nullable=False)
 

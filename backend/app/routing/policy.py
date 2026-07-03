@@ -10,7 +10,14 @@ from app.routing.decision import RoutingScore
 from app.routing.health import ProviderHealth
 
 FREE_PROVIDERS = {"ollama", "mock"}
-PAID_PROVIDER_ORDER = {"ollama": 0, "mock": 1, "anthropic": 2, "openai": 3, "gemini": 4, "groq": 5}
+PAID_PROVIDER_ORDER = {
+    "ollama": 0,
+    "mock": 1,
+    "anthropic": 2,
+    "openai": 3,
+    "gemini": 4,
+    "groq": 5,
+}
 
 
 class RoutingPolicy(ABC):
@@ -40,7 +47,10 @@ class PriorityPolicy(RoutingPolicy):
         _ = context, monthly_usage
         if not candidates:
             return None
-        best = min(candidates, key=lambda item: (item.account.priority, item.account.created_at))
+        best = min(
+            candidates,
+            key=lambda item: (item.account.priority, item.account.created_at),
+        )
         return RoutingScore(
             account=best.account,
             score=Decimal(str(best.account.priority)),
@@ -143,7 +153,11 @@ class CheapestPolicy(RoutingPolicy):
 
         best = min(
             candidates,
-            key=lambda item: (provider_rank(item.account), item.account.priority, item.account.created_at),
+            key=lambda item: (
+                provider_rank(item.account),
+                item.account.priority,
+                item.account.created_at,
+            ),
         )
         return RoutingScore(
             account=best.account,

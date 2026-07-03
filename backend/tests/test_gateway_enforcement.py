@@ -18,7 +18,9 @@ from app.resource_management.budget_service import BudgetService
 async def client() -> AsyncIterator[AsyncClient]:
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://testserver/api/v1") as http_client:
+        async with AsyncClient(
+            transport=transport, base_url="http://testserver/api/v1"
+        ) as http_client:
             yield http_client
 
 
@@ -34,7 +36,9 @@ async def _register(client: AsyncClient) -> str:
 
 
 @pytest.mark.asyncio
-async def test_gateway_blocks_paid_provider_with_zero_credits(client: AsyncClient, monkeypatch) -> None:
+async def test_gateway_blocks_paid_provider_with_zero_credits(
+    client: AsyncClient, monkeypatch
+) -> None:
     from app.core.config import get_settings
 
     monkeypatch.setenv("AI_PROVIDER", "anthropic")

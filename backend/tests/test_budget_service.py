@@ -12,7 +12,12 @@ from app.core.config import get_settings
 from app.models.ai_request import AIRequest
 from app.models.conversation import Conversation
 from app.models.credit_transaction import CreditTransaction
-from app.models.enums import AIRequestStatus, CreditTransactionType, MessageRole, WorkspaceRole
+from app.models.enums import (
+    AIRequestStatus,
+    CreditTransactionType,
+    MessageRole,
+    WorkspaceRole,
+)
 from app.models.message import Message
 from app.models.user import User
 from app.models.workspace import Workspace
@@ -62,7 +67,9 @@ async def _seed_workspace_member(session: AsyncSession) -> tuple[Workspace, User
 
 
 @pytest.mark.asyncio
-async def test_create_budget_allocates_default_credits(db_session: AsyncSession) -> None:
+async def test_create_budget_allocates_default_credits(
+    db_session: AsyncSession,
+) -> None:
     workspace, user = await _seed_workspace_member(db_session)
     service = BudgetService(db_session)
 

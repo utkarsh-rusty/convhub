@@ -13,7 +13,9 @@ from app.main import app
 async def client() -> AsyncIterator[AsyncClient]:
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)
-        async with AsyncClient(transport=transport, base_url="http://testserver/api/v1") as http_client:
+        async with AsyncClient(
+            transport=transport, base_url="http://testserver/api/v1"
+        ) as http_client:
             yield http_client
 
 

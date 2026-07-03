@@ -17,7 +17,11 @@ class MockProvider(AIProvider):
         model: str,
     ) -> AIResponse:
         last_user = next(
-            (message for message in reversed(prompt_context.chat_messages) if message.role == "user"),
+            (
+                message
+                for message in reversed(prompt_context.chat_messages)
+                if message.role == "user"
+            ),
             None,
         )
         prompt_preview = last_user.content if last_user else "your message"

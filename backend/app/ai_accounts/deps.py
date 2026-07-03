@@ -14,7 +14,9 @@ from app.models.ai_account import AIAccount
 from app.models.enums import WorkspaceRole
 
 
-def get_credential_encryption(settings: Settings = Depends(get_settings)) -> CredentialEncryption:
+def get_credential_encryption(
+    settings: Settings = Depends(get_settings),
+) -> CredentialEncryption:
     return CredentialEncryption(settings.credentials_encryption_key)
 
 
@@ -26,7 +28,9 @@ def get_ai_account_service(
     return AIAccountService(db=db, settings=settings, encryption=encryption)
 
 
-def require_workspace_admin(ctx: WorkspaceContext = Depends(get_workspace_context)) -> WorkspaceContext:
+def require_workspace_admin(
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+) -> WorkspaceContext:
     if ctx.membership.role not in {WorkspaceRole.OWNER, WorkspaceRole.ADMIN}:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

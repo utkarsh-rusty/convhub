@@ -44,5 +44,7 @@ class ConversationParticipant(Base):
         nullable=False,
     )
 
-    conversation: Mapped[Conversation] = relationship(back_populates="participants", lazy="selectin")
+    conversation: Mapped[Conversation] = relationship(
+        back_populates="participants", lazy="selectin"
+    )
     user: Mapped[User] = relationship(lazy="selectin")

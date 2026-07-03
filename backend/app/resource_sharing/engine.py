@@ -271,7 +271,9 @@ class BorrowEngine:
             )
         )
         lender_budget.remaining_credits += reservation.amount
-        lender_budget.lent_credits = max(Decimal("0"), lender_budget.lent_credits - reservation.amount)
+        lender_budget.lent_credits = max(
+            Decimal("0"), lender_budget.lent_credits - reservation.amount
+        )
 
         borrower_budget.remaining_credits = max(
             Decimal("0"),
