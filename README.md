@@ -94,8 +94,6 @@ See [docs/architecture/](docs/architecture/) for diagrams and ADRs.
 
 ## Screenshots
 
-Placeholders — assets to be added under `docs/images/`.
-
 | Screen | Placeholder |
 |--------|-------------|
 | Landing | `docs/images/landing.png` |
