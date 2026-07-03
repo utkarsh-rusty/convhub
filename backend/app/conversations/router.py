@@ -1,6 +1,7 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
@@ -11,13 +12,19 @@ from app.conversations.deps import (
     get_workspace_context,
     require_conversation_owner,
 )
+from app.conversations.insights import ConversationInsightsService
 from app.conversations.schemas import (
+    BranchTreeResponse,
     ConversationBranchCreate,
+    ConversationCompareResponse,
     ConversationCreate,
     ConversationLineageResponse,
     ConversationParticipantCreate,
     ConversationParticipantResponse,
     ConversationResponse,
+    ConversationSearchResponse,
+    ConversationStatsResponse,
+    ConversationTimelineResponse,
     ConversationUpdate,
     MessageCreate,
     MessageResponse,
@@ -30,6 +37,10 @@ conversations_router = APIRouter(prefix="/conversations", tags=["conversations"]
 
 def get_conversation_service(db: AsyncSession = Depends(get_db)) -> ConversationService:
     return ConversationService(db=db)
+
+
+def get_insights_service(db: AsyncSession = Depends(get_db)) -> ConversationInsightsService:
+    return ConversationInsightsService(db=db)
 
 
 @conversations_router.post(
@@ -197,3 +208,84 @@ async def get_conversation_lineage(
     service: ConversationService = Depends(get_conversation_service),
 ) -> ConversationLineageResponse:
     return await service.get_lineage(conversation)
+
+
+@conversations_router.get(
+    "/{conversation_id}/branch-tree",
+    response_model=BranchTreeResponse,
+)
+async def get_branch_tree(
+    conversation: Conversation = Depends(get_conversation),
+    service: ConversationInsightsService = Depends(get_insights_service),
+) -> BranchTreeResponse:
+    return await service.get_branch_tree(conversation)
+
+
+@conversations_router.get(
+    "/{left_id}/compare/{right_id}",
+    response_model=ConversationCompareResponse,
+)
+async def compare_conversations(
+    left_id: UUID,
+    right_id: UUID,
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    db: AsyncSession = Depends(get_db),
+    service: ConversationInsightsService = Depends(get_insights_service),
+) -> ConversationCompareResponse:
+    left = await _load_workspace_conversation(db, left_id, ctx.workspace_id)
+    right = await _load_workspace_conversation(db, right_id, ctx.workspace_id)
+    return await service.compare(left, right)
+
+
+@conversations_router.get(
+    "/{conversation_id}/timeline",
+    response_model=ConversationTimelineResponse,
+)
+async def get_conversation_timeline(
+    conversation: Conversation = Depends(get_conversation),
+    service: ConversationInsightsService = Depends(get_insights_service),
+) -> ConversationTimelineResponse:
+    return await service.get_timeline(conversation)
+
+
+@conversations_router.get(
+    "/{conversation_id}/stats",
+    response_model=ConversationStatsResponse,
+)
+async def get_conversation_stats(
+    conversation: Conversation = Depends(get_conversation),
+    service: ConversationInsightsService = Depends(get_insights_service),
+) -> ConversationStatsResponse:
+    return await service.get_stats(conversation)
+
+
+@conversations_router.get(
+    "/{conversation_id}/search",
+    response_model=ConversationSearchResponse,
+)
+async def search_conversation_messages(
+    conversation: Conversation = Depends(get_conversation),
+    q: str = Query(default="", max_length=500),
+    service: ConversationInsightsService = Depends(get_insights_service),
+) -> ConversationSearchResponse:
+    return await service.search(conversation, q)
+
+
+async def _load_workspace_conversation(
+    db: AsyncSession,
+    conversation_id: UUID,
+    workspace_id: UUID,
+) -> Conversation:
+    result = await db.execute(
+        select(Conversation).where(
+            Conversation.id == conversation_id,
+            Conversation.workspace_id == workspace_id,
+        )
+    )
+    conversation = result.scalar_one_or_none()
+    if conversation is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
+    return conversation

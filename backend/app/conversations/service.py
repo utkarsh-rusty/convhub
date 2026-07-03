@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,7 @@ from app.conversations.schemas import (
     MessageCreate,
     MessageResponse,
 )
+from app.models.ai_request import AIRequest
 from app.models.conversation import DEFAULT_CONVERSATION_TITLE, Conversation
 from app.models.conversation_participant import ConversationParticipant
 from app.models.enums import ConversationParticipantRole, MessageRole
@@ -63,6 +64,7 @@ class ConversationService:
             [self._participant_summary(ctx.user, ConversationParticipantRole.OWNER)],
             viewer_user_id=ctx.user.id,
             owner_name=ctx.user.name,
+            created_by_name=ctx.user.name,
         )
 
     async def list_conversations(
@@ -79,20 +81,7 @@ class ConversationService:
             .order_by(Conversation.last_activity_at.desc())
         )
         conversations = list(result.scalars().all())
-        conversation_ids = [conversation.id for conversation in conversations]
-        participant_map = await self._load_participant_summaries(conversation_ids)
-        owner_names = await self._load_owner_names(
-            [conversation.owner_id for conversation in conversations]
-        )
-        return [
-            self._to_conversation_response(
-                conversation,
-                participant_map.get(conversation.id, []),
-                viewer_user_id=user_id,
-                owner_name=owner_names.get(conversation.owner_id),
-            )
-            for conversation in conversations
-        ]
+        return await self._build_conversation_responses(conversations, viewer_user_id=user_id)
 
     async def get_conversation(
         self,
@@ -100,14 +89,11 @@ class ConversationService:
         *,
         viewer_user_id: UUID | None = None,
     ) -> ConversationResponse:
-        participants = await self._load_participant_summaries([conversation.id])
-        owner_names = await self._load_owner_names([conversation.owner_id])
-        return self._to_conversation_response(
-            conversation,
-            participants.get(conversation.id, []),
+        responses = await self._build_conversation_responses(
+            [conversation],
             viewer_user_id=viewer_user_id,
-            owner_name=owner_names.get(conversation.owner_id),
         )
+        return responses[0]
 
     async def update_conversation(
         self,
@@ -365,12 +351,71 @@ class ConversationService:
             )
         return participant_map
 
-    async def _load_owner_names(self, owner_ids: list[UUID]) -> dict[UUID, str]:
-        unique_ids = list({owner_id for owner_id in owner_ids if owner_id is not None})
+    async def _load_user_names(self, user_ids: list[UUID]) -> dict[UUID, str]:
+        unique_ids = list({user_id for user_id in user_ids if user_id is not None})
         if not unique_ids:
             return {}
         result = await self.db.execute(select(User).where(User.id.in_(unique_ids)))
         return {user.id: user.name for user in result.scalars().all()}
+
+    async def _load_owner_names(self, owner_ids: list[UUID]) -> dict[UUID, str]:
+        return await self._load_user_names(owner_ids)
+
+    async def _load_message_counts(self, conversation_ids: list[UUID]) -> dict[UUID, int]:
+        if not conversation_ids:
+            return {}
+        result = await self.db.execute(
+            select(Message.conversation_id, func.count())
+            .where(Message.conversation_id.in_(conversation_ids))
+            .group_by(Message.conversation_id)
+        )
+        return {conversation_id: count for conversation_id, count in result.all()}
+
+    async def _load_ai_request_counts(self, conversation_ids: list[UUID]) -> dict[UUID, int]:
+        if not conversation_ids:
+            return {}
+        result = await self.db.execute(
+            select(AIRequest.conversation_id, func.count())
+            .where(AIRequest.conversation_id.in_(conversation_ids))
+            .group_by(AIRequest.conversation_id)
+        )
+        return {conversation_id: count for conversation_id, count in result.all()}
+
+    async def _build_conversation_responses(
+        self,
+        conversations: list[Conversation],
+        *,
+        viewer_user_id: UUID | None = None,
+    ) -> list[ConversationResponse]:
+        if not conversations:
+            return []
+        conversation_ids = [conversation.id for conversation in conversations]
+        participant_map = await self._load_participant_summaries(conversation_ids)
+        user_ids = [conversation.owner_id for conversation in conversations]
+        user_ids.extend(
+            conversation.created_by_id
+            for conversation in conversations
+            if conversation.created_by_id is not None
+        )
+        user_names = await self._load_user_names(user_ids)
+        message_counts = await self._load_message_counts(conversation_ids)
+        ai_request_counts = await self._load_ai_request_counts(conversation_ids)
+        return [
+            self._to_conversation_response(
+                conversation,
+                participant_map.get(conversation.id, []),
+                viewer_user_id=viewer_user_id,
+                owner_name=user_names.get(conversation.owner_id),
+                created_by_name=(
+                    user_names.get(conversation.created_by_id)
+                    if conversation.created_by_id is not None
+                    else None
+                ),
+                message_count=message_counts.get(conversation.id, 0),
+                ai_request_count=ai_request_counts.get(conversation.id, 0),
+            )
+            for conversation in conversations
+        ]
 
     @staticmethod
     def _participant_summary(
@@ -389,6 +434,9 @@ class ConversationService:
         *,
         viewer_user_id: UUID | None = None,
         owner_name: str | None = None,
+        created_by_name: str | None = None,
+        message_count: int = 0,
+        ai_request_count: int = 0,
     ) -> ConversationResponse:
         is_participant = viewer_user_id is not None and any(
             participant.user_id == viewer_user_id for participant in participants
@@ -410,8 +458,11 @@ class ConversationService:
             created_by_id=conversation.created_by_id,
             owner_id=conversation.owner_id,
             owner=owner,
+            owner_name=resolved_owner_name,
+            created_by_name=created_by_name,
             title=conversation.title,
             last_activity_at=conversation.last_activity_at,
+            latest_activity_at=conversation.last_activity_at,
             archived_at=conversation.archived_at,
             created_at=conversation.created_at,
             updated_at=conversation.updated_at,
@@ -420,6 +471,8 @@ class ConversationService:
             branch_name=conversation.branch_name,
             is_participant=is_participant,
             participant_count=len(participants),
+            message_count=message_count,
+            ai_request_count=ai_request_count,
             participants=participants,
         )
 
@@ -516,17 +569,7 @@ class ConversationService:
             .order_by(Conversation.created_at.asc())
         )
         branches = list(result.scalars().all())
-        participant_map = await self._load_participant_summaries([branch.id for branch in branches])
-        owner_names = await self._load_owner_names([branch.owner_id for branch in branches])
-        return [
-            self._to_conversation_response(
-                branch,
-                participant_map.get(branch.id, []),
-                viewer_user_id=viewer_user_id,
-                owner_name=owner_names.get(branch.owner_id),
-            )
-            for branch in branches
-        ]
+        return await self._build_conversation_responses(branches, viewer_user_id=viewer_user_id)
 
     async def get_lineage(self, conversation: Conversation) -> ConversationLineageResponse:
         chain: list[Conversation] = [conversation]

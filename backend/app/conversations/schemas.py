@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -39,8 +40,11 @@ class ConversationResponse(BaseModel):
     created_by_id: UUID | None
     owner_id: UUID
     owner: ConversationOwnerSummary | None = None
+    owner_name: str | None = None
+    created_by_name: str | None = None
     title: str
     last_activity_at: datetime
+    latest_activity_at: datetime | None = None
     archived_at: datetime | None
     created_at: datetime
     updated_at: datetime
@@ -49,7 +53,82 @@ class ConversationResponse(BaseModel):
     branch_name: str | None = None
     is_participant: bool = False
     participant_count: int = 0
+    message_count: int = 0
+    ai_request_count: int = 0
     participants: list[ConversationParticipantSummary] = Field(default_factory=list)
+
+
+class BranchTreeNode(BaseModel):
+    id: UUID
+    title: str
+    branch_name: str | None = None
+    parent_conversation_id: UUID | None = None
+    owner_id: UUID
+    owner_name: str | None = None
+    latest_activity_at: datetime
+    message_count: int = 0
+    participant_count: int = 0
+    children: list["BranchTreeNode"] = Field(default_factory=list)
+
+
+class BranchTreeResponse(BaseModel):
+    root: BranchTreeNode
+
+
+class ComparisonMessage(BaseModel):
+    id: UUID
+    role: MessageRole
+    content: str
+    created_at: datetime
+    author_id: UUID | None = None
+
+
+class ConversationCompareResponse(BaseModel):
+    left_id: UUID
+    right_id: UUID
+    common_ancestor_id: UUID | None = None
+    shared_messages: list[ComparisonMessage] = Field(default_factory=list)
+    left_only: list[ComparisonMessage] = Field(default_factory=list)
+    right_only: list[ComparisonMessage] = Field(default_factory=list)
+    divergence_message_id: UUID | None = None
+
+
+class TimelineEvent(BaseModel):
+    event_type: str
+    occurred_at: datetime
+    actor_id: UUID | None = None
+    actor_name: str | None = None
+    summary: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ConversationTimelineResponse(BaseModel):
+    conversation_id: UUID
+    events: list[TimelineEvent] = Field(default_factory=list)
+
+
+class ConversationStatsResponse(BaseModel):
+    conversation_id: UUID
+    message_count: int
+    assistant_messages: int
+    user_messages: int
+    participants: int
+    providers_used: list[str] = Field(default_factory=list)
+    borrowed_requests: int
+    credits_used: str
+    latest_activity: datetime
+
+
+class SearchMessageMatch(BaseModel):
+    message: ComparisonMessage
+    context_before: list[ComparisonMessage] = Field(default_factory=list)
+    context_after: list[ComparisonMessage] = Field(default_factory=list)
+
+
+class ConversationSearchResponse(BaseModel):
+    conversation_id: UUID
+    query: str
+    matches: list[SearchMessageMatch] = Field(default_factory=list)
 
 
 class ConversationBranchCreate(BaseModel):
