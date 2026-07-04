@@ -56,7 +56,7 @@ const CATEGORIES = [
     features: [
       "Manual commits with Git-like hashes",
       "Automatic checkpoints after assistant replies",
-      "Commit history and deep links",
+      "Context Packages generated per commit",
     ],
   },
   {

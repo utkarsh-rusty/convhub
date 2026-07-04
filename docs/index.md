@@ -19,7 +19,8 @@ Git versions code. ConvHub versions knowledge — conversations, commits, branch
 |-------|----------|--------|
 | Index | [architecture/README.md](architecture/README.md) | — |
 | Overview | [architecture-overview.md](architecture/architecture-overview.md) | Implemented |
-| Project Memory | [project-memory.md](architecture/project-memory.md) | Vision + planned |
+| Project Memory | [project-memory.md](architecture/project-memory.md) | Primitives + packages implemented |
+| Context Packages | [context-packages.md](architecture/context-packages.md) | Implemented |
 | Conversation Model | [conversation-model.md](architecture/conversation-model.md) | Implemented |
 | Commit Model | [commit-model.md](architecture/commit-model.md) | Implemented |
 | Branch Model | [branch-model.md](architecture/branch-model.md) | Implemented |
@@ -41,6 +42,7 @@ Git versions code. ConvHub versions knowledge — conversations, commits, branch
 | [ADR-009](architecture/ADR-009-resource-sharing.md) | Resource sharing and borrowing | Implemented |
 | [ADR-010](architecture/ADR-010-ownership-first-routing.md) | Ownership-first routing | Implemented |
 | [ADR-011](architecture/ADR-011-conversation-commits.md) | Conversation commits and checkpoints | Implemented |
+| [ADR-012](architecture/ADR-012-context-packages.md) | Context Packages | Implemented |
 
 ## Principles
 

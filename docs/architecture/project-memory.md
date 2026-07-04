@@ -5,7 +5,8 @@
 | Layer | Status |
 |-------|--------|
 | Conversations, commits, branches as memory primitives | **Implemented** |
-| First-class Project Memory / Context Packages | **Planned** (v1.1) |
+| Context Packages (portable commit memory) | **Implemented** |
+| Context Restore / Decision Tracking UX | **Planned** (v1.1) |
 | Git-linked project memory | **Planned** (v1.2) |
 | Semantic restore and knowledge graph | **Research** (v2.0) |
 
@@ -24,21 +25,19 @@ Project memory includes:
 
 ## Implemented
 
-Today’s product provides the **primitives** of project knowledge:
+Today’s product provides project-knowledge primitives and portable packages:
 
 - Workspace-scoped conversations
 - Message history
 - Manual conversation commits and automatic checkpoints
+- **Context Packages** — immutable, exportable artifacts generated per commit
 - Branch lineage and visualization
 - Ownership-first routing and borrowing metadata
-
-There is **no** first-class “Project Memory” product feature or Context Package API yet.
 
 ## Planned
 
 | Item | Status |
 |------|--------|
-| Context Packages | **Planned** |
 | Context Restore | **Planned** |
 | Decision Tracking | **Planned** |
 | Git linkage | **Planned** |

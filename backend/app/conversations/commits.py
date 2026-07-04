@@ -153,7 +153,27 @@ class ConversationCommitService:
             created_at=created_at,
         )
         self.db.add(commit)
-        await self.db.commit()
+        await self.db.flush()
+
+        from app.conversations.context_packages import ContextPackageService
+
+        try:
+            await ContextPackageService(self.db).generate_for_commit(
+                commit,
+                conversation,
+                flush=True,
+            )
+            await self.db.commit()
+        except HTTPException:
+            await self.db.rollback()
+            raise
+        except Exception as exc:
+            await self.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to generate context package",
+            ) from exc
+
         await self.db.refresh(commit)
         return await self.get_commit_by_hash(commit.commit_hash)
 
@@ -235,6 +255,13 @@ class ConversationCommitService:
 
         range_metadata = await self._build_range_metadata(parent_commit, commit)
 
+        from app.models.context_package import ContextPackage
+
+        package_result = await self.db.execute(
+            select(ContextPackage.id).where(ContextPackage.commit_id == commit.id)
+        )
+        context_package_id = package_result.scalar_one_or_none()
+
         return CommitDetailResponse(
             id=commit.id,
             commit_hash=commit.commit_hash,
@@ -259,6 +286,7 @@ class ConversationCommitService:
                 author_id=message.author_id,
             ),
             range_metadata=range_metadata,
+            context_package_id=context_package_id,
         )
 
     async def search_commits(

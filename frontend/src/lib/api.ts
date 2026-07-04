@@ -30,6 +30,9 @@ import {
   commitGraphResponseSchema,
   commitListItemSchema,
   commitSearchResponseSchema,
+  contextPackageExportResponseSchema,
+  contextPackageListItemSchema,
+  contextPackageResponseSchema,
   conversationCompareResponseSchema,
   conversationLineageResponseSchema,
   conversationParticipantResponseSchema,
@@ -364,6 +367,26 @@ export const conversationApi = {
   async getCommit(commitHash: string) {
     const { data } = await api.get(`/commits/${commitHash}`);
     return commitDetailResponseSchema.parse(data);
+  },
+
+  async getContextPackage(packageId: string) {
+    const { data } = await api.get(`/context-packages/${packageId}`);
+    return contextPackageResponseSchema.parse(data);
+  },
+
+  async getCommitContextPackage(commitId: string) {
+    const { data } = await api.get(`/commits/${commitId}/context-package`);
+    return contextPackageResponseSchema.parse(data);
+  },
+
+  async listContextPackages(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/context-packages`);
+    return contextPackageListItemSchema.array().parse(data);
+  },
+
+  async exportContextPackage(packageId: string) {
+    const { data } = await api.get(`/context-packages/${packageId}/export`);
+    return contextPackageExportResponseSchema.parse(data);
   },
 };
 

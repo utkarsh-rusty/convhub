@@ -270,6 +270,44 @@ class CommitDetailResponse(BaseModel):
     created_at: datetime
     message: CommitMessageSummary
     range_metadata: CommitRangeMetadata
+    context_package_id: UUID | None = None
+
+
+class ContextPackageListItem(BaseModel):
+    id: UUID
+    commit_id: UUID
+    commit_hash: str
+    commit_title: str
+    conversation_id: UUID
+    version: int
+    status: str
+    generated_at: datetime
+
+
+class ContextPackageResponse(BaseModel):
+    id: UUID
+    commit_id: UUID
+    conversation_id: UUID
+    version: int
+    status: str
+    generated_at: datetime
+    metadata: dict[str, Any]
+    summary: dict[str, Any]
+    statistics: dict[str, Any]
+    search_keywords: list[Any] = Field(default_factory=list)
+
+
+class ContextPackageExportResponse(BaseModel):
+    id: UUID
+    commit_id: UUID
+    conversation_id: UUID
+    version: int
+    status: str
+    generated_at: datetime
+    metadata: dict[str, Any]
+    summary: dict[str, Any]
+    statistics: dict[str, Any]
+    search_keywords: list[Any] = Field(default_factory=list)
 
 
 class ConversationBranchCreate(BaseModel):

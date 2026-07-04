@@ -442,7 +442,34 @@ export const commitDetailResponseSchema = z.object({
   created_at: z.string(),
   message: comparisonMessageSchema,
   range_metadata: commitRangeMetadataSchema,
+  context_package_id: z.string().uuid().nullable().optional(),
 });
+
+export const contextPackageListItemSchema = z.object({
+  id: z.string().uuid(),
+  commit_id: z.string().uuid(),
+  commit_hash: z.string(),
+  commit_title: z.string(),
+  conversation_id: z.string().uuid(),
+  version: z.number(),
+  status: z.string(),
+  generated_at: z.string(),
+});
+
+export const contextPackageResponseSchema = z.object({
+  id: z.string().uuid(),
+  commit_id: z.string().uuid(),
+  conversation_id: z.string().uuid(),
+  version: z.number(),
+  status: z.string(),
+  generated_at: z.string(),
+  metadata: z.record(z.string(), z.unknown()),
+  summary: z.record(z.string(), z.unknown()),
+  statistics: z.record(z.string(), z.unknown()),
+  search_keywords: z.array(z.unknown()).default([]),
+});
+
+export const contextPackageExportResponseSchema = contextPackageResponseSchema;
 
 export const conversationSummarySchema = z.object({
   id: z.string().uuid(),
@@ -646,6 +673,8 @@ export type ConversationStatsResponse = z.infer<typeof conversationStatsResponse
 export type ConversationSearchResponse = z.infer<typeof conversationSearchResponseSchema>;
 export type CommitListItem = z.infer<typeof commitListItemSchema>;
 export type CommitDetailResponse = z.infer<typeof commitDetailResponseSchema>;
+export type ContextPackageResponse = z.infer<typeof contextPackageResponseSchema>;
+export type ContextPackageListItem = z.infer<typeof contextPackageListItemSchema>;
 export type SearchCommitMatch = z.infer<typeof searchCommitMatchSchema>;
 export type ComparisonMessage = z.infer<typeof comparisonMessageSchema>;
 export type ConversationParticipantSummary = z.infer<typeof conversationParticipantSummarySchema>;

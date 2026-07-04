@@ -26,6 +26,7 @@ Every item is categorized. Future work is never described as shipped.
 - Realtime collaboration (WebSockets, streaming, presence)
 - Conversation branching
 - Conversation commits and checkpoints
+- Context Packages (immutable exportable artifacts per commit)
 - Branch manager, commit graph, and overview visualization
 - Open-source MIT distribution
 
@@ -39,15 +40,14 @@ _Nothing currently marked in progress. Active work will be listed here when a re
 
 ---
 
-## Planned — v1.1 Project Memory
+## Planned — v1.1 Project Memory consumers
 
 **Status: Planned**
 
-- Project Memory model
-- Context Packages
-- Context Restore
-- Decision Tracking
+- Context Restore (consumes Context Packages)
+- Decision Tracking (fills package placeholders)
 - Timeline of project knowledge events
+- Richer Project Memory UX on top of packages
 
 ---
 

@@ -3,6 +3,7 @@
 from app.models.ai_account import AIAccount
 from app.models.ai_request import AIRequest
 from app.models.borrow_record import BorrowRecord
+from app.models.context_package import ContextPackage
 from app.models.conversation import Conversation
 from app.models.conversation_checkpoint import ConversationCheckpoint
 from app.models.conversation_commit import ConversationCommit
@@ -25,6 +26,7 @@ __all__ = [
     "AIAccount",
     "AIRequest",
     "BorrowRecord",
+    "ContextPackage",
     "Conversation",
     "ConversationCheckpoint",
     "ConversationCommit",

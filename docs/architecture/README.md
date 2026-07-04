@@ -7,7 +7,8 @@ ConvHub is **Git for AI-native Project Memory**. These documents describe how th
 | Document | Status |
 |----------|--------|
 | [Architecture overview](architecture-overview.md) | Implemented |
-| [Project Memory](project-memory.md) | Primitives implemented; packages **Planned** |
+| [Project Memory](project-memory.md) | Primitives + Context Packages **Implemented** |
+| [Context Packages](context-packages.md) | **Implemented** (restore/import planned) |
 | [Conversation Model](conversation-model.md) | Implemented |
 | [Commit Model](commit-model.md) | Implemented |
 | [Branch Model](branch-model.md) | Implemented |
@@ -45,6 +46,7 @@ ConvHub is **Git for AI-native Project Memory**. These documents describe how th
 | [ADR-009](ADR-009-resource-sharing.md) | Resource sharing | Implemented |
 | [ADR-010](ADR-010-ownership-first-routing.md) | Ownership-first routing | Implemented |
 | [ADR-011](ADR-011-conversation-commits.md) | Conversation commits and checkpoints | Implemented |
+| [ADR-012](ADR-012-context-packages.md) | Context Packages | Implemented |
 
 ## Principles
 

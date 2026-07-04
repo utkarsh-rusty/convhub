@@ -13,6 +13,7 @@ import { BranchManagerPage } from "@/pages/branch-manager-page";
 import { BranchOverviewPage } from "@/pages/branch-overview-page";
 import { CommitDeepLinkPage } from "@/pages/commit-deep-link-page";
 import { CommitGraphPage } from "@/pages/commit-graph-page";
+import { ContextPackagePage } from "@/pages/context-package-page";
 import { ConversationComparePage } from "@/pages/conversation-compare-page";
 import { ConversationHistoryPage } from "@/pages/conversation-history-page";
 import { ConversationPage } from "@/pages/conversation-page";
@@ -50,6 +51,7 @@ export function AppRoutes() {
             <Route path="/c/:conversationId/stats" element={<ConversationStatsPage />} />
             <Route path="/c/:conversationId/compare" element={<ConversationComparePage />} />
             <Route path="/commit/:commitHash" element={<CommitDeepLinkPage />} />
+            <Route path="/context-packages/:packageId" element={<ContextPackagePage />} />
             <Route path="/members" element={<MembersPage />} />
             <Route path="/invite/:token" element={<AcceptInvitePage />} />
             <Route path="/ai-providers" element={<AIProvidersPage />} />

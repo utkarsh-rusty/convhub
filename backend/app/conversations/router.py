@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.conversations.commits import ConversationCommitService
+from app.conversations.context_packages import ContextPackageService
 from app.conversations.deps import (
     WorkspaceContext,
     get_conversation,
@@ -23,6 +24,9 @@ from app.conversations.schemas import (
     CommitGraphResponse,
     CommitListItem,
     CommitSearchResponse,
+    ContextPackageExportResponse,
+    ContextPackageListItem,
+    ContextPackageResponse,
     ConversationBranchCreate,
     ConversationCompareResponse,
     ConversationCreate,
@@ -42,6 +46,7 @@ from app.models.conversation import Conversation
 
 conversations_router = APIRouter(prefix="/conversations", tags=["conversations"])
 commits_router = APIRouter(prefix="/commits", tags=["commits"])
+context_packages_router = APIRouter(prefix="/context-packages", tags=["context-packages"])
 
 
 def get_conversation_service(db: AsyncSession = Depends(get_db)) -> ConversationService:
@@ -54,6 +59,10 @@ def get_insights_service(db: AsyncSession = Depends(get_db)) -> ConversationInsi
 
 def get_commit_service(db: AsyncSession = Depends(get_db)) -> ConversationCommitService:
     return ConversationCommitService(db=db)
+
+
+def get_context_package_service(db: AsyncSession = Depends(get_db)) -> ContextPackageService:
+    return ContextPackageService(db=db)
 
 
 @conversations_router.post(
@@ -367,6 +376,18 @@ async def list_conversation_commits(
     return await service.list_commits(conversation.id)
 
 
+@commits_router.get(
+    "/{commit_id}/context-package",
+    response_model=ContextPackageResponse,
+)
+async def get_commit_context_package(
+    commit_id: UUID,
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: ContextPackageService = Depends(get_context_package_service),
+) -> ContextPackageResponse:
+    return await service.get_by_commit_id(commit_id, ctx.workspace_id)
+
+
 @commits_router.get("/{commit_hash}", response_model=CommitDetailResponse)
 async def get_commit_by_hash(
     commit_hash: str,
@@ -380,6 +401,39 @@ async def get_commit_by_hash(
             detail="Commit not found",
         )
     return detail
+
+
+@conversations_router.get(
+    "/{conversation_id}/context-packages",
+    response_model=list[ContextPackageListItem],
+)
+async def list_conversation_context_packages(
+    conversation: Conversation = Depends(get_conversation),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: ContextPackageService = Depends(get_context_package_service),
+) -> list[ContextPackageListItem]:
+    return await service.list_for_conversation(conversation.id, ctx.workspace_id)
+
+
+@context_packages_router.get("/{package_id}", response_model=ContextPackageResponse)
+async def get_context_package(
+    package_id: UUID,
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: ContextPackageService = Depends(get_context_package_service),
+) -> ContextPackageResponse:
+    return await service.get_by_id(package_id, ctx.workspace_id)
+
+
+@context_packages_router.get(
+    "/{package_id}/export",
+    response_model=ContextPackageExportResponse,
+)
+async def export_context_package(
+    package_id: UUID,
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: ContextPackageService = Depends(get_context_package_service),
+) -> ContextPackageExportResponse:
+    return await service.export_by_id(package_id, ctx.workspace_id)
 
 
 async def _load_workspace_conversation(

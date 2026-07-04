@@ -12,6 +12,7 @@ from app.db.base import Base
 from app.models.mixins import UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.context_package import ContextPackage
     from app.models.conversation import Conversation
     from app.models.conversation_checkpoint import ConversationCheckpoint
     from app.models.message import Message
@@ -78,3 +79,8 @@ class ConversationCommit(UUIDPrimaryKeyMixin, Base):
         lazy="selectin",
     )
     created_by: Mapped[User] = relationship(lazy="selectin")
+    context_package: Mapped[ContextPackage | None] = relationship(
+        back_populates="commit",
+        uselist=False,
+        lazy="selectin",
+    )

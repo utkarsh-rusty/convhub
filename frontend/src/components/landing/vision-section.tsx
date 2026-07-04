@@ -7,6 +7,7 @@ const TODAY = [
   "Borrowing engine",
   "Conversation branching",
   "Conversation commits",
+  "Context Packages",
   "Branch visualization",
   "Realtime collaboration",
   "Budget management",
@@ -14,11 +15,9 @@ const TODAY = [
 ] as const;
 
 const NEXT = [
-  "Context Packages",
-  "Project Memory",
   "Context Restore",
   "Decision Tracking",
-  "Timeline",
+  "Richer project memory timeline",
 ] as const;
 
 const FUTURE = [

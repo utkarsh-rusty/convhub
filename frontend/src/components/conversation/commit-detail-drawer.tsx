@@ -106,13 +106,22 @@ export function CommitDetailDrawer({ commitHash, open, onClose }: CommitDetailDr
                 Latest message in this commit:
               </p>
               <p className="mt-1 whitespace-pre-wrap text-sm">{data.message.content}</p>
-              <Button asChild variant="outline" size="sm" className="mt-3 h-7 text-xs">
-                <Link
-                  to={`/c/${data.conversation_id}?message=${data.latest_message_id}&commit=${data.commit_hash}`}
-                >
-                  Open in conversation
-                </Link>
-              </Button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button asChild variant="outline" size="sm" className="h-7 text-xs">
+                  <Link
+                    to={`/c/${data.conversation_id}?message=${data.latest_message_id}&commit=${data.commit_hash}`}
+                  >
+                    Open in conversation
+                  </Link>
+                </Button>
+                {data.context_package_id ? (
+                  <Button asChild variant="default" size="sm" className="h-7 text-xs">
+                    <Link to={`/context-packages/${data.context_package_id}`}>
+                      View Context Package
+                    </Link>
+                  </Button>
+                ) : null}
+              </div>
             </div>
           </div>
         )}

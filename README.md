@@ -37,6 +37,7 @@ Only features that exist in the current codebase:
 - Workspace collaboration and permissions
 - Conversation branching
 - Conversation commits and automatic checkpoints
+- Context Packages (immutable project-memory artifacts per commit)
 - Branch visualization (manager, commit graph, overview)
 - Realtime collaboration (WebSockets, streaming, presence)
 - Budget management and credit ledger
@@ -196,8 +197,8 @@ Future work is **not** implemented. Categories:
 
 | Version | Focus | Status |
 |---------|--------|--------|
-| **v1.0** | Workspace, routing, borrowing, branching, commits, visualization, realtime, budgets | Implemented |
-| **v1.1** | Project memory, context packages, restore, decision tracking, timeline | Planned |
+| **v1.0** | Workspace, routing, borrowing, branching, commits, context packages, visualization, realtime, budgets | Implemented |
+| **v1.1** | Context restore, decision tracking, richer project memory timeline | Planned |
 | **v1.2** | Projects, Git metadata, Git linkage | Planned |
 | **v1.3** | VS Code extension, push/pull context, Git sync | Planned |
 | **v1.4** | Claude Code / Cursor / Codex / Continue adapters | Planned |

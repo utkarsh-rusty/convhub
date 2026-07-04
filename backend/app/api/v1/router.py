@@ -4,7 +4,11 @@ from app.ai.router import chat_router
 from app.ai_accounts.router import ai_accounts_router
 from app.api.v1.endpoints import health
 from app.auth.router import auth_router, users_router
-from app.conversations.router import commits_router, conversations_router
+from app.conversations.router import (
+    commits_router,
+    context_packages_router,
+    conversations_router,
+)
 from app.demo.router import router as demo_router
 from app.demo.router import workspace_router as demo_workspace_router
 from app.realtime.router import router as realtime_router
@@ -27,6 +31,7 @@ api_router.include_router(routing_router)
 api_router.include_router(invitations_router)
 api_router.include_router(conversations_router)
 api_router.include_router(commits_router)
+api_router.include_router(context_packages_router)
 api_router.include_router(demo_router)
 api_router.include_router(demo_workspace_router)
 api_router.include_router(realtime_router)
