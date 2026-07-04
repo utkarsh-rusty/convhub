@@ -33,6 +33,7 @@ import {
   contextPackageExportResponseSchema,
   contextPackageListItemSchema,
   contextPackageResponseSchema,
+  conversationRestoreInfoResponseSchema,
   conversationCompareResponseSchema,
   conversationLineageResponseSchema,
   conversationParticipantResponseSchema,
@@ -387,6 +388,25 @@ export const conversationApi = {
   async exportContextPackage(packageId: string) {
     const { data } = await api.get(`/context-packages/${packageId}/export`);
     return contextPackageExportResponseSchema.parse(data);
+  },
+
+  async restoreContextPackage(
+    packageId: string,
+    payload: {
+      conversation_name?: string;
+      restore_participants?: boolean;
+      restore_messages?: boolean;
+      restore_metadata?: boolean;
+      restore_only_self?: boolean;
+    },
+  ) {
+    const { data } = await api.post(`/context-packages/${packageId}/restore`, payload);
+    return conversationResponseSchema.parse(data);
+  },
+
+  async getRestoreInfo(conversationId: string) {
+    const { data } = await api.get(`/conversations/${conversationId}/restore-info`);
+    return conversationRestoreInfoResponseSchema.parse(data);
   },
 };
 

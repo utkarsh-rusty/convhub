@@ -8,6 +8,7 @@ const TODAY = [
   "Conversation branching",
   "Conversation commits",
   "Context Packages",
+  "Context Restore",
   "Branch visualization",
   "Realtime collaboration",
   "Budget management",
@@ -15,7 +16,6 @@ const TODAY = [
 ] as const;
 
 const NEXT = [
-  "Context Restore",
   "Decision Tracking",
   "Richer project memory timeline",
 ] as const;

@@ -57,6 +57,7 @@ const CATEGORIES = [
       "Manual commits with Git-like hashes",
       "Automatic checkpoints after assistant replies",
       "Context Packages generated per commit",
+      "Restore packages into new working conversations",
     ],
   },
   {

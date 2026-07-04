@@ -52,4 +52,7 @@ class ContextPackage(UUIDPrimaryKeyMixin, Base):
         foreign_keys=[commit_id],
         lazy="selectin",
     )
-    conversation: Mapped[Conversation] = relationship(lazy="selectin")
+    conversation: Mapped[Conversation] = relationship(
+        foreign_keys=[conversation_id],
+        lazy="selectin",
+    )

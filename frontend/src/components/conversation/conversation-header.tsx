@@ -180,12 +180,34 @@ export function ConversationHeader({
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
             <h2 className="truncate text-base font-semibold leading-tight">{conversation.title}</h2>
+            {conversation.is_restored ? (
+              <span className="shrink-0 rounded-full border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-700 dark:text-sky-300">
+                Restored
+              </span>
+            ) : null}
             {readOnly ? (
               <span className="shrink-0 rounded-full border border-[var(--color-border)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
                 Read-only
               </span>
             ) : null}
           </div>
+          {conversation.is_restored && conversation.restored_from_commit_hash ? (
+            <p className="mt-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+              Restored from Commit{" "}
+              <span className="font-mono">#{conversation.restored_from_commit_hash}</span>
+              {conversation.restored_from_package_id ? (
+                <>
+                  {" · "}
+                  <Link
+                    to={`/context-packages/${conversation.restored_from_package_id}`}
+                    className="underline-offset-2 hover:underline"
+                  >
+                    View Context Package
+                  </Link>
+                </>
+              ) : null}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex shrink-0 items-center gap-1">

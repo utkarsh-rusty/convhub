@@ -37,7 +37,7 @@ Every successful commit creates one package in the same database transaction. If
 
 | Consumer | Status |
 |----------|--------|
-| Context Restore | Planned |
+| Context Restore | **Implemented** |
 | Git Integration | Planned |
 | VS Code Extension | Planned |
 | Claude Code / Cursor / Codex adapters | Planned |

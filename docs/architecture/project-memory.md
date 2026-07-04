@@ -6,7 +6,8 @@
 |-------|--------|
 | Conversations, commits, branches as memory primitives | **Implemented** |
 | Context Packages (portable commit memory) | **Implemented** |
-| Context Restore / Decision Tracking UX | **Planned** (v1.1) |
+| Context Restore (project checkpoints) | **Implemented** |
+| Decision Tracking UX | **Planned** (v1.1) |
 | Git-linked project memory | **Planned** (v1.2) |
 | Semantic restore and knowledge graph | **Research** (v2.0) |
 
@@ -31,6 +32,7 @@ Today’s product provides project-knowledge primitives and portable packages:
 - Message history
 - Manual conversation commits and automatic checkpoints
 - **Context Packages** — immutable, exportable artifacts generated per commit
+- **Context Restore** — checkout-style restore into a new working conversation
 - Branch lineage and visualization
 - Ownership-first routing and borrowing metadata
 
@@ -38,7 +40,6 @@ Today’s product provides project-knowledge primitives and portable packages:
 
 | Item | Status |
 |------|--------|
-| Context Restore | **Planned** |
 | Decision Tracking | **Planned** |
 | Git linkage | **Planned** |
 | Semantic restore | **Research** |

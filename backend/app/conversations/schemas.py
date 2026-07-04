@@ -57,6 +57,13 @@ class ConversationResponse(BaseModel):
     ai_request_count: int = 0
     commit_count: int = 0
     participants: list[ConversationParticipantSummary] = Field(default_factory=list)
+    is_restored: bool = False
+    restored_from_package_id: UUID | None = None
+    restored_from_commit_id: UUID | None = None
+    restored_from_conversation_id: UUID | None = None
+    restored_by_user_id: UUID | None = None
+    restored_at: datetime | None = None
+    restored_from_commit_hash: str | None = None
 
 
 class BranchTreeNode(BaseModel):
@@ -308,6 +315,30 @@ class ContextPackageExportResponse(BaseModel):
     summary: dict[str, Any]
     statistics: dict[str, Any]
     search_keywords: list[Any] = Field(default_factory=list)
+
+
+class ContextRestoreRequest(BaseModel):
+    conversation_name: str | None = Field(default=None, max_length=255)
+    restore_participants: bool = True
+    restore_messages: bool = True
+    restore_metadata: bool = True
+    restore_only_self: bool = False
+
+
+class ConversationRestoreInfoResponse(BaseModel):
+    conversation_id: UUID
+    is_restored: bool
+    restored_at: datetime | None = None
+    restored_by_user_id: UUID | None = None
+    restored_by_name: str | None = None
+    original_conversation_id: UUID | None = None
+    original_conversation_title: str | None = None
+    original_commit_id: UUID | None = None
+    original_commit_hash: str | None = None
+    original_commit_title: str | None = None
+    context_package_id: UUID | None = None
+    context_package_version: int | None = None
+    context_package_status: str | None = None
 
 
 class ConversationBranchCreate(BaseModel):

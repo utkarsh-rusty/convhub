@@ -12,6 +12,8 @@ from app.db.base import Base
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.context_package import ContextPackage
+    from app.models.conversation_commit import ConversationCommit
     from app.models.conversation_participant import ConversationParticipant
     from app.models.message import Message
     from app.models.project import Project
@@ -28,6 +30,7 @@ class Conversation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Index("ix_conversations_project_id", "project_id"),
         Index("ix_conversations_parent_conversation_id", "parent_conversation_id"),
         Index("ix_conversations_owner_id", "owner_id"),
+        Index("ix_conversations_restored_from_package_id", "restored_from_package_id"),
     )
 
     workspace_id: Mapped[UUID] = mapped_column(
@@ -74,6 +77,28 @@ class Conversation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     branch_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
+    restored_from_package_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("context_packages.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    restored_from_commit_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("conversation_commits.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    restored_from_conversation_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    restored_by_user_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    restored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     workspace: Mapped[Workspace] = relationship(back_populates="conversations", lazy="selectin")
     project: Mapped[Project | None] = relationship(back_populates="conversations", lazy="selectin")
     created_by: Mapped[User | None] = relationship(
@@ -101,5 +126,23 @@ class Conversation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         "Conversation",
         remote_side="Conversation.id",
         foreign_keys=[parent_conversation_id],
+        lazy="selectin",
+    )
+    restored_from_package: Mapped[ContextPackage | None] = relationship(
+        foreign_keys=[restored_from_package_id],
+        lazy="selectin",
+    )
+    restored_from_commit: Mapped[ConversationCommit | None] = relationship(
+        foreign_keys=[restored_from_commit_id],
+        lazy="selectin",
+    )
+    restored_from_conversation: Mapped[Conversation | None] = relationship(
+        "Conversation",
+        remote_side="Conversation.id",
+        foreign_keys=[restored_from_conversation_id],
+        lazy="selectin",
+    )
+    restored_by: Mapped[User | None] = relationship(
+        foreign_keys=[restored_by_user_id],
         lazy="selectin",
     )

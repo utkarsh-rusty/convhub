@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ChevronDown, ChevronRight, Download } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Download, RotateCcw } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { conversationApi, showApiError } from "@/lib/api";
 import { formatTimestamp } from "@/lib/format";
+import { RestoreContextDialog } from "@/components/conversation/restore-context-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ function asArray(value: unknown): unknown[] {
 
 export function ContextPackagePage() {
   const { packageId } = useParams();
+  const [restoreOpen, setRestoreOpen] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["context-package", packageId],
@@ -127,6 +129,10 @@ export function ContextPackagePage() {
             <span className="font-mono">{String(commit.commit_hash ?? "")}</span>
           </p>
         </div>
+        <Button type="button" variant="default" size="sm" onClick={() => setRestoreOpen(true)}>
+          <RotateCcw className="mr-2 h-4 w-4" />
+          Restore Context
+        </Button>
         <Button type="button" variant="outline" size="sm" onClick={() => void exportJson()}>
           <Download className="mr-2 h-4 w-4" />
           Export JSON
@@ -266,6 +272,13 @@ export function ContextPackagePage() {
           </p>
         </CollapsibleCard>
       </div>
+
+      <RestoreContextDialog
+        packageId={data.id}
+        defaultName={`Restored: ${String(summary.title ?? "checkpoint")}`}
+        open={restoreOpen}
+        onOpenChange={setRestoreOpen}
+      />
     </div>
   );
 }

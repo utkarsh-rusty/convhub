@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
 from app.conversations.commits import ConversationCommitService
 from app.conversations.context_packages import ContextPackageService
+from app.conversations.restore import ContextRestoreService
 from app.conversations.deps import (
     WorkspaceContext,
     get_conversation,
@@ -27,6 +28,8 @@ from app.conversations.schemas import (
     ContextPackageExportResponse,
     ContextPackageListItem,
     ContextPackageResponse,
+    ContextRestoreRequest,
+    ConversationRestoreInfoResponse,
     ConversationBranchCreate,
     ConversationCompareResponse,
     ConversationCreate,
@@ -63,6 +66,10 @@ def get_commit_service(db: AsyncSession = Depends(get_db)) -> ConversationCommit
 
 def get_context_package_service(db: AsyncSession = Depends(get_db)) -> ContextPackageService:
     return ContextPackageService(db=db)
+
+
+def get_restore_service(db: AsyncSession = Depends(get_db)) -> ContextRestoreService:
+    return ContextRestoreService(db=db)
 
 
 @conversations_router.post(
@@ -434,6 +441,32 @@ async def export_context_package(
     service: ContextPackageService = Depends(get_context_package_service),
 ) -> ContextPackageExportResponse:
     return await service.export_by_id(package_id, ctx.workspace_id)
+
+
+@context_packages_router.post(
+    "/{package_id}/restore",
+    response_model=ConversationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def restore_context_package(
+    package_id: UUID,
+    data: ContextRestoreRequest,
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: ContextRestoreService = Depends(get_restore_service),
+) -> ConversationResponse:
+    return await service.restore(package_id, ctx, data)
+
+
+@conversations_router.get(
+    "/{conversation_id}/restore-info",
+    response_model=ConversationRestoreInfoResponse,
+)
+async def get_conversation_restore_info(
+    conversation: Conversation = Depends(get_conversation),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: ContextRestoreService = Depends(get_restore_service),
+) -> ConversationRestoreInfoResponse:
+    return await service.get_restore_info(conversation, ctx.workspace_id)
 
 
 async def _load_workspace_conversation(

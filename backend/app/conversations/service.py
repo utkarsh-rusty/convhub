@@ -458,6 +458,10 @@ class ConversationService:
             if resolved_owner_name is not None
             else None
         )
+        restored_from_commit_hash = None
+        if conversation.restored_from_commit is not None:
+            restored_from_commit_hash = conversation.restored_from_commit.commit_hash
+
         return ConversationResponse(
             id=conversation.id,
             workspace_id=conversation.workspace_id,
@@ -481,6 +485,13 @@ class ConversationService:
             ai_request_count=ai_request_count,
             commit_count=commit_count,
             participants=participants,
+            is_restored=conversation.restored_from_package_id is not None,
+            restored_from_package_id=conversation.restored_from_package_id,
+            restored_from_commit_id=conversation.restored_from_commit_id,
+            restored_from_conversation_id=conversation.restored_from_conversation_id,
+            restored_by_user_id=conversation.restored_by_user_id,
+            restored_at=conversation.restored_at,
+            restored_from_commit_hash=restored_from_commit_hash,
         )
 
     async def create_branch(

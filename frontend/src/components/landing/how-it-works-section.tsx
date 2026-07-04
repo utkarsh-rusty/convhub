@@ -24,6 +24,10 @@ const STEPS = [
     body: "Save intentional commits with Git-like hashes so key moments are easy to find.",
   },
   {
+    title: "Restore from a checkpoint",
+    body: "Open an immutable Context Package and restore it into a new working conversation.",
+  },
+  {
     title: "Continue collaborating",
     body: "Keep working with budgets, borrowing, branch visualization, and live presence.",
   },

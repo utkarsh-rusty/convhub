@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, GitBranch, Lock, MessageSquarePlus, Pencil } from "lucide-react";
+import { ChevronDown, ChevronRight, GitBranch, Lock, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -221,6 +221,7 @@ function ConversationSidebarItem({
         className={cn(
           "group flex items-start gap-1 rounded-md px-1.5 py-1 transition-colors duration-150",
           active && "bg-[var(--color-accent)]",
+          conversation.is_restored && "border-l-2 border-sky-500/60 pl-1",
         )}
       >
         <NavLink
@@ -228,11 +229,24 @@ function ConversationSidebarItem({
           className="flex min-w-0 flex-1 items-start gap-1.5 text-sm hover:text-[var(--color-foreground)]"
         >
           <span className="mt-0.5 text-[var(--color-muted-foreground)]" aria-hidden="true">
-            {isBranch ? <GitBranch className="h-3 w-3" /> : <span className="inline-block h-3 w-3 text-center text-[10px]">●</span>}
+            {conversation.is_restored ? (
+              <RotateCcw className="h-3 w-3 text-sky-600 dark:text-sky-400" />
+            ) : isBranch ? (
+              <GitBranch className="h-3 w-3" />
+            ) : (
+              <span className="inline-block h-3 w-3 text-center text-[10px]">●</span>
+            )}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] font-medium leading-tight">
-              {branchLabel || conversation.title}
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="block truncate text-[13px] font-medium leading-tight">
+                {branchLabel || conversation.title}
+              </span>
+              {conversation.is_restored ? (
+                <span className="shrink-0 rounded-full bg-sky-500/10 px-1 py-px text-[9px] font-medium uppercase tracking-wide text-sky-700 dark:text-sky-300">
+                  Restored
+                </span>
+              ) : null}
             </span>
             <span className="mt-0.5 flex items-center gap-1.5 text-[10px] leading-tight text-[var(--color-muted-foreground)]">
               <span>

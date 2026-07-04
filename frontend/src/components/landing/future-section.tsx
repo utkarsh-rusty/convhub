@@ -1,7 +1,7 @@
 const COMING_SOON = [
   "VS Code extension",
-  "Context Packages",
   "Git integration",
+  "Decision Tracking",
   "Knowledge Graph",
   "Conversation Merge",
 ] as const;

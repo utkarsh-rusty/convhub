@@ -63,7 +63,10 @@ class ConversationCommit(UUIDPrimaryKeyMixin, Base):
         nullable=False,
     )
 
-    conversation: Mapped[Conversation] = relationship(lazy="selectin")
+    conversation: Mapped[Conversation] = relationship(
+        foreign_keys=[conversation_id],
+        lazy="selectin",
+    )
     checkpoint: Mapped[ConversationCheckpoint] = relationship(
         back_populates="commit",
         foreign_keys=[checkpoint_id],

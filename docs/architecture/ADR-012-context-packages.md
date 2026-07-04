@@ -4,7 +4,7 @@
 
 Accepted — Sprint 19 · **Implemented** (generation + export)
 
-Context Restore, import, and IDE consumers are **Planned** / **Research**.
+Context Restore is **Implemented** (Sprint 20). Import and IDE consumers remain **Planned** / **Research**.
 
 ## Context
 
@@ -24,12 +24,11 @@ Introduce **Context Packages** as first-class, immutable artifacts:
 
 ### Positive
 
-- Stable contract for future restore and IDE features
+- Stable contract for restore and future IDE features
 - Additive and backwards compatible
 - Failure to generate rolls back the commit, keeping history consistent
 
 ### Deferred
 
 - Import
-- Context Restore
 - Filling decision/TODO placeholders automatically

@@ -220,6 +220,29 @@ export const conversationResponseSchema = z.object({
   ai_request_count: z.number().default(0),
   commit_count: z.number().default(0),
   participants: z.array(conversationParticipantSummarySchema).default([]),
+  is_restored: z.boolean().default(false),
+  restored_from_package_id: z.string().uuid().nullable().optional(),
+  restored_from_commit_id: z.string().uuid().nullable().optional(),
+  restored_from_conversation_id: z.string().uuid().nullable().optional(),
+  restored_by_user_id: z.string().uuid().nullable().optional(),
+  restored_at: z.string().nullable().optional(),
+  restored_from_commit_hash: z.string().nullable().optional(),
+});
+
+export const conversationRestoreInfoResponseSchema = z.object({
+  conversation_id: z.string().uuid(),
+  is_restored: z.boolean(),
+  restored_at: z.string().nullable().optional(),
+  restored_by_user_id: z.string().uuid().nullable().optional(),
+  restored_by_name: z.string().nullable().optional(),
+  original_conversation_id: z.string().uuid().nullable().optional(),
+  original_conversation_title: z.string().nullable().optional(),
+  original_commit_id: z.string().uuid().nullable().optional(),
+  original_commit_hash: z.string().nullable().optional(),
+  original_commit_title: z.string().nullable().optional(),
+  context_package_id: z.string().uuid().nullable().optional(),
+  context_package_version: z.number().nullable().optional(),
+  context_package_status: z.string().nullable().optional(),
 });
 
 export type BranchTreeNode = {
@@ -675,6 +698,7 @@ export type CommitListItem = z.infer<typeof commitListItemSchema>;
 export type CommitDetailResponse = z.infer<typeof commitDetailResponseSchema>;
 export type ContextPackageResponse = z.infer<typeof contextPackageResponseSchema>;
 export type ContextPackageListItem = z.infer<typeof contextPackageListItemSchema>;
+export type ConversationRestoreInfoResponse = z.infer<typeof conversationRestoreInfoResponseSchema>;
 export type SearchCommitMatch = z.infer<typeof searchCommitMatchSchema>;
 export type ComparisonMessage = z.infer<typeof comparisonMessageSchema>;
 export type ConversationParticipantSummary = z.infer<typeof conversationParticipantSummarySchema>;

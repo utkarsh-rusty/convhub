@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { X } from "lucide-react";
+import { RotateCcw, X } from "lucide-react";
 
 import { conversationApi } from "@/lib/api";
 import { formatTimestamp } from "@/lib/format";
+import { RestoreContextDialog } from "@/components/conversation/restore-context-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -15,6 +17,7 @@ interface CommitDetailDrawerProps {
 }
 
 export function CommitDetailDrawer({ commitHash, open, onClose }: CommitDetailDrawerProps) {
+  const [restoreOpen, setRestoreOpen] = useState(false);
   const { data, isLoading, isError } = useQuery({
     queryKey: ["commit", commitHash],
     queryFn: () => conversationApi.getCommit(commitHash!),
@@ -115,17 +118,38 @@ export function CommitDetailDrawer({ commitHash, open, onClose }: CommitDetailDr
                   </Link>
                 </Button>
                 {data.context_package_id ? (
-                  <Button asChild variant="default" size="sm" className="h-7 text-xs">
-                    <Link to={`/context-packages/${data.context_package_id}`}>
-                      View Context Package
-                    </Link>
-                  </Button>
+                  <>
+                    <Button asChild variant="outline" size="sm" className="h-7 text-xs">
+                      <Link to={`/context-packages/${data.context_package_id}`}>
+                        View Context Package
+                      </Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setRestoreOpen(true)}
+                    >
+                      <RotateCcw className="mr-1 h-3 w-3" />
+                      Restore Context
+                    </Button>
+                  </>
                 ) : null}
               </div>
             </div>
           </div>
         )}
       </div>
+
+      {data?.context_package_id ? (
+        <RestoreContextDialog
+          packageId={data.context_package_id}
+          defaultName={`Restored: ${data.title}`}
+          open={restoreOpen}
+          onOpenChange={setRestoreOpen}
+        />
+      ) : null}
     </div>
   );
 }

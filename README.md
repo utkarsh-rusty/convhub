@@ -16,7 +16,7 @@ Git stores files, commits, and branches — the history of *code*.
 
 ConvHub aims to store conversations, commits, branches, architecture decisions, provider ownership, and collaboration history — the history of *project understanding*.
 
-That long-term direction is real. **What ships today** is the collaborative foundation below — not Context Packages, Git linkage, or IDE extensions.
+That long-term direction is real. **What ships today** is the collaborative foundation below — including commits, Context Packages, and restore — not Git repository linkage or IDE extensions.
 
 ## Why ConvHub
 
@@ -38,6 +38,7 @@ Only features that exist in the current codebase:
 - Conversation branching
 - Conversation commits and automatic checkpoints
 - Context Packages (immutable project-memory artifacts per commit)
+- Context Restore (project checkpoints into new working conversations)
 - Branch visualization (manager, commit graph, overview)
 - Realtime collaboration (WebSockets, streaming, presence)
 - Budget management and credit ledger
@@ -59,6 +60,10 @@ Branch Conversations
         ↓
 Commit Important Milestones
         ↓
+Context Package (immutable checkpoint)
+        ↓
+Restore into a new working conversation (optional)
+        ↓
 Continue Collaborating
 ```
 
@@ -75,7 +80,7 @@ AI Providers
 | Layer | Role |
 |-------|------|
 | **Developer** | Creates workspaces, invites teammates, connects providers, chats, branches, commits. |
-| **ConvHub** | Shared conversations, ownership-first routing, borrowing, budgets, commits, branches, realtime. |
+| **ConvHub** | Shared conversations, ownership-first routing, borrowing, budgets, commits, packages, restore, branches, realtime. |
 | **AI Providers** | Claude, OpenAI, Gemini, Groq, Ollama — each user owns their accounts. |
 
 Inside ConvHub today:
@@ -85,10 +90,12 @@ Workspace → Conversation
               ├── Messages (working directory)
               ├── Checkpoints (automatic)
               ├── Commits (manual milestones)
+              ├── Context Packages (immutable snapshots)
+              ├── Restore (new working conversation from a package)
               └── Branches (lineage)
 ```
 
-**Planned (not implemented):** Git repository linkage, Context Packages, VS Code extension.
+**Planned (not implemented):** Git repository linkage, Decision Tracking, VS Code extension.
 
 See [docs/architecture/](docs/architecture/) for diagrams and ADRs.
 
@@ -197,8 +204,8 @@ Future work is **not** implemented. Categories:
 
 | Version | Focus | Status |
 |---------|--------|--------|
-| **v1.0** | Workspace, routing, borrowing, branching, commits, context packages, visualization, realtime, budgets | Implemented |
-| **v1.1** | Context restore, decision tracking, richer project memory timeline | Planned |
+| **v1.0** | Workspace, routing, borrowing, branching, commits, context packages, restore, visualization, realtime, budgets | Implemented |
+| **v1.1** | Decision tracking, richer project memory timeline | Planned |
 | **v1.2** | Projects, Git metadata, Git linkage | Planned |
 | **v1.3** | VS Code extension, push/pull context, Git sync | Planned |
 | **v1.4** | Claude Code / Cursor / Codex / Continue adapters | Planned |

@@ -27,6 +27,7 @@ Every item is categorized. Future work is never described as shipped.
 - Conversation branching
 - Conversation commits and checkpoints
 - Context Packages (immutable exportable artifacts per commit)
+- Context Restore / Project Checkpoints (new working conversations from packages)
 - Branch manager, commit graph, and overview visualization
 - Open-source MIT distribution
 
@@ -44,7 +45,6 @@ _Nothing currently marked in progress. Active work will be listed here when a re
 
 **Status: Planned**
 
-- Context Restore (consumes Context Packages)
 - Decision Tracking (fills package placeholders)
 - Timeline of project knowledge events
 - Richer Project Memory UX on top of packages
