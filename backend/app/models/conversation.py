@@ -38,10 +38,10 @@ class Conversation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ForeignKey("workspaces.id", ondelete="CASCADE"),
         nullable=False,
     )
-    project_id: Mapped[UUID | None] = mapped_column(
+    project_id: Mapped[UUID] = mapped_column(
         PG_UUID(as_uuid=True),
-        ForeignKey("projects.id", ondelete="SET NULL"),
-        nullable=True,
+        ForeignKey("projects.id", ondelete="RESTRICT"),
+        nullable=False,
     )
     created_by_id: Mapped[UUID | None] = mapped_column(
         PG_UUID(as_uuid=True),
@@ -100,7 +100,7 @@ class Conversation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     restored_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     workspace: Mapped[Workspace] = relationship(back_populates="conversations", lazy="selectin")
-    project: Mapped[Project | None] = relationship(back_populates="conversations", lazy="selectin")
+    project: Mapped[Project] = relationship(back_populates="conversations", lazy="selectin")
     created_by: Mapped[User | None] = relationship(
         back_populates="conversations",
         foreign_keys=[created_by_id],

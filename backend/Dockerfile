@@ -28,9 +28,11 @@ COPY --from=builder /install /usr/local
 COPY alembic.ini .
 COPY alembic ./alembic
 COPY app ./app
+COPY docker-entrypoint.sh .
 
 RUN addgroup --system --gid 1000 app \
     && adduser --system --uid 1000 --gid 1000 --no-create-home app \
+    && chmod +x /app/docker-entrypoint.sh \
     && chown -R app:app /app
 
 USER app
@@ -40,6 +42,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"
 
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # ---------------------------------------------------------------------------

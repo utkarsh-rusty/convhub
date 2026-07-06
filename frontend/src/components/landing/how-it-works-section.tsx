@@ -4,6 +4,10 @@ const STEPS = [
     body: "Start a team workspace for shared conversations, providers, and budgets.",
   },
   {
+    title: "Open a project",
+    body: "Projects are the permanent home for conversations, commits, and context packages.",
+  },
+  {
     title: "Invite team members",
     body: "Add collaborators with workspace roles and conversation participation.",
   },

@@ -2,6 +2,7 @@ import { Check, CircleDashed, FlaskConical, Square } from "lucide-react";
 
 const TODAY = [
   "Shared AI conversations",
+  "First-class Projects",
   "Multi-provider routing",
   "Ownership-first provider routing",
   "Borrowing engine",
@@ -22,7 +23,6 @@ const NEXT = [
 
 const FUTURE = [
   "Git Integration",
-  "Project objects",
   "VS Code Extension",
   "Claude Code Adapter",
   "Cursor Adapter",

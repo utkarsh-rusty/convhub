@@ -21,6 +21,7 @@ class ConversationParticipantSummary(BaseModel):
 
 class ConversationCreate(BaseModel):
     title: str = Field(default=DEFAULT_CONVERSATION_TITLE, min_length=1, max_length=255)
+    project_id: UUID | None = None
 
 
 class ConversationUpdate(BaseModel):
@@ -37,6 +38,7 @@ class ConversationResponse(BaseModel):
 
     id: UUID
     workspace_id: UUID
+    project_id: UUID
     created_by_id: UUID | None
     owner_id: UUID
     owner: ConversationOwnerSummary | None = None
@@ -319,6 +321,7 @@ class ContextPackageExportResponse(BaseModel):
 
 class ContextRestoreRequest(BaseModel):
     conversation_name: str | None = Field(default=None, max_length=255)
+    project_id: UUID | None = None
     restore_participants: bool = True
     restore_messages: bool = True
     restore_metadata: bool = True

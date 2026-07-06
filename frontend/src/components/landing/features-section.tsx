@@ -1,5 +1,6 @@
 import {
   Coins,
+  FolderKanban,
   GitBranch,
   GitCommit,
   Network,
@@ -20,6 +21,15 @@ const CATEGORIES = [
       "Shared workspaces and invitations",
       "Conversation participants and ownership",
       "Live presence and typing indicators",
+    ],
+  },
+  {
+    title: "Projects",
+    icon: FolderKanban,
+    features: [
+      "Permanent home for project memory",
+      "Default Project per workspace",
+      "Repo-style project overview pages",
     ],
   },
   {

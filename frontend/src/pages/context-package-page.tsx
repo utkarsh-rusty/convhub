@@ -58,6 +58,12 @@ export function ContextPackagePage() {
     enabled: Boolean(packageId),
   });
 
+  const { data: sourceConversation } = useQuery({
+    queryKey: ["conversation", data?.conversation_id],
+    queryFn: () => conversationApi.get(data!.conversation_id),
+    enabled: Boolean(data?.conversation_id),
+  });
+
   const exportJson = async () => {
     if (!packageId) {
       return;
@@ -276,6 +282,7 @@ export function ContextPackagePage() {
       <RestoreContextDialog
         packageId={data.id}
         defaultName={`Restored: ${String(summary.title ?? "checkpoint")}`}
+        defaultProjectId={sourceConversation?.project_id}
         open={restoreOpen}
         onOpenChange={setRestoreOpen}
       />

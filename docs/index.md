@@ -19,6 +19,7 @@ Git versions code. ConvHub versions knowledge — conversations, commits, branch
 |-------|----------|--------|
 | Index | [architecture/README.md](architecture/README.md) | — |
 | Overview | [architecture-overview.md](architecture/architecture-overview.md) | Implemented |
+| Projects | [projects.md](architecture/projects.md) | Implemented |
 | Project Memory | [project-memory.md](architecture/project-memory.md) | Primitives + packages implemented |
 | Context Packages | [context-packages.md](architecture/context-packages.md) | Implemented |
 | Context Restore | [context-restore.md](architecture/context-restore.md) | Implemented |
@@ -28,7 +29,6 @@ Git versions code. ConvHub versions knowledge — conversations, commits, branch
 | Ownership Routing | [ADR-010](architecture/ADR-010-ownership-first-routing.md) | Implemented |
 | Borrowing | [ADR-009](architecture/ADR-009-resource-sharing.md) | Implemented |
 | Realtime | [realtime-events.md](architecture/realtime-events.md) | Implemented |
-| Context Packages | [context-packages.md](architecture/context-packages.md) | Planned |
 | Git Integration | [git-integration.md](architecture/git-integration.md) | Planned |
 | VS Code Extension | [vscode-extension.md](architecture/vscode-extension.md) | Planned |
 
@@ -45,6 +45,7 @@ Git versions code. ConvHub versions knowledge — conversations, commits, branch
 | [ADR-011](architecture/ADR-011-conversation-commits.md) | Conversation commits and checkpoints | Implemented |
 | [ADR-012](architecture/ADR-012-context-packages.md) | Context Packages | Implemented |
 | [ADR-013](architecture/ADR-013-context-restore.md) | Context Restore | Implemented |
+| [ADR-014](architecture/ADR-014-projects.md) | First-class Projects | Implemented |
 
 ## Principles
 

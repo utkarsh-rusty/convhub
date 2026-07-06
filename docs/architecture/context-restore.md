@@ -32,6 +32,7 @@ History is never rewritten. Restore always creates a **new** conversation with l
   - restore participants (or only self)
   - restore messages from package snapshot
   - restore branch metadata (name only; no parent branch attachment)
+  - restore into the original project (default) or another project in the workspace
 - UI: Restore dialog, Restored badge, header lineage link, sidebar distinction
 
 ## Not restored

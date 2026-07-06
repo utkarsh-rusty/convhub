@@ -42,9 +42,17 @@ class ConversationService:
         ctx: WorkspaceContext,
         data: ConversationCreate,
     ) -> ConversationResponse:
+        from app.projects.service import ProjectService
+
+        project = await ProjectService(self.db).resolve_project_for_workspace(
+            ctx.workspace_id,
+            data.project_id,
+            created_by_id=ctx.user.id,
+        )
         now = datetime.now(UTC)
         conversation = Conversation(
             workspace_id=ctx.workspace_id,
+            project_id=project.id,
             created_by_id=ctx.user.id,
             owner_id=ctx.user.id,
             title=data.title or DEFAULT_CONVERSATION_TITLE,
@@ -465,6 +473,7 @@ class ConversationService:
         return ConversationResponse(
             id=conversation.id,
             workspace_id=conversation.workspace_id,
+            project_id=conversation.project_id,
             created_by_id=conversation.created_by_id,
             owner_id=conversation.owner_id,
             owner=owner,

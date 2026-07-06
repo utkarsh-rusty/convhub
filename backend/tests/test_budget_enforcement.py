@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.core.config import get_settings
 from app.models.enums import WorkspaceRole
+from app.models.project import Project
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
@@ -33,7 +34,7 @@ async def db_session() -> AsyncSession:
     await engine.dispose()
 
 
-async def _seed_member(session: AsyncSession) -> tuple[Workspace, User]:
+async def _seed_member(session: AsyncSession) -> tuple[Workspace, User, Project]:
     user = User(
         id=uuid4(),
         email=f"enforce-{uuid4().hex}@example.com",
@@ -51,14 +52,20 @@ async def _seed_member(session: AsyncSession) -> tuple[Workspace, User]:
         user_id=user.id,
         role=WorkspaceRole.OWNER,
     )
-    session.add_all([user, workspace, membership])
+    project = Project(
+        id=uuid4(),
+        workspace_id=workspace.id,
+        name="Default Project",
+        created_by_id=user.id,
+    )
+    session.add_all([user, workspace, membership, project])
     await session.flush()
-    return workspace, user
+    return workspace, user, project
 
 
 @pytest.mark.asyncio
 async def test_has_available_credits(db_session: AsyncSession) -> None:
-    workspace, user = await _seed_member(db_session)
+    workspace, user, _project = await _seed_member(db_session)
     service = BudgetService(db_session)
     await service.create_workspace_budget_settings(workspace.id)
     await service.create_budget(workspace.id, user.id)
@@ -72,7 +79,7 @@ async def test_has_available_credits(db_session: AsyncSession) -> None:
 async def test_consume_credits_fails_when_insufficient(
     db_session: AsyncSession,
 ) -> None:
-    workspace, user = await _seed_member(db_session)
+    workspace, user, _project = await _seed_member(db_session)
     service = BudgetService(db_session)
     await service.create_workspace_budget_settings(workspace.id)
     await service.create_budget(workspace.id, user.id)
@@ -88,7 +95,7 @@ async def test_consume_credits_fails_when_insufficient(
 
 @pytest.mark.asyncio
 async def test_consume_credits_deducts_balance(db_session: AsyncSession) -> None:
-    workspace, user = await _seed_member(db_session)
+    workspace, user, project = await _seed_member(db_session)
     service = BudgetService(db_session)
     await service.create_workspace_budget_settings(workspace.id)
     await service.create_budget(workspace.id, user.id)
@@ -101,6 +108,7 @@ async def test_consume_credits_deducts_balance(db_session: AsyncSession) -> None
     conversation = Conversation(
         id=uuid4(),
         workspace_id=workspace.id,
+        project_id=project.id,
         owner_id=user.id,
         title="Test",
     )

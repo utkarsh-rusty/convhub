@@ -7,6 +7,7 @@ ConvHub is **Git for AI-native Project Memory**. These documents describe how th
 | Document | Status |
 |----------|--------|
 | [Architecture overview](architecture-overview.md) | Implemented |
+| [Projects](projects.md) | **Implemented** |
 | [Project Memory](project-memory.md) | Primitives + Context Packages **Implemented** |
 | [Context Packages](context-packages.md) | **Implemented** (import planned) |
 | [Context Restore](context-restore.md) | **Implemented** |
@@ -16,7 +17,6 @@ ConvHub is **Git for AI-native Project Memory**. These documents describe how th
 | [Ownership Routing](ADR-010-ownership-first-routing.md) | Implemented |
 | [Borrowing](ADR-009-resource-sharing.md) | Implemented |
 | [Realtime](realtime-events.md) | Implemented |
-| [Context Packages](context-packages.md) | Planned |
 | [Git Integration](git-integration.md) | Planned |
 | [VS Code Extension](vscode-extension.md) | Planned |
 
@@ -49,6 +49,7 @@ ConvHub is **Git for AI-native Project Memory**. These documents describe how th
 | [ADR-011](ADR-011-conversation-commits.md) | Conversation commits and checkpoints | Implemented |
 | [ADR-012](ADR-012-context-packages.md) | Context Packages | Implemented |
 | [ADR-013](ADR-013-context-restore.md) | Context Restore | Implemented |
+| [ADR-014](ADR-014-projects.md) | First-class Projects | Implemented |
 
 ## Principles
 

@@ -29,9 +29,12 @@ Workspace
 
 See also [conversation-lifecycle.md](conversation-lifecycle.md).
 
+## Projects
+
+Every conversation belongs to a **Project** (`project_id` required). See [projects.md](projects.md).
+
 ## Future
 
-- First-class Projects containing conversations (**Planned**, v1.2)
 - Conversation merge (**Research**, v2.0)
 
 Not implemented.

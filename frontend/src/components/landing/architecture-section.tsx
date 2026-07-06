@@ -10,7 +10,7 @@ const LAYERS = [
     title: "ConvHub",
     icon: Layers,
     summary:
-      "Shared conversations, ownership-first routing, borrowing, budgets, commits, branches, and realtime.",
+      "Projects, shared conversations, ownership-first routing, borrowing, budgets, commits, branches, and realtime.",
   },
   {
     title: "AI Providers",
@@ -25,8 +25,8 @@ export function ArchitectureSection() {
       <div className="mx-auto max-w-6xl">
         <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Architecture today</h2>
         <p className="mt-4 max-w-2xl text-[var(--color-muted-foreground)]">
-          Three layers that ship in the current product. Git repository linkage is planned and is
-          not part of this diagram.
+          Three layers that ship in the current product, with Projects as the permanent home for
+          project memory. Git repository linkage is planned and is not part of this diagram.
         </p>
 
         <div className="mt-12 flex flex-col items-stretch gap-3 md:mx-auto md:max-w-xl">
@@ -52,6 +52,22 @@ export function ArchitectureSection() {
               ) : null}
             </div>
           ))}
+        </div>
+
+        <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-dashed border-[var(--color-border)] px-5 py-4 font-mono text-sm leading-7 text-[var(--color-muted-foreground)]">
+          Workspace
+          <br />
+          &nbsp;&nbsp;↓
+          <br />
+          Projects
+          <br />
+          &nbsp;&nbsp;↓
+          <br />
+          Conversations
+          <br />
+          &nbsp;&nbsp;↓
+          <br />
+          Branches → Commits → Context Packages
         </div>
       </div>
     </section>

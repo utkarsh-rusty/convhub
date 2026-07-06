@@ -18,6 +18,7 @@ from app.models.ai_request import AIRequest
 from app.models.conversation import Conversation
 from app.models.enums import AIRequestStatus, ExecutionType, RoutingPolicyType
 from app.models.message import Message
+from app.models.project import Project
 from app.models.user import User
 from app.models.workspace import Workspace
 
@@ -121,9 +122,16 @@ async def test_load_execution_summaries(db_session: AsyncSession) -> None:
         slug=f"exec-{uuid4().hex[:12]}",
         owner_id=user.id,
     )
+    project = Project(
+        id=uuid4(),
+        workspace_id=workspace.id,
+        name="Default Project",
+        created_by_id=user.id,
+    )
     conversation = Conversation(
         id=uuid4(),
         workspace_id=workspace.id,
+        project_id=project.id,
         owner_id=user.id,
         title="Exec Test",
         last_activity_at=datetime.now(UTC),
@@ -163,7 +171,7 @@ async def test_load_execution_summaries(db_session: AsyncSession) -> None:
         routing_policy=RoutingPolicyType.OWNER_FIRST,
     )
     db_session.add_all(
-        [user, workspace, conversation, user_message, assistant, account, ai_request]
+        [user, workspace, project, conversation, user_message, assistant, account, ai_request]
     )
     await db_session.flush()
 

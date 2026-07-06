@@ -200,6 +200,7 @@ export const conversationOwnerSummarySchema = z.object({
 export const conversationResponseSchema = z.object({
   id: z.string().uuid(),
   workspace_id: z.string().uuid(),
+  project_id: z.string().uuid(),
   created_by_id: z.string().uuid().nullable(),
   owner_id: z.string().uuid(),
   owner: conversationOwnerSummarySchema.nullable().optional(),
@@ -243,6 +244,46 @@ export const conversationRestoreInfoResponseSchema = z.object({
   context_package_id: z.string().uuid().nullable().optional(),
   context_package_version: z.number().nullable().optional(),
   context_package_status: z.string().nullable().optional(),
+});
+
+export const projectMemberSummarySchema = z.object({
+  user_id: z.string().uuid(),
+  name: z.string(),
+  email: z.string(),
+  role: z.string(),
+});
+
+export const projectConversationSummarySchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  branch_name: z.string().nullable().optional(),
+  parent_conversation_id: z.string().uuid().nullable().optional(),
+  last_activity_at: z.string(),
+  message_count: z.number().default(0),
+  commit_count: z.number().default(0),
+  is_restored: z.boolean().default(false),
+});
+
+export const projectResponseSchema = z.object({
+  id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  icon: z.string().nullable().optional(),
+  color: z.string().nullable().optional(),
+  created_by_id: z.string().uuid().nullable().optional(),
+  created_by_name: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  archived_at: z.string().nullable().optional(),
+  is_default: z.boolean().default(false),
+  conversation_count: z.number().default(0),
+  branch_count: z.number().default(0),
+  commit_count: z.number().default(0),
+  context_package_count: z.number().default(0),
+  last_activity_at: z.string().nullable().optional(),
+  members: z.array(projectMemberSummarySchema).default([]),
+  recent_conversations: z.array(projectConversationSummarySchema).default([]),
 });
 
 export type BranchTreeNode = {
@@ -682,6 +723,8 @@ export type WorkspaceResponse = z.infer<typeof workspaceResponseSchema>;
 export type WorkspaceMemberResponse = z.infer<typeof workspaceMemberResponseSchema>;
 export type InvitationResponse = z.infer<typeof invitationResponseSchema>;
 export type ConversationResponse = z.infer<typeof conversationResponseSchema>;
+export type ProjectResponse = z.infer<typeof projectResponseSchema>;
+export type ProjectConversationSummary = z.infer<typeof projectConversationSummarySchema>;
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
 export type ConversationLineageResponse = z.infer<typeof conversationLineageResponseSchema>;
 export type BranchTreeResponse = z.infer<typeof branchTreeResponseSchema>;

@@ -4,6 +4,7 @@
 
 | Layer | Status |
 |-------|--------|
+| Projects as permanent memory containers | **Implemented** |
 | Conversations, commits, branches as memory primitives | **Implemented** |
 | Context Packages (portable commit memory) | **Implemented** |
 | Context Restore (project checkpoints) | **Implemented** |
@@ -28,6 +29,7 @@ Project memory includes:
 
 Today’s product provides project-knowledge primitives and portable packages:
 
+- **Projects** — permanent home for conversations and future Git/IDE attachments
 - Workspace-scoped conversations
 - Message history
 - Manual conversation commits and automatic checkpoints

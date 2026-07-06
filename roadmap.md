@@ -18,6 +18,7 @@ Every item is categorized. Future work is never described as shipped.
 **Status: Implemented**
 
 - Authentication and workspaces
+- First-class Projects (Default Project per workspace)
 - Shared conversations and participants
 - Multi-provider AI accounts
 - Ownership-first routing
@@ -51,11 +52,10 @@ _Nothing currently marked in progress. Active work will be listed here when a re
 
 ---
 
-## Planned — v1.2 Projects & Git linkage
+## Planned — v1.2 Git linkage
 
 **Status: Planned**
 
-- First-class Projects
 - Git metadata on projects
 - Git repository linkage
 - Map conversations and commits to repos/branches (metadata only)

@@ -35,6 +35,7 @@ Only features that exist in the current codebase:
 - Ownership-first provider routing
 - Borrowing engine between conversation participants
 - Workspace collaboration and permissions
+- First-class Projects (permanent home for project memory)
 - Conversation branching
 - Conversation commits and automatic checkpoints
 - Context Packages (immutable project-memory artifacts per commit)
@@ -49,6 +50,8 @@ Only features that exist in the current codebase:
 
 ```
 Create Workspace
+        ↓
+Create / open a Project
         ↓
 Invite Team Members
         ↓
@@ -80,19 +83,23 @@ AI Providers
 | Layer | Role |
 |-------|------|
 | **Developer** | Creates workspaces, invites teammates, connects providers, chats, branches, commits. |
-| **ConvHub** | Shared conversations, ownership-first routing, borrowing, budgets, commits, packages, restore, branches, realtime. |
+| **ConvHub** | Projects, shared conversations, ownership-first routing, borrowing, budgets, commits, packages, restore, branches, realtime. |
 | **AI Providers** | Claude, OpenAI, Gemini, Groq, Ollama — each user owns their accounts. |
 
 Inside ConvHub today:
 
 ```
-Workspace → Conversation
-              ├── Messages (working directory)
-              ├── Checkpoints (automatic)
-              ├── Commits (manual milestones)
-              ├── Context Packages (immutable snapshots)
-              ├── Restore (new working conversation from a package)
-              └── Branches (lineage)
+Workspace
+    ↓
+Projects
+    ↓
+Conversations
+    ↓
+Branches
+    ↓
+Commits
+    ↓
+Context Packages
 ```
 
 **Planned (not implemented):** Git repository linkage, Decision Tracking, VS Code extension.
@@ -204,9 +211,9 @@ Future work is **not** implemented. Categories:
 
 | Version | Focus | Status |
 |---------|--------|--------|
-| **v1.0** | Workspace, routing, borrowing, branching, commits, context packages, restore, visualization, realtime, budgets | Implemented |
+| **v1.0** | Workspace, projects, routing, borrowing, branching, commits, context packages, restore, visualization, realtime, budgets | Implemented |
 | **v1.1** | Decision tracking, richer project memory timeline | Planned |
-| **v1.2** | Projects, Git metadata, Git linkage | Planned |
+| **v1.2** | Git metadata, Git linkage | Planned |
 | **v1.3** | VS Code extension, push/pull context, Git sync | Planned |
 | **v1.4** | Claude Code / Cursor / Codex / Continue adapters | Planned |
 | **v2.0** | Semantic restore, conversation merge, knowledge graph | Research |

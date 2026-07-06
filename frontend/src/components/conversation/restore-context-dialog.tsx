@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-import { conversationApi, showApiError } from "@/lib/api";
+import { conversationApi, projectApi, showApiError } from "@/lib/api";
 import { useWorkspace } from "@/context/workspace-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,10 +16,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface RestoreContextDialogProps {
   packageId: string;
   defaultName?: string;
+  defaultProjectId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -27,6 +35,7 @@ interface RestoreContextDialogProps {
 export function RestoreContextDialog({
   packageId,
   defaultName = "",
+  defaultProjectId,
   open,
   onOpenChange,
 }: RestoreContextDialogProps) {
@@ -34,25 +43,40 @@ export function RestoreContextDialog({
   const queryClient = useQueryClient();
   const { activeWorkspaceId } = useWorkspace();
   const [conversationName, setConversationName] = useState(defaultName);
+  const [projectId, setProjectId] = useState(defaultProjectId ?? "");
   const [restoreParticipants, setRestoreParticipants] = useState(true);
   const [restoreMessages, setRestoreMessages] = useState(true);
   const [restoreMetadata, setRestoreMetadata] = useState(true);
   const [restoreOnlySelf, setRestoreOnlySelf] = useState(false);
 
+  const { data: projects = [] } = useQuery({
+    queryKey: ["projects", activeWorkspaceId],
+    queryFn: () => projectApi.list(),
+    enabled: Boolean(activeWorkspaceId && open),
+  });
+
   useEffect(() => {
-    if (open) {
-      setConversationName(defaultName);
-      setRestoreParticipants(true);
-      setRestoreMessages(true);
-      setRestoreMetadata(true);
-      setRestoreOnlySelf(false);
+    if (!open) {
+      return;
     }
-  }, [open, defaultName]);
+    setConversationName(defaultName);
+    setProjectId(
+      defaultProjectId ||
+        projects.find((project) => project.is_default)?.id ||
+        projects[0]?.id ||
+        "",
+    );
+    setRestoreParticipants(true);
+    setRestoreMessages(true);
+    setRestoreMetadata(true);
+    setRestoreOnlySelf(false);
+  }, [open, defaultName, defaultProjectId, projects]);
 
   const restoreMutation = useMutation({
     mutationFn: () =>
       conversationApi.restoreContextPackage(packageId, {
         conversation_name: conversationName.trim() || undefined,
+        project_id: projectId || undefined,
         restore_participants: restoreParticipants,
         restore_messages: restoreMessages,
         restore_metadata: restoreMetadata,
@@ -61,6 +85,7 @@ export function RestoreContextDialog({
     onSuccess: (conversation) => {
       toast.success("Context restored into a new conversation");
       void queryClient.invalidateQueries({ queryKey: ["conversations", activeWorkspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["projects", activeWorkspaceId] });
       onOpenChange(false);
       navigate(`/c/${conversation.id}`);
     },
@@ -87,6 +112,25 @@ export function RestoreContextDialog({
               onChange={(event) => setConversationName(event.target.value)}
               placeholder="Restored working copy"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Project</Label>
+            <Select value={projectId} onValueChange={setProjectId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a project" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.name}
+                    {defaultProjectId && project.id === defaultProjectId
+                      ? " (original)"
+                      : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <label className="flex items-center gap-2 text-sm">
@@ -129,7 +173,7 @@ export function RestoreContextDialog({
           </Button>
           <Button
             type="button"
-            disabled={restoreMutation.isPending}
+            disabled={restoreMutation.isPending || !projectId}
             onClick={() => restoreMutation.mutate()}
           >
             {restoreMutation.isPending ? "Restoring..." : "Restore"}

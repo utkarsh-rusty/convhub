@@ -19,6 +19,7 @@ from app.models.enums import (
     WorkspaceRole,
 )
 from app.models.message import Message
+from app.models.project import Project
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
@@ -43,7 +44,7 @@ async def db_session() -> AsyncSession:
     await engine.dispose()
 
 
-async def _seed_workspace_member(session: AsyncSession) -> tuple[Workspace, User]:
+async def _seed_workspace_member(session: AsyncSession) -> tuple[Workspace, User, Project]:
     user = User(
         id=uuid4(),
         email=f"budget-{uuid4().hex}@example.com",
@@ -61,16 +62,22 @@ async def _seed_workspace_member(session: AsyncSession) -> tuple[Workspace, User
         user_id=user.id,
         role=WorkspaceRole.OWNER,
     )
-    session.add_all([user, workspace, membership])
+    project = Project(
+        id=uuid4(),
+        workspace_id=workspace.id,
+        name="Default Project",
+        created_by_id=user.id,
+    )
+    session.add_all([user, workspace, membership, project])
     await session.flush()
-    return workspace, user
+    return workspace, user, project
 
 
 @pytest.mark.asyncio
 async def test_create_budget_allocates_default_credits(
     db_session: AsyncSession,
 ) -> None:
-    workspace, user = await _seed_workspace_member(db_session)
+    workspace, user, _project = await _seed_workspace_member(db_session)
     service = BudgetService(db_session)
 
     budget = await service.create_budget(workspace.id, user.id)
@@ -91,13 +98,14 @@ async def test_create_budget_allocates_default_credits(
 
 @pytest.mark.asyncio
 async def test_record_usage_updates_budget_and_ledger(db_session: AsyncSession) -> None:
-    workspace, user = await _seed_workspace_member(db_session)
+    workspace, user, project = await _seed_workspace_member(db_session)
     service = BudgetService(db_session)
     await service.create_budget(workspace.id, user.id)
 
     conversation = Conversation(
         id=uuid4(),
         workspace_id=workspace.id,
+        project_id=project.id,
         owner_id=user.id,
         title="Budget Test",
     )

@@ -38,6 +38,7 @@ import {
   conversationLineageResponseSchema,
   conversationParticipantResponseSchema,
   conversationResponseSchema,
+  projectResponseSchema,
   conversationSearchResponseSchema,
   conversationStatsResponseSchema,
   conversationTimelineResponseSchema,
@@ -242,13 +243,69 @@ export const invitationApi = {
   },
 };
 
+export const projectApi = {
+  async list(includeArchived = false) {
+    const { data } = await api.get("/projects", {
+      params: includeArchived ? { include_archived: true } : undefined,
+    });
+    return projectResponseSchema.array().parse(data);
+  },
+
+  async get(projectId: string) {
+    const { data } = await api.get(`/projects/${projectId}`);
+    return projectResponseSchema.parse(data);
+  },
+
+  async create(payload: {
+    name: string;
+    description?: string;
+    icon?: string;
+    color?: string;
+  }) {
+    const { data } = await api.post("/projects", payload);
+    return projectResponseSchema.parse(data);
+  },
+
+  async update(
+    projectId: string,
+    payload: {
+      name?: string;
+      description?: string;
+      icon?: string;
+      color?: string;
+    },
+  ) {
+    const { data } = await api.patch(`/projects/${projectId}`, payload);
+    return projectResponseSchema.parse(data);
+  },
+
+  async archive(projectId: string) {
+    const { data } = await api.post(`/projects/${projectId}/archive`);
+    return projectResponseSchema.parse(data);
+  },
+
+  async restore(projectId: string) {
+    const { data } = await api.post(`/projects/${projectId}/restore`);
+    return projectResponseSchema.parse(data);
+  },
+
+  async delete(projectId: string) {
+    await api.delete(`/projects/${projectId}`);
+  },
+
+  async listConversations(projectId: string) {
+    const { data } = await api.get(`/projects/${projectId}/conversations`);
+    return conversationResponseSchema.array().parse(data);
+  },
+};
+
 export const conversationApi = {
   async list() {
     const { data } = await api.get("/conversations");
     return conversationResponseSchema.array().parse(data);
   },
 
-  async create(payload: { title?: string } = {}) {
+  async create(payload: { title?: string; project_id?: string } = {}) {
     const { data } = await api.post("/conversations", payload);
     return conversationResponseSchema.parse(data);
   },
@@ -394,6 +451,7 @@ export const conversationApi = {
     packageId: string,
     payload: {
       conversation_name?: string;
+      project_id?: string;
       restore_participants?: boolean;
       restore_messages?: boolean;
       restore_metadata?: boolean;

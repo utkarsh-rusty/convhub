@@ -26,6 +26,7 @@ from app.models.enums import ConversationParticipantRole, MessageRole
 from app.models.message import Message
 from app.models.user import User
 from app.models.workspace_member import WorkspaceMember
+from app.projects.service import ProjectService
 
 
 class ContextRestoreService:
@@ -49,6 +50,20 @@ class ContextRestoreService:
         source_conversation_id = package.conversation_id
         source_commit_id = package.commit_id
 
+        source_project_id = None
+        source_result = await self.db.execute(
+            select(Conversation).where(Conversation.id == source_conversation_id)
+        )
+        source_conversation = source_result.scalar_one_or_none()
+        if source_conversation is not None:
+            source_project_id = source_conversation.project_id
+
+        project = await ProjectService(self.db).resolve_project_for_workspace(
+            ctx.workspace_id,
+            data.project_id or source_project_id,
+            created_by_id=ctx.user.id,
+        )
+
         now = datetime.now(UTC)
         title = (data.conversation_name or "").strip()
         if not title:
@@ -68,6 +83,7 @@ class ContextRestoreService:
         conversation = Conversation(
             id=uuid4(),
             workspace_id=ctx.workspace_id,
+            project_id=project.id,
             created_by_id=ctx.user.id,
             owner_id=ctx.user.id,
             title=title,

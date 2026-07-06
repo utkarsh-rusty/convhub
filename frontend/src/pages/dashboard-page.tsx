@@ -1,55 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
+import { FolderKanban } from "lucide-react";
+import { Link } from "react-router-dom";
 
-import { budgetApi, routingApi, sharingApi, workspaceApi, aiAccountApi } from "@/lib/api";
+import { conversationApi, projectApi } from "@/lib/api";
+import { formatTimestamp } from "@/lib/format";
 import { useWorkspace } from "@/context/workspace-context";
 import { useSocket } from "@/context/socket-context";
-import { formatCredits, formatRoutingPolicy } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function DashboardPage() {
   const { activeWorkspace, activeWorkspaceId } = useWorkspace();
   const { status } = useSocket();
-  const canViewOverview = ["owner", "admin"].includes(activeWorkspace?.role ?? "");
 
-  const { data: members = [], isLoading: membersLoading } = useQuery({
-    queryKey: ["workspace-members", activeWorkspaceId],
-    queryFn: () => workspaceApi.listMembers(activeWorkspaceId!),
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+    queryKey: ["projects", activeWorkspaceId],
+    queryFn: () => projectApi.list(),
     enabled: Boolean(activeWorkspaceId),
   });
 
-  const { data: settings, isLoading: settingsLoading } = useQuery({
-    queryKey: ["workspace-budget-settings", activeWorkspaceId],
-    queryFn: () => budgetApi.getWorkspaceSettings(activeWorkspaceId!),
-    enabled: Boolean(activeWorkspaceId && canViewOverview),
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: routing, isLoading: routingLoading } = useQuery({
-    queryKey: ["routing-settings", activeWorkspaceId],
-    queryFn: () => routingApi.getSettings(activeWorkspaceId!),
+  const { data: conversations = [], isLoading: conversationsLoading } = useQuery({
+    queryKey: ["conversations", activeWorkspaceId],
+    queryFn: conversationApi.list,
     enabled: Boolean(activeWorkspaceId),
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: sharing, isLoading: sharingLoading } = useQuery({
-    queryKey: ["sharing-overview", activeWorkspaceId],
-    queryFn: () => sharingApi.getWorkspaceOverview(activeWorkspaceId!),
-    enabled: Boolean(activeWorkspaceId && canViewOverview),
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: myBudget, isLoading: myBudgetLoading } = useQuery({
-    queryKey: ["budget", activeWorkspaceId],
-    queryFn: () => budgetApi.getMyBudget(activeWorkspaceId!),
-    enabled: Boolean(activeWorkspaceId),
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: myAccounts = [], isLoading: accountsLoading } = useQuery({
-    queryKey: ["ai-accounts", activeWorkspaceId],
-    queryFn: () => aiAccountApi.list(),
-    enabled: Boolean(activeWorkspaceId),
-    refetchOnWindowFocus: false,
   });
 
   if (!activeWorkspaceId) {
@@ -60,21 +32,22 @@ export function DashboardPage() {
     );
   }
 
-  const defaultProvider =
-    routing?.preview.selected_provider ??
-    routing?.active_accounts[0]?.provider ??
-    "—";
-
-  const isLoading =
-    membersLoading || settingsLoading || routingLoading || sharingLoading || myBudgetLoading || accountsLoading;
-  const myProviders = myAccounts.filter((account) => account.is_mine);
+  const isLoading = projectsLoading || conversationsLoading;
+  const recentConversations = [...conversations]
+    .sort(
+      (a, b) =>
+        new Date(b.last_activity_at).getTime() - new Date(a.last_activity_at).getTime(),
+    )
+    .slice(0, 8);
+  const projectNameById = new Map(projects.map((project) => [project.id, project.name]));
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-b border-[var(--color-border)] px-6 py-4">
         <h2 className="text-lg font-semibold">Workspace Dashboard</h2>
         <p className="text-sm text-[var(--color-muted-foreground)]">
-          Overview of credits, routing, and team activity · Live {status}
+          {activeWorkspace?.name ?? "Workspace"} · Projects and recent conversations · Live{" "}
+          {status}
         </p>
       </div>
 
@@ -83,120 +56,78 @@ export function DashboardPage() {
           <Skeleton className="h-40 w-full" />
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-              <SummaryCard label="Workspace" value={activeWorkspace?.name ?? "—"} />
-              <SummaryCard label="Members" value={String(members.length)} />
-              <SummaryCard
-                label="My Providers"
-                value={String(myProviders.length)}
-                hint={
-                  myProviders.length > 0
-                    ? myProviders.map((account) => account.provider).join(", ")
-                    : "Add providers in AI Providers"
-                }
-              />
-              <SummaryCard
-                label="Borrowed This Month"
-                value={formatCredits(myBudget?.borrowed_credits ?? "0")}
-              />
-              <SummaryCard
-                label="Shared This Month"
-                value={formatCredits(myBudget?.lent_credits ?? "0")}
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <SummaryCard
-                label="Borrowing Budget"
-                value={formatCredits(myBudget?.remaining_credits ?? "0")}
-              />
-              <SummaryCard
-                label="Budget Status"
-                value={
-                  myBudget && Number(myBudget.remaining_credits) <= 0
-                    ? "Exceeded"
-                    : "Within limit"
-                }
-              />
-              <SummaryCard
-                label="Borrowing"
-                value={settings?.allow_credit_borrowing ? "Enabled" : "Disabled"}
-                hint={canViewOverview && !settings?.allow_credit_borrowing ? "Enable in Settings" : undefined}
-              />
-              <SummaryCard
-                label="Routing Policy"
-                value={formatRoutingPolicy(routing?.routing_policy ?? "owner_first")}
-              />
-            </div>
-
-            {canViewOverview && sharing ? (
-              <section>
-                <h3 className="mb-3 text-sm font-medium">Team credits</h3>
-                <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
-                  <table className="w-full min-w-[800px] text-left text-sm">
-                    <thead className="border-b border-[var(--color-border)] bg-[var(--color-muted)]/30">
-                      <tr>
-                        <th className="px-4 py-3 font-medium">Member</th>
-                        <th className="px-4 py-3 font-medium">Remaining Credits</th>
-                        <th className="px-4 py-3 font-medium">Provider</th>
-                        <th className="px-4 py-3 font-medium">Sharing</th>
-                        <th className="px-4 py-3 font-medium">Borrowed</th>
-                        <th className="px-4 py-3 font-medium">Lent</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sharing.members.map((member) => (
-                        <tr
-                          key={member.user_id}
-                          className="border-b border-[var(--color-border)] last:border-0"
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-medium">Projects</h3>
+                <span className="text-xs text-[var(--color-muted-foreground)]">
+                  {projects.length} total
+                </span>
+              </div>
+              {projects.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-[var(--color-border)] px-4 py-8 text-sm text-[var(--color-muted-foreground)]">
+                  No projects yet.
+                </p>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {projects.map((project) => (
+                    <Link
+                      key={project.id}
+                      to={`/projects/${project.id}`}
+                      className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4 transition-colors hover:bg-[var(--color-accent)]"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white"
+                          style={{ backgroundColor: project.color || "#64748b" }}
                         >
-                          <td className="px-4 py-3">
-                            <p className="font-medium">{member.user_name}</p>
-                            <p className="text-xs text-[var(--color-muted-foreground)]">
-                              {member.user_email}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3">{formatCredits(member.remaining_credits)}</td>
-                          <td className="px-4 py-3 capitalize">{defaultProvider}</td>
-                          <td className="px-4 py-3">
-                            {member.auto_share_enabled ? "Enabled" : "Off"}
-                          </td>
-                          <td className="px-4 py-3">{formatCredits(member.borrowed_credits)}</td>
-                          <td className="px-4 py-3">{formatCredits(member.lent_credits)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          <FolderKanban className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{project.name}</p>
+                          <p className="mt-0.5 line-clamp-2 text-xs text-[var(--color-muted-foreground)]">
+                            {project.description || "No description"}
+                          </p>
+                          <p className="mt-2 text-xs text-[var(--color-muted-foreground)]">
+                            {project.conversation_count} conversations ·{" "}
+                            {project.commit_count} commits
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
-              </section>
-            ) : (
-              <p className="text-sm text-[var(--color-muted-foreground)]">
-                Ask a workspace owner or admin for the full team credits view.
-              </p>
-            )}
+              )}
+            </section>
+
+            <section>
+              <h3 className="mb-3 text-sm font-medium">Recent conversations</h3>
+              {recentConversations.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-[var(--color-border)] px-4 py-8 text-sm text-[var(--color-muted-foreground)]">
+                  No conversations yet.
+                </p>
+              ) : (
+                <div className="divide-y divide-[var(--color-border)] rounded-lg border border-[var(--color-border)]">
+                  {recentConversations.map((conversation) => (
+                    <Link
+                      key={conversation.id}
+                      to={`/c/${conversation.id}`}
+                      className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[var(--color-accent)]"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{conversation.title}</p>
+                        <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)]">
+                          {projectNameById.get(conversation.project_id) ?? "Project"} ·{" "}
+                          {formatTimestamp(conversation.last_activity_at)}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
           </>
         )}
       </div>
-    </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-4">
-      <p className="text-sm text-[var(--color-muted-foreground)]">{label}</p>
-      <p className="mt-1 text-xl font-semibold">{value}</p>
-      {hint ? (
-        <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">{hint}</p>
-      ) : null}
     </div>
   );
 }

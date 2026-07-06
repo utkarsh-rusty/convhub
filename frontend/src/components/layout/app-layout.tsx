@@ -20,7 +20,10 @@ export function AppLayout() {
   useWorkspaceRealtime();
   const location = useLocation();
   const showConversationSidebar =
-    location.pathname === APP_HOME || location.pathname.startsWith("/c/");
+    location.pathname === APP_HOME ||
+    location.pathname === "/dashboard" ||
+    location.pathname.startsWith("/c/") ||
+    location.pathname.startsWith("/projects/");
 
   return (
     <div className="flex h-screen bg-[var(--color-background)] text-[var(--color-foreground)]">

@@ -60,6 +60,9 @@ class WorkspaceService:
         self.db.add(workspace)
         self.db.add(membership)
         await self.db.flush()
+        from app.projects.service import ProjectService
+
+        await ProjectService(self.db).create_default_project(workspace.id, user.id)
         await BudgetService(self.db).create_workspace_budget_settings(workspace.id)
         await BudgetService(self.db).create_budget(workspace.id, user.id)
         await LendingPreferenceService(self.db).create_preference(workspace.id, user.id)

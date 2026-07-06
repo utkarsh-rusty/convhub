@@ -24,6 +24,12 @@ export function CommitDetailDrawer({ commitHash, open, onClose }: CommitDetailDr
     enabled: Boolean(open && commitHash),
   });
 
+  const { data: sourceConversation } = useQuery({
+    queryKey: ["conversation", data?.conversation_id],
+    queryFn: () => conversationApi.get(data!.conversation_id),
+    enabled: Boolean(data?.conversation_id),
+  });
+
   return (
     <div
       className={cn(
@@ -146,6 +152,7 @@ export function CommitDetailDrawer({ commitHash, open, onClose }: CommitDetailDr
         <RestoreContextDialog
           packageId={data.context_package_id}
           defaultName={`Restored: ${data.title}`}
+          defaultProjectId={sourceConversation?.project_id}
           open={restoreOpen}
           onOpenChange={setRestoreOpen}
         />

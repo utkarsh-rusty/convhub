@@ -1,64 +1,167 @@
-import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, GitBranch, Lock, MessageSquarePlus, Pencil, RotateCcw } from "lucide-react";
-import { NavLink, useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  ChevronDown,
+  ChevronRight,
+  FolderKanban,
+  GitBranch,
+  Lock,
+  MessageSquarePlus,
+  Pencil,
+  Plus,
+  RotateCcw,
+} from "lucide-react";
+import { NavLink, useParams } from "react-router-dom";
 
-import { conversationApi, showApiError } from "@/lib/api";
+import { conversationApi, projectApi } from "@/lib/api";
 import { formatTimestamp } from "@/lib/format";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspace } from "@/context/workspace-context";
+import { CreateConversationDialog } from "@/components/conversation/create-conversation-dialog";
 import { RenameConversationDialog } from "@/components/conversation/rename-conversation-dialog";
+import { CreateProjectDialog } from "@/components/project/create-project-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import type { ConversationResponse } from "@/types/api";
+import type { ConversationResponse, ProjectResponse } from "@/types/api";
+
+function collapseStorageKey(workspaceId: string) {
+  return `convhub.project-collapse.${workspaceId}`;
+}
+
+function selectedProjectStorageKey(workspaceId: string) {
+  return `convhub.selected-project.${workspaceId}`;
+}
+
+function loadCollapsedMap(workspaceId: string): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(collapseStorageKey(workspaceId));
+    return raw ? (JSON.parse(raw) as Record<string, boolean>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveCollapsedMap(workspaceId: string, map: Record<string, boolean>) {
+  localStorage.setItem(collapseStorageKey(workspaceId), JSON.stringify(map));
+}
 
 export function ConversationSidebar() {
-  const navigate = useNavigate();
-  const { conversationId } = useParams();
-  const queryClient = useQueryClient();
+  const { conversationId, projectId: routeProjectId } = useParams();
   const { activeWorkspaceId } = useWorkspace();
+  const [createConversationOpen, setCreateConversationOpen] = useState(false);
+  const [createProjectOpen, setCreateProjectOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>();
+  const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({});
 
-  const { data: conversations = [], isLoading, isError } = useQuery({
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
+    queryKey: ["projects", activeWorkspaceId],
+    queryFn: () => projectApi.list(),
+    enabled: Boolean(activeWorkspaceId),
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: conversations = [], isLoading: conversationsLoading, isError } = useQuery({
     queryKey: ["conversations", activeWorkspaceId],
     queryFn: conversationApi.list,
     enabled: Boolean(activeWorkspaceId),
     refetchOnWindowFocus: true,
   });
 
-  const createMutation = useMutation({
-    mutationFn: () => conversationApi.create(),
-    onSuccess: (conversation) => {
-      void queryClient.invalidateQueries({ queryKey: ["conversations", activeWorkspaceId] });
-      navigate(`/c/${conversation.id}`);
-      toast.success("Conversation created");
-    },
-    onError: (error) => showApiError(error, "Unable to create conversation"),
-  });
+  useEffect(() => {
+    if (!activeWorkspaceId) {
+      return;
+    }
+    setCollapsedMap(loadCollapsedMap(activeWorkspaceId));
+    const stored = localStorage.getItem(selectedProjectStorageKey(activeWorkspaceId));
+    setSelectedProjectId(stored ?? undefined);
+  }, [activeWorkspaceId]);
 
-  const conversationTree = useMemo(
-    () => buildConversationTree(conversations),
-    [conversations],
-  );
+  useEffect(() => {
+    if (routeProjectId) {
+      setSelectedProjectId(routeProjectId);
+      if (activeWorkspaceId) {
+        localStorage.setItem(selectedProjectStorageKey(activeWorkspaceId), routeProjectId);
+      }
+    }
+  }, [routeProjectId, activeWorkspaceId]);
+
+  useEffect(() => {
+    if (!conversationId || !conversations.length || !activeWorkspaceId) {
+      return;
+    }
+    const active = conversations.find((item) => item.id === conversationId);
+    if (!active) {
+      return;
+    }
+    setSelectedProjectId(active.project_id);
+    localStorage.setItem(selectedProjectStorageKey(activeWorkspaceId), active.project_id);
+    setCollapsedMap((current) => {
+      if (current[active.project_id] === false) {
+        return current;
+      }
+      const next = { ...current, [active.project_id]: false };
+      saveCollapsedMap(activeWorkspaceId, next);
+      return next;
+    });
+  }, [conversationId, conversations, activeWorkspaceId]);
+
+  const conversationsByProject = useMemo(() => {
+    const map = new Map<string, ConversationResponse[]>();
+    for (const conversation of conversations) {
+      const list = map.get(conversation.project_id) ?? [];
+      list.push(conversation);
+      map.set(conversation.project_id, list);
+    }
+    return map;
+  }, [conversations]);
+
+  const toggleProject = (projectId: string) => {
+    if (!activeWorkspaceId) {
+      return;
+    }
+    setCollapsedMap((current) => {
+      const next = { ...current, [projectId]: !(current[projectId] ?? false) };
+      saveCollapsedMap(activeWorkspaceId, next);
+      return next;
+    });
+  };
+
+  const isLoading = projectsLoading || conversationsLoading;
+  const defaultProjectId =
+    selectedProjectId ||
+    projects.find((project) => project.is_default)?.id ||
+    projects[0]?.id;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center justify-between px-3 py-2.5">
         <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
-          Conversations
+          Projects
         </p>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          aria-label="New conversation"
-          disabled={!activeWorkspaceId || createMutation.isPending}
-          onClick={() => createMutation.mutate()}
-        >
-          <MessageSquarePlus className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            aria-label="New project"
+            disabled={!activeWorkspaceId}
+            onClick={() => setCreateProjectOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            aria-label="New conversation"
+            disabled={!activeWorkspaceId}
+            onClick={() => setCreateConversationOpen(true)}
+          >
+            <MessageSquarePlus className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <ScrollArea className="flex-1 px-1.5 pb-3">
@@ -70,24 +173,127 @@ export function ConversationSidebar() {
           </div>
         ) : isError ? (
           <div className="px-3 py-6 text-xs text-[var(--color-muted-foreground)]">
-            Could not load conversations.
+            Could not load projects.
           </div>
-        ) : conversations.length === 0 ? (
+        ) : projects.length === 0 ? (
           <div className="px-3 py-6 text-xs text-[var(--color-muted-foreground)]">
-            No conversations yet.
+            No projects yet.
           </div>
         ) : (
-          <div className="space-y-0.5">
-            {conversationTree.map((node) => (
-              <ConversationTreeNodeView
-                key={node.conversation.id}
-                node={node}
-                activeId={conversationId}
-              />
-            ))}
+          <div className="space-y-2">
+            {projects.map((project) => {
+              const projectConversations = conversationsByProject.get(project.id) ?? [];
+              const collapsed = collapsedMap[project.id] ?? false;
+              const tree = buildConversationTree(projectConversations);
+              return (
+                <ProjectSection
+                  key={project.id}
+                  project={project}
+                  collapsed={collapsed}
+                  activeConversationId={conversationId}
+                  tree={tree}
+                  onToggle={() => toggleProject(project.id)}
+                  onSelect={() => {
+                    setSelectedProjectId(project.id);
+                    if (activeWorkspaceId) {
+                      localStorage.setItem(
+                        selectedProjectStorageKey(activeWorkspaceId),
+                        project.id,
+                      );
+                    }
+                  }}
+                />
+              );
+            })}
           </div>
         )}
       </ScrollArea>
+
+      <CreateConversationDialog
+        open={createConversationOpen}
+        onOpenChange={setCreateConversationOpen}
+        defaultProjectId={defaultProjectId}
+      />
+      <CreateProjectDialog open={createProjectOpen} onOpenChange={setCreateProjectOpen} />
+    </div>
+  );
+}
+
+function ProjectSection({
+  project,
+  collapsed,
+  activeConversationId,
+  tree,
+  onToggle,
+  onSelect,
+}: {
+  project: ProjectResponse;
+  collapsed: boolean;
+  activeConversationId?: string;
+  tree: ConversationTreeNode[];
+  onToggle: () => void;
+  onSelect: () => void;
+}) {
+  const accent = project.color || "var(--color-muted-foreground)";
+
+  return (
+    <div className="rounded-md border border-transparent">
+      <div className="flex items-center gap-0.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 shrink-0"
+          aria-label={collapsed ? "Expand project" : "Collapse project"}
+          onClick={onToggle}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-3 w-3" />
+          ) : (
+            <ChevronDown className="h-3 w-3" />
+          )}
+        </Button>
+        <NavLink
+          to={`/projects/${project.id}`}
+          onClick={onSelect}
+          className={({ isActive }) =>
+            cn(
+              "flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-1 text-sm hover:bg-[var(--color-accent)]",
+              isActive && "bg-[var(--color-accent)]",
+            )
+          }
+        >
+          <span
+            className="mt-0.5 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm"
+            style={{ backgroundColor: accent }}
+            aria-hidden="true"
+          >
+            <FolderKanban className="h-2.5 w-2.5 text-white" />
+          </span>
+          <span className="truncate text-[13px] font-semibold">{project.name}</span>
+          <span className="ml-auto shrink-0 text-[10px] text-[var(--color-muted-foreground)]">
+            {project.conversation_count}
+          </span>
+        </NavLink>
+      </div>
+
+      {!collapsed ? (
+        <div className="ml-3 space-y-0.5 border-l border-[var(--color-border)] pl-1.5">
+          {tree.length === 0 ? (
+            <p className="px-2 py-1 text-[11px] text-[var(--color-muted-foreground)]">
+              No conversations
+            </p>
+          ) : (
+            tree.map((node) => (
+              <ConversationTreeNodeView
+                key={node.conversation.id}
+                node={node}
+                activeId={activeConversationId}
+              />
+            ))
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
