@@ -158,7 +158,7 @@ async def attach_repository(
     ctx: WorkspaceContext = Depends(get_workspace_context),
     service: RepositoryService = Depends(get_repository_service),
 ) -> ConversationResponse:
-    return await service.attach_to_conversation(conversation, data.repository_id, ctx)
+    return await service.attach_to_conversation(conversation, data, ctx)
 
 
 @conversations_router.post(

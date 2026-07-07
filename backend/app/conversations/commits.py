@@ -175,6 +175,21 @@ class ConversationCommitService:
             ) from exc
 
         await self.db.refresh(commit)
+
+        from app.branch_memory.service import BranchMemoryService
+        from app.models.context_package import ContextPackage
+
+        package_result = await self.db.execute(
+            select(ContextPackage.id).where(ContextPackage.commit_id == commit.id)
+        )
+        package_id = package_result.scalar_one_or_none()
+        await BranchMemoryService(self.db).sync_for_conversation(
+            conversation,
+            working_user_id=user.id,
+            commit_id=commit.id,
+            context_package_id=package_id,
+        )
+
         return await self.get_commit_by_hash(commit.commit_hash)
 
     async def list_commits(self, conversation_id: UUID) -> list[CommitListItem]:

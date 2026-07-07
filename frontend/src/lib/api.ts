@@ -40,6 +40,8 @@ import {
   conversationResponseSchema,
   projectResponseSchema,
   repositoryResponseSchema,
+  repositoryBranchResponseSchema,
+  branchMemoryExportResponseSchema,
   conversationSearchResponseSchema,
   conversationStatsResponseSchema,
   conversationTimelineResponseSchema,
@@ -373,6 +375,49 @@ export const repositoryApi = {
     const { data } = await api.get(`/repositories/${repositoryId}/conversations`);
     return conversationResponseSchema.array().parse(data);
   },
+
+  async listBranches(repositoryId: string, includeInactive = false) {
+    const { data } = await api.get(`/repositories/${repositoryId}/branches`, {
+      params: includeInactive ? { include_inactive: true } : undefined,
+    });
+    return repositoryBranchResponseSchema.array().parse(data);
+  },
+
+  async createBranch(repositoryId: string, payload: { name: string; is_default?: boolean }) {
+    const { data } = await api.post(`/repositories/${repositoryId}/branches`, payload);
+    return repositoryBranchResponseSchema.parse(data);
+  },
+};
+
+export const repositoryBranchApi = {
+  async get(branchId: string) {
+    const { data } = await api.get(`/repository-branches/${branchId}`);
+    return repositoryBranchResponseSchema.parse(data);
+  },
+
+  async rename(branchId: string, payload: { name: string }) {
+    const { data } = await api.patch(`/repository-branches/${branchId}`, payload);
+    return repositoryBranchResponseSchema.parse(data);
+  },
+
+  async archive(branchId: string) {
+    const { data } = await api.post(`/repository-branches/${branchId}/archive`);
+    return repositoryBranchResponseSchema.parse(data);
+  },
+
+  async restore(branchId: string) {
+    const { data } = await api.post(`/repository-branches/${branchId}/restore`);
+    return repositoryBranchResponseSchema.parse(data);
+  },
+
+  async delete(branchId: string) {
+    await api.delete(`/repository-branches/${branchId}`);
+  },
+
+  async exportMemory(branchId: string) {
+    const { data } = await api.get(`/repository-branches/${branchId}/memory/export`);
+    return branchMemoryExportResponseSchema.parse(data);
+  },
 };
 
 export const conversationApi = {
@@ -386,10 +431,20 @@ export const conversationApi = {
     return conversationResponseSchema.parse(data);
   },
 
-  async enableCoding(
+  async enableCoding(conversationId: string) {
+    const { data } = await api.post(`/conversations/${conversationId}/enable-coding`, {});
+    return conversationResponseSchema.parse(data);
+  },
+
+  async disableCoding(conversationId: string) {
+    const { data } = await api.post(`/conversations/${conversationId}/disable-coding`);
+    return conversationResponseSchema.parse(data);
+  },
+
+  async attachRepository(
     conversationId: string,
     payload: {
-      existing_repository_id?: string;
+      repository_id?: string;
       create_repository?: {
         name: string;
         provider: string;
@@ -400,21 +455,9 @@ export const conversationApi = {
         visibility?: string;
         is_active?: boolean;
       };
-    } = {},
+    },
   ) {
-    const { data } = await api.post(`/conversations/${conversationId}/enable-coding`, payload);
-    return conversationResponseSchema.parse(data);
-  },
-
-  async disableCoding(conversationId: string) {
-    const { data } = await api.post(`/conversations/${conversationId}/disable-coding`);
-    return conversationResponseSchema.parse(data);
-  },
-
-  async attachRepository(conversationId: string, repositoryId: string) {
-    const { data } = await api.post(`/conversations/${conversationId}/attach-repository`, {
-      repository_id: repositoryId,
-    });
+    const { data } = await api.post(`/conversations/${conversationId}/attach-repository`, payload);
     return conversationResponseSchema.parse(data);
   },
 

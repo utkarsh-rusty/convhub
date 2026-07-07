@@ -37,6 +37,14 @@ class RepositoryVisibility(str, enum.Enum):
     INTERNAL = "internal"
 
 
+class BranchMemorySyncStatus(str, enum.Enum):
+    NOT_SYNCED = "not_synced"
+    READY = "ready"
+    OUTDATED = "outdated"
+    IN_PROGRESS = "in_progress"
+    CONFLICT = "conflict"
+
+
 class CreditTransactionType(str, enum.Enum):
     ALLOCATION = "allocation"
     USAGE = "usage"

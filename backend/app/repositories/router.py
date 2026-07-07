@@ -115,3 +115,8 @@ async def list_repository_conversations(
     service: RepositoryService = Depends(get_repository_service),
 ) -> list[ConversationResponse]:
     return await service.list_repository_conversations(repository, ctx.user.id)
+
+
+from app.repository_branches.router import register_repository_branch_routes
+
+register_repository_branch_routes(repositories_router)

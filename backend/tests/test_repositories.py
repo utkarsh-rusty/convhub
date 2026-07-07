@@ -66,12 +66,27 @@ async def _enable_coding(
     workspace: WorkspaceContext,
     *,
     conversation_id: str,
-    repository_id: str,
 ) -> dict:
     response = await client.post(
         f"/conversations/{conversation_id}/enable-coding",
         headers=workspace.headers,
-        json={"existing_repository_id": repository_id},
+        json={},
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+async def _attach_repository(
+    client: AsyncClient,
+    workspace: WorkspaceContext,
+    *,
+    conversation_id: str,
+    repository_id: str,
+) -> dict:
+    response = await client.post(
+        f"/conversations/{conversation_id}/attach-repository",
+        headers=workspace.headers,
+        json={"repository_id": repository_id},
     )
     assert response.status_code == 200, response.text
     return response.json()
@@ -137,7 +152,8 @@ async def test_cannot_delete_repository_with_connected_conversations(
     project_id = await _create_project(client, workspace)
     repository = await _create_repository(client, workspace, project_id=project_id)
     conversation = await _create_conversation(client, workspace, project_id=project_id)
-    await _enable_coding(
+    await _enable_coding(client, workspace, conversation_id=conversation["id"])
+    await _attach_repository(
         client,
         workspace,
         conversation_id=conversation["id"],
@@ -186,7 +202,7 @@ async def test_cannot_attach_repository_without_coding_enabled(
 
 
 @pytest.mark.asyncio
-async def test_enable_coding_attaches_repository(
+async def test_attach_repository_after_enable_coding(
     client: AsyncClient,
     workspace: WorkspaceContext,
 ) -> None:
@@ -194,7 +210,11 @@ async def test_enable_coding_attaches_repository(
     repository = await _create_repository(client, workspace, project_id=project_id)
     conversation = await _create_conversation(client, workspace, project_id=project_id)
 
-    body = await _enable_coding(
+    enabled = await _enable_coding(client, workspace, conversation_id=conversation["id"])
+    assert enabled["coding_enabled"] is True
+    assert enabled["repository_id"] is None
+
+    body = await _attach_repository(
         client,
         workspace,
         conversation_id=conversation["id"],
@@ -250,8 +270,14 @@ async def test_multiple_coding_conversations_share_repository(
 
     first = await _create_conversation(client, workspace, project_id=project_id, title="First")
     second = await _create_conversation(client, workspace, project_id=project_id, title="Second")
-    await _enable_coding(client, workspace, conversation_id=first["id"], repository_id=repository["id"])
-    await _enable_coding(client, workspace, conversation_id=second["id"], repository_id=repository["id"])
+    for conversation in (first, second):
+        await _enable_coding(client, workspace, conversation_id=conversation["id"])
+        await _attach_repository(
+            client,
+            workspace,
+            conversation_id=conversation["id"],
+            repository_id=repository["id"],
+        )
 
     listed = await client.get(
         f"/repositories/{repository['id']}/conversations",

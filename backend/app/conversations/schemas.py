@@ -9,8 +9,6 @@ from app.models.enums import (
     ConversationParticipantRole,
     ExecutionType,
     MessageRole,
-    RepositoryProvider,
-    RepositoryVisibility,
     RoutingPolicyType,
 )
 from app.repositories.schemas import RepositorySummary
@@ -27,26 +25,8 @@ class ConversationCreate(BaseModel):
     project_id: UUID | None = None
 
 
-class EnableCodingCreateRepository(BaseModel):
-    name: str = Field(min_length=1, max_length=255)
-    provider: RepositoryProvider
-    owner: str = Field(min_length=1, max_length=255)
-    repository_name: str = Field(min_length=1, max_length=255)
-    remote_url: str = Field(min_length=1, max_length=2048)
-    default_branch: str = Field(default="main", min_length=1, max_length=255)
-    visibility: RepositoryVisibility = RepositoryVisibility.PRIVATE
-    is_active: bool = True
-
-
 class EnableCodingRequest(BaseModel):
-    existing_repository_id: UUID | None = None
-    create_repository: EnableCodingCreateRepository | None = None
-
-    @model_validator(mode="after")
-    def validate_repository_options(self) -> Self:
-        if self.existing_repository_id is not None and self.create_repository is not None:
-            raise ValueError("Provide either existing_repository_id or create_repository, not both")
-        return self
+    """Enable coding workspace without repository attachment."""
 
 
 class ConversationUpdate(BaseModel):

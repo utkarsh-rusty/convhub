@@ -1,8 +1,6 @@
-"""Tests for Sprint 23 — Coding workspace refactor."""
+"""Tests for Sprint 25 — Decouple coding workspace from repository."""
 
 from __future__ import annotations
-
-from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -93,20 +91,22 @@ async def _attach_repository(
 
 
 @pytest.mark.asyncio
-async def test_new_conversations_start_without_coding(
+async def test_enable_coding_without_repository(
     client: AsyncClient,
     workspace: WorkspaceContext,
 ) -> None:
     project_id = await _create_project(client, workspace)
     conversation = await _create_conversation(client, workspace, project_id=project_id)
 
-    assert conversation["coding_enabled"] is False
-    assert conversation["repository_id"] is None
-    assert conversation["repository"] is None
+    body = await _enable_coding(client, workspace, conversation_id=conversation["id"])
+
+    assert body["coding_enabled"] is True
+    assert body["repository_id"] is None
+    assert body["repository"] is None
 
 
 @pytest.mark.asyncio
-async def test_enable_coding_with_existing_repository(
+async def test_attach_existing_repository_later(
     client: AsyncClient,
     workspace: WorkspaceContext,
 ) -> None:
@@ -114,32 +114,27 @@ async def test_enable_coding_with_existing_repository(
     repository = await _create_repository(client, workspace, project_id=project_id)
     conversation = await _create_conversation(client, workspace, project_id=project_id)
 
-    enabled = await _enable_coding(client, workspace, conversation_id=conversation["id"])
-    assert enabled["coding_enabled"] is True
-    assert enabled["repository_id"] is None
-
+    await _enable_coding(client, workspace, conversation_id=conversation["id"])
     attached = await _attach_repository(
         client,
         workspace,
         conversation_id=conversation["id"],
         repository_id=repository["id"],
     )
+
     assert attached["coding_enabled"] is True
     assert attached["repository_id"] == repository["id"]
     assert attached["repository"]["name"] == repository["name"]
 
 
 @pytest.mark.asyncio
-async def test_enable_coding_with_create_repository_payload(
+async def test_create_repository_while_attaching(
     client: AsyncClient,
     workspace: WorkspaceContext,
 ) -> None:
     project_id = await _create_project(client, workspace)
     conversation = await _create_conversation(client, workspace, project_id=project_id)
-
-    enabled = await _enable_coding(client, workspace, conversation_id=conversation["id"])
-    assert enabled["coding_enabled"] is True
-    assert enabled["repository_id"] is None
+    await _enable_coding(client, workspace, conversation_id=conversation["id"])
 
     attached = await client.post(
         f"/conversations/{conversation['id']}/attach-repository",
@@ -164,7 +159,7 @@ async def test_enable_coding_with_create_repository_payload(
 
 
 @pytest.mark.asyncio
-async def test_disable_coding_detaches_repository(
+async def test_detach_repository_keeps_coding_enabled(
     client: AsyncClient,
     workspace: WorkspaceContext,
 ) -> None:
@@ -180,19 +175,19 @@ async def test_disable_coding_detaches_repository(
         repository_id=repository["id"],
     )
 
-    disabled = await client.post(
-        f"/conversations/{conversation['id']}/disable-coding",
+    detached = await client.post(
+        f"/conversations/{conversation['id']}/detach-repository",
         headers=workspace.headers,
     )
-    assert disabled.status_code == 200, disabled.text
-    body = disabled.json()
-    assert body["coding_enabled"] is False
+    assert detached.status_code == 200, detached.text
+    body = detached.json()
+    assert body["coding_enabled"] is True
     assert body["repository_id"] is None
     assert body["repository"] is None
 
 
 @pytest.mark.asyncio
-async def test_cannot_attach_repository_without_coding_enabled(
+async def test_branch_memory_created_only_after_repository_attachment(
     client: AsyncClient,
     workspace: WorkspaceContext,
 ) -> None:
@@ -200,135 +195,82 @@ async def test_cannot_attach_repository_without_coding_enabled(
     repository = await _create_repository(client, workspace, project_id=project_id)
     conversation = await _create_conversation(client, workspace, project_id=project_id)
 
-    attach = await client.post(
-        f"/conversations/{conversation['id']}/attach-repository",
+    await _enable_coding(client, workspace, conversation_id=conversation["id"])
+
+    listed_before = await client.get(
+        f"/repositories/{repository['id']}/branches",
         headers=workspace.headers,
-        json={"repository_id": repository["id"]},
     )
-    assert attach.status_code == 400
+    assert listed_before.status_code == 200
+    assert listed_before.json() == []
 
-
-@pytest.mark.asyncio
-async def test_branch_inherits_repository_and_can_detach(
-    client: AsyncClient,
-    workspace: WorkspaceContext,
-) -> None:
-    project_id = await _create_project(client, workspace)
-    repository = await _create_repository(client, workspace, project_id=project_id)
-    parent = await _create_conversation(client, workspace, project_id=project_id, title="Parent")
-
-    await _enable_coding(client, workspace, conversation_id=parent["id"])
     await _attach_repository(
         client,
         workspace,
-        conversation_id=parent["id"],
+        conversation_id=conversation["id"],
         repository_id=repository["id"],
     )
 
-    message = await client.post(
-        f"/conversations/{parent['id']}/messages",
-        headers=workspace.headers,
-        json={"content": "Branch point", "role": "user"},
-    )
-    assert message.status_code == 201
-
-    branch = await client.post(
-        f"/conversations/{parent['id']}/branch",
-        headers=workspace.headers,
-        json={"message_id": message.json()["id"], "branch_name": "experiment"},
-    )
-    assert branch.status_code == 201, branch.text
-    branch_body = branch.json()
-    assert branch_body["coding_enabled"] is True
-    assert branch_body["repository_id"] == repository["id"]
-
-    detached = await client.post(
-        f"/conversations/{branch_body['id']}/detach-repository",
+    listed_after = await client.get(
+        f"/repositories/{repository['id']}/branches",
         headers=workspace.headers,
     )
-    assert detached.status_code == 200
-    assert detached.json()["repository_id"] is None
-    assert detached.json()["coding_enabled"] is True
+    assert listed_after.status_code == 200
+    branches = listed_after.json()
+    assert len(branches) == 1
+    assert branches[0]["name"] == "main"
+    assert branches[0]["memory"] is not None
 
 
 @pytest.mark.asyncio
-async def test_branch_can_attach_different_repository(
+async def test_repository_branch_created_only_after_repository_attachment(
     client: AsyncClient,
     workspace: WorkspaceContext,
 ) -> None:
     project_id = await _create_project(client, workspace)
-    first_repo = await _create_repository(client, workspace, project_id=project_id, name="First")
-    second_repo = await _create_repository(
-        client,
-        workspace,
-        project_id=project_id,
-        name="Second",
-    )
-    parent = await _create_conversation(client, workspace, project_id=project_id, title="Parent")
+    repository = await _create_repository(client, workspace, project_id=project_id)
+    conversation = await _create_conversation(client, workspace, project_id=project_id)
 
-    await _enable_coding(client, workspace, conversation_id=parent["id"])
+    listed_before = await client.get(
+        f"/repositories/{repository['id']}/branches",
+        headers=workspace.headers,
+    )
+    assert listed_before.status_code == 200
+    assert listed_before.json() == []
+
+    await _enable_coding(client, workspace, conversation_id=conversation["id"])
     await _attach_repository(
         client,
         workspace,
-        conversation_id=parent["id"],
-        repository_id=first_repo["id"],
+        conversation_id=conversation["id"],
+        repository_id=repository["id"],
     )
 
-    message = await client.post(
-        f"/conversations/{parent['id']}/messages",
-        headers=workspace.headers,
-        json={"content": "Branch point", "role": "user"},
-    )
-    assert message.status_code == 201
-
-    branch = await client.post(
-        f"/conversations/{parent['id']}/branch",
-        headers=workspace.headers,
-        json={"message_id": message.json()["id"], "branch_name": "other-repo"},
-    )
-    assert branch.status_code == 201
-    branch_id = branch.json()["id"]
-
-    detached = await client.post(
-        f"/conversations/{branch_id}/detach-repository",
+    listed_after = await client.get(
+        f"/repositories/{repository['id']}/branches",
         headers=workspace.headers,
     )
-    assert detached.status_code == 200
-
-    attached = await client.post(
-        f"/conversations/{branch_id}/attach-repository",
-        headers=workspace.headers,
-        json={"repository_id": second_repo["id"]},
-    )
-    assert attached.status_code == 200
-    assert attached.json()["repository_id"] == second_repo["id"]
+    assert listed_after.status_code == 200
+    assert len(listed_after.json()) == 1
 
 
 @pytest.mark.asyncio
-async def test_enable_coding_is_idempotent_guarded(
+async def test_existing_conversation_can_become_coding_workspace(
     client: AsyncClient,
     workspace: WorkspaceContext,
 ) -> None:
     project_id = await _create_project(client, workspace)
-    conversation = await _create_conversation(client, workspace, project_id=project_id)
+    conversation = await _create_conversation(client, workspace, project_id=project_id, title="Legacy")
 
-    first = await client.post(
-        f"/conversations/{conversation['id']}/enable-coding",
-        headers=workspace.headers,
-        json={},
-    )
-    assert first.status_code == 200
+    assert conversation["coding_enabled"] is False
 
-    second = await client.post(
-        f"/conversations/{conversation['id']}/enable-coding",
-        headers=workspace.headers,
-        json={},
-    )
-    assert second.status_code == 400
+    body = await _enable_coding(client, workspace, conversation_id=conversation["id"])
+    assert body["coding_enabled"] is True
+    assert body["title"] == "Legacy"
 
 
 @pytest.mark.asyncio
-async def test_migration_preserves_repository_links(
+async def test_repository_apis_remain_compatible(
     client: AsyncClient,
     workspace: WorkspaceContext,
 ) -> None:
@@ -351,30 +293,6 @@ async def test_migration_preserves_repository_links(
     assert listed.status_code == 200
     assert any(item["id"] == conversation["id"] for item in listed.json())
 
-
-@pytest.mark.asyncio
-async def test_multiple_conversations_share_repository_after_enable(
-    client: AsyncClient,
-    workspace: WorkspaceContext,
-) -> None:
-    project_id = await _create_project(client, workspace)
-    repository = await _create_repository(client, workspace, project_id=project_id)
-    first = await _create_conversation(client, workspace, project_id=project_id, title="First")
-    second = await _create_conversation(client, workspace, project_id=project_id, title="Second")
-
-    for conversation in (first, second):
-        await _enable_coding(client, workspace, conversation_id=conversation["id"])
-        response = await _attach_repository(
-            client,
-            workspace,
-            conversation_id=conversation["id"],
-            repository_id=repository["id"],
-        )
-        assert response["repository_id"] == repository["id"]
-
-    listed = await client.get(
-        f"/repositories/{repository['id']}/conversations",
-        headers=workspace.headers,
-    )
-    ids = {item["id"] for item in listed.json()}
-    assert ids == {first["id"], second["id"]}
+    detail = await client.get(f"/repositories/{repository['id']}", headers=workspace.headers)
+    assert detail.status_code == 200
+    assert detail.json()["id"] == repository["id"]

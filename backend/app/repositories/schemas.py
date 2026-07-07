@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.enums import RepositoryProvider, RepositoryVisibility
 
@@ -76,5 +77,25 @@ class RepositoryResponse(BaseModel):
     connected_conversations: list[RepositoryConversationSummary] = Field(default_factory=list)
 
 
+class RepositoryAttachCreateRepository(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    provider: RepositoryProvider
+    owner: str = Field(min_length=1, max_length=255)
+    repository_name: str = Field(min_length=1, max_length=255)
+    remote_url: str = Field(min_length=1, max_length=2048)
+    default_branch: str = Field(default="main", min_length=1, max_length=255)
+    visibility: RepositoryVisibility = RepositoryVisibility.PRIVATE
+    is_active: bool = True
+
+
 class RepositoryAttachRequest(BaseModel):
-    repository_id: UUID
+    repository_id: UUID | None = None
+    create_repository: RepositoryAttachCreateRepository | None = None
+
+    @model_validator(mode="after")
+    def validate_repository_options(self) -> Self:
+        if self.repository_id is not None and self.create_repository is not None:
+            raise ValueError("Provide either repository_id or create_repository, not both")
+        if self.repository_id is None and self.create_repository is None:
+            raise ValueError("Provide either repository_id or create_repository")
+        return self

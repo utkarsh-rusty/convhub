@@ -16,6 +16,7 @@ from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 if TYPE_CHECKING:
     from app.models.conversation import Conversation
     from app.models.project import Project
+    from app.models.repository_branch import RepositoryBranch
     from app.models.user import User
     from app.models.workspace import Workspace
 
@@ -67,6 +68,10 @@ class Repository(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         lazy="selectin",
     )
     conversations: Mapped[list[Conversation]] = relationship(
+        back_populates="repository",
+        lazy="selectin",
+    )
+    branches: Mapped[list["RepositoryBranch"]] = relationship(
         back_populates="repository",
         lazy="selectin",
     )

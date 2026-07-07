@@ -125,38 +125,16 @@ class ConversationService:
     async def enable_coding(
         self,
         conversation: Conversation,
-        data: EnableCodingRequest,
+        _data: EnableCodingRequest,
         ctx: WorkspaceContext,
     ) -> ConversationResponse:
-        from app.repositories.schemas import RepositoryCreate
-        from app.repositories.service import RepositoryService
-
         if conversation.coding_enabled:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Coding workspace is already enabled for this conversation",
             )
 
-        repository_service = RepositoryService(self.db)
         conversation.coding_enabled = True
-
-        if data.create_repository is not None:
-            created = await repository_service.create_repository(
-                ctx,
-                RepositoryCreate(
-                    project_id=conversation.project_id,
-                    **data.create_repository.model_dump(),
-                ),
-            )
-            conversation.repository_id = created.id
-        elif data.existing_repository_id is not None:
-            repository = await repository_service.resolve_repository_for_create(
-                workspace_id=ctx.workspace_id,
-                project_id=conversation.project_id,
-                repository_id=data.existing_repository_id,
-            )
-            conversation.repository_id = repository.id
-
         await self.db.commit()
         await self.db.refresh(conversation)
         return await self.get_conversation(conversation, viewer_user_id=ctx.user.id)
@@ -649,6 +627,14 @@ class ConversationService:
 
         await self.db.commit()
         await self.db.refresh(branch)
+        if parent_conversation.repository_id is not None:
+            from app.branch_memory.service import BranchMemoryService
+
+            await BranchMemoryService(self.db).sync_for_conversation(
+                branch,
+                working_user_id=ctx.user.id,
+                convhub_branch_id=branch.id,
+            )
         return await self.get_conversation(branch, viewer_user_id=ctx.user.id)
 
     async def list_branches(

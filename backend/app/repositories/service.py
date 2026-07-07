@@ -16,6 +16,7 @@ from app.models.message import Message
 from app.models.project import Project
 from app.models.repository import Repository
 from app.repositories.schemas import (
+    RepositoryAttachRequest,
     RepositoryConversationSummary,
     RepositoryCreate,
     RepositoryResponse,
@@ -154,28 +155,57 @@ class RepositoryService:
     async def attach_to_conversation(
         self,
         conversation: Conversation,
-        repository_id: UUID,
+        data: RepositoryAttachRequest,
         ctx: WorkspaceContext,
     ) -> ConversationResponse:
+        from app.repositories.schemas import RepositoryCreate
+
         if not conversation.coding_enabled:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Coding workspace must be enabled before connecting a repository",
             )
-        repository = await self._load_repository(repository_id, ctx.workspace_id)
-        if repository.project_id != conversation.project_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Repository must belong to the same project as the conversation",
+
+        if data.create_repository is not None:
+            created = await self.create_repository(
+                ctx,
+                RepositoryCreate(
+                    project_id=conversation.project_id,
+                    **data.create_repository.model_dump(),
+                ),
             )
-        if repository.archived_at is not None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot attach an archived repository",
-            )
-        conversation.repository_id = repository.id
+            repository_id = created.id
+        else:
+            repository = await self._load_repository(data.repository_id, ctx.workspace_id)
+            if repository.project_id != conversation.project_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Repository must belong to the same project as the conversation",
+                )
+            if repository.archived_at is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot attach an archived repository",
+                )
+            repository_id = repository.id
+
+        previous_repository_id = conversation.repository_id
+        conversation.repository_id = repository_id
         await self.db.commit()
         await self.db.refresh(conversation)
+
+        from app.branch_memory.service import BranchMemoryService
+
+        memory_service = BranchMemoryService(self.db)
+        if previous_repository_id is not None and previous_repository_id != repository_id:
+            await memory_service.detach_for_conversation(
+                conversation,
+                repository_id=previous_repository_id,
+            )
+        await memory_service.sync_for_conversation(
+            conversation,
+            working_user_id=ctx.user.id,
+        )
         return await ConversationService(self.db).get_conversation(
             conversation,
             viewer_user_id=ctx.user.id,
@@ -191,9 +221,23 @@ class RepositoryService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Coding workspace must be enabled before detaching a repository",
             )
+        if conversation.repository_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No repository is attached to this conversation",
+            )
+
+        repository_id = conversation.repository_id
         conversation.repository_id = None
         await self.db.commit()
         await self.db.refresh(conversation)
+
+        from app.branch_memory.service import BranchMemoryService
+
+        await BranchMemoryService(self.db).detach_for_conversation(
+            conversation,
+            repository_id=repository_id,
+        )
         return await ConversationService(self.db).get_conversation(
             conversation,
             viewer_user_id=ctx.user.id,

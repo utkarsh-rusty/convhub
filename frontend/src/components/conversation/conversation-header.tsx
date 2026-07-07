@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
   ChevronRight,
@@ -11,15 +11,18 @@ import {
   Link2,
   MoreHorizontal,
   Search,
+  Unlink,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
-import { conversationApi } from "@/lib/api";
+import { conversationApi, repositoryApi, showApiError } from "@/lib/api";
 import { formatTimestamp } from "@/lib/format";
 import { useAuth } from "@/context/auth-context";
+import { useWorkspace } from "@/context/workspace-context";
 import { InviteParticipantsDialog } from "@/components/conversation/invite-participants-dialog";
 import { EnableCodingDialog } from "@/components/conversation/enable-coding-dialog";
+import { AttachRepositoryDialog } from "@/components/conversation/attach-repository-dialog";
 import { DisableCodingDialog } from "@/components/conversation/disable-coding-dialog";
 import { ParticipantAvatarStack } from "@/components/conversation/participant-avatar-stack";
 import { Button } from "@/components/ui/button";
@@ -73,6 +76,13 @@ function MetaBadge({ children, tone = "default" }: { children: ReactNode; tone?:
   );
 }
 
+function formatSyncStatus(status: string): string {
+  return status
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export function ConversationHeader({
   conversation,
   connectionStatus,
@@ -87,9 +97,13 @@ export function ConversationHeader({
   onSearchSubmit,
 }: ConversationHeaderProps) {
   const { user } = useAuth();
+  const { activeWorkspaceId } = useWorkspace();
+  const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [enableCodingOpen, setEnableCodingOpen] = useState(false);
+  const [attachRepositoryOpen, setAttachRepositoryOpen] = useState(false);
+  const [changeRepositoryOpen, setChangeRepositoryOpen] = useState(false);
   const [disableCodingOpen, setDisableCodingOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -107,7 +121,30 @@ export function ConversationHeader({
     enabled: isBranch,
   });
 
+  const { data: repositoryBranches = [] } = useQuery({
+    queryKey: ["repository-branches", conversation.repository?.id],
+    queryFn: () => repositoryApi.listBranches(conversation.repository!.id),
+    enabled: Boolean(conversation.coding_enabled && conversation.repository?.id),
+  });
+
   const isOwner = conversation.owner_id === user?.id;
+  const hasRepository = Boolean(conversation.repository);
+  const defaultRepositoryBranch = repositoryBranches.find((branch) => branch.is_default) ?? repositoryBranches[0];
+  const branchMemory = defaultRepositoryBranch?.memory ?? null;
+
+  const detachRepositoryMutation = useMutation({
+    mutationFn: () => conversationApi.detachRepository(conversation.id),
+    onSuccess: () => {
+      toast.success("Repository detached");
+      void queryClient.invalidateQueries({ queryKey: ["conversations", activeWorkspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["conversation", conversation.id] });
+      void queryClient.invalidateQueries({ queryKey: ["repositories", activeWorkspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["repository-branches", activeWorkspaceId] });
+      setMenuOpen(false);
+    },
+    onError: (error) => showApiError(error, "Unable to detach repository"),
+  });
+
   const ownerName =
     conversation.owner?.name ??
     participants.find((participant) => participant.user_id === conversation.owner_id)?.name ??
@@ -226,6 +263,18 @@ export function ConversationHeader({
             >
               <Code2 className="mr-1.5 h-3.5 w-3.5" />
               Enable coding
+            </Button>
+          ) : null}
+          {conversation.coding_enabled && !hasRepository && isOwner ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 px-2.5 text-xs"
+              onClick={() => setAttachRepositoryOpen(true)}
+            >
+              <Link2 className="mr-1.5 h-3.5 w-3.5" />
+              Attach repository
             </Button>
           ) : null}
           <div
@@ -389,6 +438,43 @@ export function ConversationHeader({
                   Enable coding
                 </button>
               ) : null}
+              {isOwner && conversation.coding_enabled && !hasRepository ? (
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-[var(--color-accent)]"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setAttachRepositoryOpen(true);
+                  }}
+                >
+                  <Link2 className="h-3.5 w-3.5" />
+                  Attach repository
+                </button>
+              ) : null}
+              {isOwner && conversation.coding_enabled && hasRepository ? (
+                <>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-[var(--color-accent)]"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setChangeRepositoryOpen(true);
+                    }}
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+                    Change repository
+                  </button>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-[var(--color-accent)]"
+                    disabled={detachRepositoryMutation.isPending}
+                    onClick={() => detachRepositoryMutation.mutate()}
+                  >
+                    <Unlink className="h-3.5 w-3.5" />
+                    Detach repository
+                  </button>
+                </>
+              ) : null}
               {isOwner && conversation.coding_enabled ? (
                 <button
                   type="button"
@@ -410,26 +496,44 @@ export function ConversationHeader({
       <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-[var(--color-muted-foreground)]">
         {conversation.coding_enabled ? (
           <>
-            {conversation.repository ? (
+            <span className="font-medium text-[var(--color-foreground)]">Coding workspace</span>
+            <span aria-hidden="true">•</span>
+            {hasRepository ? (
               <>
+                <span>Repository:</span>
                 <Link
-                  to={`/repositories/${conversation.repository.id}`}
+                  to={`/repositories/${conversation.repository!.id}`}
                   className="truncate font-medium text-[var(--color-foreground)] hover:underline"
                 >
-                  {conversation.repository.name}
+                  {conversation.repository!.name}
                 </Link>
-                <span aria-hidden="true">•</span>
-                <span className="capitalize">{conversation.repository.provider}</span>
-                <span aria-hidden="true">•</span>
-                <span className="truncate">
-                  {conversation.branch_name?.trim() || conversation.repository.default_branch}
-                </span>
+                {defaultRepositoryBranch ? (
+                  <>
+                    <span aria-hidden="true">•</span>
+                    <span>Branch {defaultRepositoryBranch.name}</span>
+                  </>
+                ) : null}
+                {branchMemory ? (
+                  <>
+                    <span aria-hidden="true">•</span>
+                    <MetaBadge>{formatSyncStatus(branchMemory.sync_status)}</MetaBadge>
+                    <span aria-hidden="true">•</span>
+                    <span>Memory v{branchMemory.memory_version}</span>
+                  </>
+                ) : (
+                  <>
+                    <span aria-hidden="true">•</span>
+                    <MetaBadge>Not Synced</MetaBadge>
+                  </>
+                )}
               </>
             ) : (
-              <span className="font-medium text-[var(--color-foreground)]">Coding workspace</span>
+              <>
+                <span>Repository: None</span>
+                <span aria-hidden="true">•</span>
+                <span>Status: Local workspace</span>
+              </>
             )}
-            <span aria-hidden="true">•</span>
-            <MetaBadge>Not Synced</MetaBadge>
             <span aria-hidden="true">•</span>
           </>
         ) : null}
@@ -490,6 +594,19 @@ export function ConversationHeader({
             conversation={conversation}
             open={enableCodingOpen}
             onOpenChange={setEnableCodingOpen}
+          />
+          <AttachRepositoryDialog
+            conversation={conversation}
+            open={attachRepositoryOpen}
+            onOpenChange={setAttachRepositoryOpen}
+          />
+          <AttachRepositoryDialog
+            conversation={conversation}
+            open={changeRepositoryOpen}
+            onOpenChange={setChangeRepositoryOpen}
+            title="Change repository"
+            description="Attach a different repository to this coding workspace."
+            confirmLabel="Change repository"
           />
           <DisableCodingDialog
             conversation={conversation}

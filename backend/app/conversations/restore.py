@@ -114,6 +114,15 @@ class ContextRestoreService:
 
         await self.db.commit()
         await self.db.refresh(conversation)
+        from app.branch_memory.service import BranchMemoryService
+
+        await BranchMemoryService(self.db).sync_for_restore(
+            source_conversation_id=source_conversation_id,
+            restored_conversation=conversation,
+            package_id=package.id,
+            commit_id=source_commit_id,
+            working_user_id=ctx.user.id,
+        )
         return await self.conversations.get_conversation(
             conversation,
             viewer_user_id=ctx.user.id,
