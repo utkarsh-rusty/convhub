@@ -23,7 +23,8 @@ export function AppLayout() {
     location.pathname === APP_HOME ||
     location.pathname === "/dashboard" ||
     location.pathname.startsWith("/c/") ||
-    location.pathname.startsWith("/projects/");
+    location.pathname.startsWith("/projects/") ||
+    location.pathname.startsWith("/repositories/");
 
   return (
     <div className="flex h-screen bg-[var(--color-background)] text-[var(--color-foreground)]">

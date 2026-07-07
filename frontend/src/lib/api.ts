@@ -39,6 +39,7 @@ import {
   conversationParticipantResponseSchema,
   conversationResponseSchema,
   projectResponseSchema,
+  repositoryResponseSchema,
   conversationSearchResponseSchema,
   conversationStatsResponseSchema,
   conversationTimelineResponseSchema,
@@ -297,6 +298,81 @@ export const projectApi = {
     const { data } = await api.get(`/projects/${projectId}/conversations`);
     return conversationResponseSchema.array().parse(data);
   },
+
+  async listRepositories(projectId: string, includeArchived = false) {
+    const { data } = await api.get(`/projects/${projectId}/repositories`, {
+      params: includeArchived ? { include_archived: true } : undefined,
+    });
+    return repositoryResponseSchema.array().parse(data);
+  },
+};
+
+export const repositoryApi = {
+  async list(projectId?: string, includeArchived = false) {
+    const { data } = await api.get("/repositories", {
+      params: {
+        ...(projectId ? { project_id: projectId } : {}),
+        ...(includeArchived ? { include_archived: true } : {}),
+      },
+    });
+    return repositoryResponseSchema.array().parse(data);
+  },
+
+  async get(repositoryId: string) {
+    const { data } = await api.get(`/repositories/${repositoryId}`);
+    return repositoryResponseSchema.parse(data);
+  },
+
+  async create(payload: {
+    project_id: string;
+    name: string;
+    provider: string;
+    owner: string;
+    repository_name: string;
+    remote_url: string;
+    default_branch?: string;
+    visibility?: string;
+    is_active?: boolean;
+  }) {
+    const { data } = await api.post("/repositories", payload);
+    return repositoryResponseSchema.parse(data);
+  },
+
+  async update(
+    repositoryId: string,
+    payload: {
+      name?: string;
+      provider?: string;
+      owner?: string;
+      repository_name?: string;
+      remote_url?: string;
+      default_branch?: string;
+      visibility?: string;
+      is_active?: boolean;
+    },
+  ) {
+    const { data } = await api.patch(`/repositories/${repositoryId}`, payload);
+    return repositoryResponseSchema.parse(data);
+  },
+
+  async archive(repositoryId: string) {
+    const { data } = await api.post(`/repositories/${repositoryId}/archive`);
+    return repositoryResponseSchema.parse(data);
+  },
+
+  async restore(repositoryId: string) {
+    const { data } = await api.post(`/repositories/${repositoryId}/restore`);
+    return repositoryResponseSchema.parse(data);
+  },
+
+  async delete(repositoryId: string) {
+    await api.delete(`/repositories/${repositoryId}`);
+  },
+
+  async listConversations(repositoryId: string) {
+    const { data } = await api.get(`/repositories/${repositoryId}/conversations`);
+    return conversationResponseSchema.array().parse(data);
+  },
 };
 
 export const conversationApi = {
@@ -307,6 +383,43 @@ export const conversationApi = {
 
   async create(payload: { title?: string; project_id?: string } = {}) {
     const { data } = await api.post("/conversations", payload);
+    return conversationResponseSchema.parse(data);
+  },
+
+  async enableCoding(
+    conversationId: string,
+    payload: {
+      existing_repository_id?: string;
+      create_repository?: {
+        name: string;
+        provider: string;
+        owner: string;
+        repository_name: string;
+        remote_url: string;
+        default_branch?: string;
+        visibility?: string;
+        is_active?: boolean;
+      };
+    } = {},
+  ) {
+    const { data } = await api.post(`/conversations/${conversationId}/enable-coding`, payload);
+    return conversationResponseSchema.parse(data);
+  },
+
+  async disableCoding(conversationId: string) {
+    const { data } = await api.post(`/conversations/${conversationId}/disable-coding`);
+    return conversationResponseSchema.parse(data);
+  },
+
+  async attachRepository(conversationId: string, repositoryId: string) {
+    const { data } = await api.post(`/conversations/${conversationId}/attach-repository`, {
+      repository_id: repositoryId,
+    });
+    return conversationResponseSchema.parse(data);
+  },
+
+  async detachRepository(conversationId: string) {
+    const { data } = await api.post(`/conversations/${conversationId}/detach-repository`);
     return conversationResponseSchema.parse(data);
   },
 

@@ -13,6 +13,7 @@ from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from app.models.conversation import Conversation
+    from app.models.repository import Repository
     from app.models.user import User
     from app.models.workspace import Workspace
 
@@ -48,6 +49,10 @@ class Project(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         lazy="selectin",
     )
     conversations: Mapped[list[Conversation]] = relationship(
+        back_populates="project",
+        lazy="selectin",
+    )
+    repositories: Mapped[list[Repository]] = relationship(
         back_populates="project",
         lazy="selectin",
     )

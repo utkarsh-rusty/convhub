@@ -17,6 +17,7 @@ from app.resource_sharing.router import router as sharing_router
 from app.routing.router import router as routing_router
 from app.system.router import router as system_router
 from app.projects.router import projects_router
+from app.repositories.router import repositories_router
 from app.workspaces.router import invitations_router, workspaces_router
 
 api_router = APIRouter()
@@ -27,6 +28,7 @@ api_router.include_router(auth_router)
 api_router.include_router(users_router)
 api_router.include_router(workspaces_router)
 api_router.include_router(projects_router)
+api_router.include_router(repositories_router)
 api_router.include_router(credits_router)
 api_router.include_router(sharing_router)
 api_router.include_router(routing_router)

@@ -24,6 +24,19 @@ class ConversationParticipantRole(str, enum.Enum):
     MEMBER = "member"
 
 
+class RepositoryProvider(str, enum.Enum):
+    GITHUB = "github"
+    GITLAB = "gitlab"
+    BITBUCKET = "bitbucket"
+    OTHER = "other"
+
+
+class RepositoryVisibility(str, enum.Enum):
+    PUBLIC = "public"
+    PRIVATE = "private"
+    INTERNAL = "internal"
+
+
 class CreditTransactionType(str, enum.Enum):
     ALLOCATION = "allocation"
     USAGE = "usage"

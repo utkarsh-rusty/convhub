@@ -81,7 +81,9 @@ export function CreateConversationDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New conversation</DialogTitle>
-          <DialogDescription>Choose a project, then name the conversation.</DialogDescription>
+          <DialogDescription>
+            Start a normal discussion. Enable coding workspace later when you are ready.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

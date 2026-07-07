@@ -18,6 +18,7 @@ from app.models import (  # noqa: F401 — register models with metadata
     Message,
     Project,
     RefreshToken,
+    Repository,
     User,
     UserBudget,
     Workspace,

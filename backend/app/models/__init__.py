@@ -15,6 +15,7 @@ from app.models.lending_preference import LendingPreference
 from app.models.message import Message
 from app.models.project import Project
 from app.models.refresh_token import RefreshToken
+from app.models.repository import Repository
 from app.models.user import User
 from app.models.user_budget import UserBudget
 from app.models.workspace import Workspace
@@ -38,6 +39,7 @@ __all__ = [
     "Message",
     "Project",
     "RefreshToken",
+    "Repository",
     "User",
     "UserBudget",
     "Workspace",

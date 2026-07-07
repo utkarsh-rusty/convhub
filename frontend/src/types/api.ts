@@ -3,6 +3,8 @@ import { z } from "zod";
 export const workspaceRoleSchema = z.enum(["owner", "admin", "member"]);
 export const messageRoleSchema = z.enum(["user", "assistant", "system"]);
 export const conversationParticipantRoleSchema = z.enum(["owner", "member"]);
+export const repositoryProviderSchema = z.enum(["github", "gitlab", "bitbucket", "other"]);
+export const repositoryVisibilitySchema = z.enum(["public", "private", "internal"]);
 export const aiProviderNameSchema = z.enum(["mock", "anthropic", "ollama", "openai", "gemini", "groq"]);
 export type AIProviderName = z.infer<typeof aiProviderNameSchema>;
 
@@ -201,6 +203,22 @@ export const conversationResponseSchema = z.object({
   id: z.string().uuid(),
   workspace_id: z.string().uuid(),
   project_id: z.string().uuid(),
+  coding_enabled: z.boolean().default(false),
+  repository_id: z.string().uuid().nullable().optional(),
+  repository: z
+    .object({
+      id: z.string().uuid(),
+      name: z.string(),
+      provider: repositoryProviderSchema,
+      owner: z.string(),
+      repository_name: z.string(),
+      remote_url: z.string(),
+      default_branch: z.string(),
+      visibility: repositoryVisibilitySchema,
+      sync_status: z.string().default("not_synced"),
+    })
+    .nullable()
+    .optional(),
   created_by_id: z.string().uuid().nullable(),
   owner_id: z.string().uuid(),
   owner: conversationOwnerSummarySchema.nullable().optional(),
@@ -262,6 +280,39 @@ export const projectConversationSummarySchema = z.object({
   message_count: z.number().default(0),
   commit_count: z.number().default(0),
   is_restored: z.boolean().default(false),
+});
+
+export const repositoryConversationSummarySchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  branch_name: z.string().nullable().optional(),
+  parent_conversation_id: z.string().uuid().nullable().optional(),
+  last_activity_at: z.string(),
+  message_count: z.number().default(0),
+  commit_count: z.number().default(0),
+});
+
+export const repositoryResponseSchema = z.object({
+  id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  project_id: z.string().uuid(),
+  name: z.string(),
+  provider: repositoryProviderSchema,
+  owner: z.string(),
+  repository_name: z.string(),
+  remote_url: z.string(),
+  default_branch: z.string(),
+  visibility: repositoryVisibilitySchema,
+  is_active: z.boolean(),
+  created_by_id: z.string().uuid().nullable().optional(),
+  created_by_name: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  archived_at: z.string().nullable().optional(),
+  conversation_count: z.number().default(0),
+  sync_status: z.string().default("not_synced"),
+  latest_commit: z.string().nullable().optional(),
+  connected_conversations: z.array(repositoryConversationSummarySchema).default([]),
 });
 
 export const projectResponseSchema = z.object({
@@ -724,6 +775,10 @@ export type WorkspaceMemberResponse = z.infer<typeof workspaceMemberResponseSche
 export type InvitationResponse = z.infer<typeof invitationResponseSchema>;
 export type ConversationResponse = z.infer<typeof conversationResponseSchema>;
 export type ProjectResponse = z.infer<typeof projectResponseSchema>;
+export type RepositoryResponse = z.infer<typeof repositoryResponseSchema>;
+export type RepositoryConversationSummary = z.infer<typeof repositoryConversationSummarySchema>;
+export type RepositoryProvider = z.infer<typeof repositoryProviderSchema>;
+export type RepositoryVisibility = z.infer<typeof repositoryVisibilitySchema>;
 export type ProjectConversationSummary = z.infer<typeof projectConversationSummarySchema>;
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
 export type ConversationLineageResponse = z.infer<typeof conversationLineageResponseSchema>;

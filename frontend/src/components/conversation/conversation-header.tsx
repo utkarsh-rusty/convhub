@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   BarChart3,
   ChevronRight,
+  Code2,
   GitBranch,
   GitCommit,
   GitCompare,
@@ -18,6 +19,8 @@ import { conversationApi } from "@/lib/api";
 import { formatTimestamp } from "@/lib/format";
 import { useAuth } from "@/context/auth-context";
 import { InviteParticipantsDialog } from "@/components/conversation/invite-participants-dialog";
+import { EnableCodingDialog } from "@/components/conversation/enable-coding-dialog";
+import { DisableCodingDialog } from "@/components/conversation/disable-coding-dialog";
 import { ParticipantAvatarStack } from "@/components/conversation/participant-avatar-stack";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +89,8 @@ export function ConversationHeader({
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [enableCodingOpen, setEnableCodingOpen] = useState(false);
+  const [disableCodingOpen, setDisableCodingOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -211,6 +216,18 @@ export function ConversationHeader({
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
+          {!conversation.coding_enabled && isOwner ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 px-2.5 text-xs"
+              onClick={() => setEnableCodingOpen(true)}
+            >
+              <Code2 className="mr-1.5 h-3.5 w-3.5" />
+              Enable coding
+            </Button>
+          ) : null}
           <div
             className={cn(
               "overflow-hidden transition-all duration-200 ease-out",
@@ -359,12 +376,63 @@ export function ConversationHeader({
                 <Search className="h-3.5 w-3.5" />
                 Search
               </button>
+              {isOwner && !conversation.coding_enabled ? (
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-[var(--color-accent)]"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setEnableCodingOpen(true);
+                  }}
+                >
+                  <Code2 className="h-3.5 w-3.5" />
+                  Enable coding
+                </button>
+              ) : null}
+              {isOwner && conversation.coding_enabled ? (
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-[var(--color-accent)]"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setDisableCodingOpen(true);
+                  }}
+                >
+                  <Code2 className="h-3.5 w-3.5" />
+                  Disable coding
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
       </div>
 
       <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-[var(--color-muted-foreground)]">
+        {conversation.coding_enabled ? (
+          <>
+            {conversation.repository ? (
+              <>
+                <Link
+                  to={`/repositories/${conversation.repository.id}`}
+                  className="truncate font-medium text-[var(--color-foreground)] hover:underline"
+                >
+                  {conversation.repository.name}
+                </Link>
+                <span aria-hidden="true">•</span>
+                <span className="capitalize">{conversation.repository.provider}</span>
+                <span aria-hidden="true">•</span>
+                <span className="truncate">
+                  {conversation.branch_name?.trim() || conversation.repository.default_branch}
+                </span>
+              </>
+            ) : (
+              <span className="font-medium text-[var(--color-foreground)]">Coding workspace</span>
+            )}
+            <span aria-hidden="true">•</span>
+            <MetaBadge>Not Synced</MetaBadge>
+            <span aria-hidden="true">•</span>
+          </>
+        ) : null}
         <span className="truncate">Owner {ownerName}</span>
         <span aria-hidden="true">•</span>
         <span>
@@ -414,6 +482,21 @@ export function ConversationHeader({
           onOpenChange={setInviteOpen}
           hideTrigger
         />
+      ) : null}
+
+      {isOwner ? (
+        <>
+          <EnableCodingDialog
+            conversation={conversation}
+            open={enableCodingOpen}
+            onOpenChange={setEnableCodingOpen}
+          />
+          <DisableCodingDialog
+            conversation={conversation}
+            open={disableCodingOpen}
+            onOpenChange={setDisableCodingOpen}
+          />
+        </>
       ) : null}
     </div>
   );

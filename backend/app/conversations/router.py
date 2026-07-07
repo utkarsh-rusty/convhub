@@ -41,11 +41,14 @@ from app.conversations.schemas import (
     ConversationStatsResponse,
     ConversationTimelineResponse,
     ConversationUpdate,
+    EnableCodingRequest,
     MessageCreate,
     MessageResponse,
 )
 from app.conversations.service import ConversationService
 from app.models.conversation import Conversation
+from app.repositories.schemas import RepositoryAttachRequest
+from app.repositories.service import RepositoryService
 
 conversations_router = APIRouter(prefix="/conversations", tags=["conversations"])
 commits_router = APIRouter(prefix="/commits", tags=["commits"])
@@ -70,6 +73,10 @@ def get_context_package_service(db: AsyncSession = Depends(get_db)) -> ContextPa
 
 def get_restore_service(db: AsyncSession = Depends(get_db)) -> ContextRestoreService:
     return ContextRestoreService(db=db)
+
+
+def get_repository_service(db: AsyncSession = Depends(get_db)) -> RepositoryService:
+    return RepositoryService(db=db)
 
 
 @conversations_router.post(
@@ -114,6 +121,56 @@ async def update_conversation(
         data,
         viewer_user_id=ctx.user.id,
     )
+
+
+@conversations_router.post(
+    "/{conversation_id}/enable-coding",
+    response_model=ConversationResponse,
+)
+async def enable_coding(
+    data: EnableCodingRequest,
+    conversation: Conversation = Depends(require_conversation_owner),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: ConversationService = Depends(get_conversation_service),
+) -> ConversationResponse:
+    return await service.enable_coding(conversation, data, ctx)
+
+
+@conversations_router.post(
+    "/{conversation_id}/disable-coding",
+    response_model=ConversationResponse,
+)
+async def disable_coding(
+    conversation: Conversation = Depends(require_conversation_owner),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: ConversationService = Depends(get_conversation_service),
+) -> ConversationResponse:
+    return await service.disable_coding(conversation, ctx)
+
+
+@conversations_router.post(
+    "/{conversation_id}/attach-repository",
+    response_model=ConversationResponse,
+)
+async def attach_repository(
+    data: RepositoryAttachRequest,
+    conversation: Conversation = Depends(require_conversation_owner),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: RepositoryService = Depends(get_repository_service),
+) -> ConversationResponse:
+    return await service.attach_to_conversation(conversation, data.repository_id, ctx)
+
+
+@conversations_router.post(
+    "/{conversation_id}/detach-repository",
+    response_model=ConversationResponse,
+)
+async def detach_repository(
+    conversation: Conversation = Depends(require_conversation_owner),
+    ctx: WorkspaceContext = Depends(get_workspace_context),
+    service: RepositoryService = Depends(get_repository_service),
+) -> ConversationResponse:
+    return await service.detach_from_conversation(conversation, ctx)
 
 
 @conversations_router.delete("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)

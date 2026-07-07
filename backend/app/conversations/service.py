@@ -20,6 +20,7 @@ from app.conversations.schemas import (
     ConversationResponse,
     ConversationSummary,
     ConversationUpdate,
+    EnableCodingRequest,
     MessageCreate,
     MessageResponse,
 )
@@ -49,10 +50,13 @@ class ConversationService:
             data.project_id,
             created_by_id=ctx.user.id,
         )
+
         now = datetime.now(UTC)
         conversation = Conversation(
             workspace_id=ctx.workspace_id,
             project_id=project.id,
+            coding_enabled=False,
+            repository_id=None,
             created_by_id=ctx.user.id,
             owner_id=ctx.user.id,
             title=data.title or DEFAULT_CONVERSATION_TITLE,
@@ -117,6 +121,62 @@ class ConversationService:
         await self.db.commit()
         await self.db.refresh(conversation)
         return await self.get_conversation(conversation, viewer_user_id=viewer_user_id)
+
+    async def enable_coding(
+        self,
+        conversation: Conversation,
+        data: EnableCodingRequest,
+        ctx: WorkspaceContext,
+    ) -> ConversationResponse:
+        from app.repositories.schemas import RepositoryCreate
+        from app.repositories.service import RepositoryService
+
+        if conversation.coding_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Coding workspace is already enabled for this conversation",
+            )
+
+        repository_service = RepositoryService(self.db)
+        conversation.coding_enabled = True
+
+        if data.create_repository is not None:
+            created = await repository_service.create_repository(
+                ctx,
+                RepositoryCreate(
+                    project_id=conversation.project_id,
+                    **data.create_repository.model_dump(),
+                ),
+            )
+            conversation.repository_id = created.id
+        elif data.existing_repository_id is not None:
+            repository = await repository_service.resolve_repository_for_create(
+                workspace_id=ctx.workspace_id,
+                project_id=conversation.project_id,
+                repository_id=data.existing_repository_id,
+            )
+            conversation.repository_id = repository.id
+
+        await self.db.commit()
+        await self.db.refresh(conversation)
+        return await self.get_conversation(conversation, viewer_user_id=ctx.user.id)
+
+    async def disable_coding(
+        self,
+        conversation: Conversation,
+        ctx: WorkspaceContext,
+    ) -> ConversationResponse:
+        if not conversation.coding_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Coding workspace is not enabled for this conversation",
+            )
+
+        conversation.coding_enabled = False
+        conversation.repository_id = None
+        await self.db.commit()
+        await self.db.refresh(conversation)
+        return await self.get_conversation(conversation, viewer_user_id=ctx.user.id)
 
     async def delete_conversation(self, conversation: Conversation) -> None:
         if conversation.archived_at is None:
@@ -466,6 +526,8 @@ class ConversationService:
             if resolved_owner_name is not None
             else None
         )
+        from app.repositories.service import RepositoryService
+
         restored_from_commit_hash = None
         if conversation.restored_from_commit is not None:
             restored_from_commit_hash = conversation.restored_from_commit.commit_hash
@@ -474,6 +536,9 @@ class ConversationService:
             id=conversation.id,
             workspace_id=conversation.workspace_id,
             project_id=conversation.project_id,
+            coding_enabled=conversation.coding_enabled,
+            repository_id=conversation.repository_id,
+            repository=RepositoryService.repository_summary(conversation.repository),
             created_by_id=conversation.created_by_id,
             owner_id=conversation.owner_id,
             owner=owner,
@@ -549,6 +614,8 @@ class ConversationService:
         branch = Conversation(
             workspace_id=parent_conversation.workspace_id,
             project_id=parent_conversation.project_id,
+            coding_enabled=parent_conversation.coding_enabled,
+            repository_id=parent_conversation.repository_id,
             created_by_id=ctx.user.id,
             owner_id=ctx.user.id,
             title=branch_title,

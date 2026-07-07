@@ -22,6 +22,7 @@ import { ConversationTimelinePage } from "@/pages/conversation-timeline-page";
 import { HomePage } from "@/pages/home-page";
 import { LandingPage } from "@/pages/landing-page";
 import { ProjectPage } from "@/pages/project-page";
+import { RepositoryPage } from "@/pages/repository-page";
 import { LoginPage } from "@/pages/login-page";
 import { MembersPage } from "@/pages/members-page";
 import { RegisterPage } from "@/pages/register-page";
@@ -44,6 +45,7 @@ export function AppRoutes() {
             <Route path="/app" element={<HomePage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/projects/:projectId" element={<ProjectPage />} />
+            <Route path="/repositories/:repositoryId" element={<RepositoryPage />} />
             <Route path="/c/:conversationId" element={<ConversationPage />} />
             <Route path="/c/:conversationId/history" element={<ConversationHistoryPage />} />
             <Route path="/c/:conversationId/overview" element={<BranchOverviewPage />} />

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from app.models.conversation_participant import ConversationParticipant
     from app.models.message import Message
     from app.models.project import Project
+    from app.models.repository import Repository
     from app.models.user import User
     from app.models.workspace import Workspace
 
@@ -31,6 +32,8 @@ class Conversation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Index("ix_conversations_parent_conversation_id", "parent_conversation_id"),
         Index("ix_conversations_owner_id", "owner_id"),
         Index("ix_conversations_restored_from_package_id", "restored_from_package_id"),
+        Index("ix_conversations_repository_id", "repository_id"),
+        Index("ix_conversations_coding_enabled", "coding_enabled"),
     )
 
     workspace_id: Mapped[UUID] = mapped_column(
@@ -42,6 +45,12 @@ class Conversation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         PG_UUID(as_uuid=True),
         ForeignKey("projects.id", ondelete="RESTRICT"),
         nullable=False,
+    )
+    coding_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    repository_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("repositories.id", ondelete="SET NULL"),
+        nullable=True,
     )
     created_by_id: Mapped[UUID | None] = mapped_column(
         PG_UUID(as_uuid=True),
@@ -101,6 +110,11 @@ class Conversation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     workspace: Mapped[Workspace] = relationship(back_populates="conversations", lazy="selectin")
     project: Mapped[Project] = relationship(back_populates="conversations", lazy="selectin")
+    repository: Mapped[Repository | None] = relationship(
+        back_populates="conversations",
+        foreign_keys=[repository_id],
+        lazy="selectin",
+    )
     created_by: Mapped[User | None] = relationship(
         back_populates="conversations",
         foreign_keys=[created_by_id],

@@ -1,16 +1,19 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from app.models.conversation import DEFAULT_CONVERSATION_TITLE
 from app.models.enums import (
     ConversationParticipantRole,
     ExecutionType,
     MessageRole,
+    RepositoryProvider,
+    RepositoryVisibility,
     RoutingPolicyType,
 )
+from app.repositories.schemas import RepositorySummary
 
 
 class ConversationParticipantSummary(BaseModel):
@@ -22,6 +25,28 @@ class ConversationParticipantSummary(BaseModel):
 class ConversationCreate(BaseModel):
     title: str = Field(default=DEFAULT_CONVERSATION_TITLE, min_length=1, max_length=255)
     project_id: UUID | None = None
+
+
+class EnableCodingCreateRepository(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    provider: RepositoryProvider
+    owner: str = Field(min_length=1, max_length=255)
+    repository_name: str = Field(min_length=1, max_length=255)
+    remote_url: str = Field(min_length=1, max_length=2048)
+    default_branch: str = Field(default="main", min_length=1, max_length=255)
+    visibility: RepositoryVisibility = RepositoryVisibility.PRIVATE
+    is_active: bool = True
+
+
+class EnableCodingRequest(BaseModel):
+    existing_repository_id: UUID | None = None
+    create_repository: EnableCodingCreateRepository | None = None
+
+    @model_validator(mode="after")
+    def validate_repository_options(self) -> Self:
+        if self.existing_repository_id is not None and self.create_repository is not None:
+            raise ValueError("Provide either existing_repository_id or create_repository, not both")
+        return self
 
 
 class ConversationUpdate(BaseModel):
@@ -39,6 +64,9 @@ class ConversationResponse(BaseModel):
     id: UUID
     workspace_id: UUID
     project_id: UUID
+    coding_enabled: bool = False
+    repository_id: UUID | None = None
+    repository: RepositorySummary | None = None
     created_by_id: UUID | None
     owner_id: UUID
     owner: ConversationOwnerSummary | None = None

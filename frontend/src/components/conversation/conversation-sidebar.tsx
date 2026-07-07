@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChevronDown,
   ChevronRight,
+  Code2,
   FolderKanban,
   GitBranch,
   Lock,
+  MessageSquare,
   MessageSquarePlus,
   Pencil,
   Plus,
@@ -13,7 +15,7 @@ import {
 } from "lucide-react";
 import { NavLink, useParams } from "react-router-dom";
 
-import { conversationApi, projectApi } from "@/lib/api";
+import { conversationApi, projectApi, repositoryApi } from "@/lib/api";
 import { formatTimestamp } from "@/lib/format";
 import { useAuth } from "@/context/auth-context";
 import { useWorkspace } from "@/context/workspace-context";
@@ -24,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import type { ConversationResponse, ProjectResponse } from "@/types/api";
+import type { ConversationResponse, ProjectResponse, RepositoryResponse } from "@/types/api";
 
 function collapseStorageKey(workspaceId: string) {
   return `convhub.project-collapse.${workspaceId}`;
@@ -58,6 +60,13 @@ export function ConversationSidebar() {
   const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ["projects", activeWorkspaceId],
     queryFn: () => projectApi.list(),
+    enabled: Boolean(activeWorkspaceId),
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: repositories = [], isLoading: repositoriesLoading } = useQuery({
+    queryKey: ["repositories", activeWorkspaceId],
+    queryFn: () => repositoryApi.list(),
     enabled: Boolean(activeWorkspaceId),
     refetchOnWindowFocus: true,
   });
@@ -128,7 +137,7 @@ export function ConversationSidebar() {
     });
   };
 
-  const isLoading = projectsLoading || conversationsLoading;
+  const isLoading = projectsLoading || conversationsLoading || repositoriesLoading;
   const defaultProjectId =
     selectedProjectId ||
     projects.find((project) => project.is_default)?.id ||
@@ -183,15 +192,16 @@ export function ConversationSidebar() {
           <div className="space-y-2">
             {projects.map((project) => {
               const projectConversations = conversationsByProject.get(project.id) ?? [];
+              const projectRepositories = repositories.filter((item) => item.project_id === project.id);
               const collapsed = collapsedMap[project.id] ?? false;
-              const tree = buildConversationTree(projectConversations);
               return (
                 <ProjectSection
                   key={project.id}
                   project={project}
+                  repositories={projectRepositories}
+                  conversations={projectConversations}
                   collapsed={collapsed}
                   activeConversationId={conversationId}
-                  tree={tree}
                   onToggle={() => toggleProject(project.id)}
                   onSelect={() => {
                     setSelectedProjectId(project.id);
@@ -221,20 +231,37 @@ export function ConversationSidebar() {
 
 function ProjectSection({
   project,
+  repositories,
+  conversations,
   collapsed,
   activeConversationId,
-  tree,
   onToggle,
   onSelect,
 }: {
   project: ProjectResponse;
+  repositories: RepositoryResponse[];
+  conversations: ConversationResponse[];
   collapsed: boolean;
   activeConversationId?: string;
-  tree: ConversationTreeNode[];
   onToggle: () => void;
   onSelect: () => void;
 }) {
   const accent = project.color || "var(--color-muted-foreground)";
+
+  const generalConversations = conversations.filter((item) => !item.repository_id);
+  const linkedConversations = conversations.filter((item) => item.repository_id);
+  const linkedByRepository = new Map<string, ConversationResponse[]>();
+
+  for (const conversation of linkedConversations) {
+    if (!conversation.repository_id) {
+      continue;
+    }
+    const list = linkedByRepository.get(conversation.repository_id) ?? [];
+    list.push(conversation);
+    linkedByRepository.set(conversation.repository_id, list);
+  }
+
+  const otherTree = buildConversationTree(generalConversations);
 
   return (
     <div className="rounded-md border border-transparent">
@@ -278,22 +305,96 @@ function ProjectSection({
       </div>
 
       {!collapsed ? (
-        <div className="ml-3 space-y-0.5 border-l border-[var(--color-border)] pl-1.5">
-          {tree.length === 0 ? (
-            <p className="px-2 py-1 text-[11px] text-[var(--color-muted-foreground)]">
-              No conversations
-            </p>
-          ) : (
-            tree.map((node) => (
+        <div className="ml-3 space-y-2 border-l border-[var(--color-border)] py-1 pl-1.5">
+          <SidebarGroup
+            label="Repositories"
+            emptyLabel="No repositories"
+            isEmpty={repositories.length === 0}
+          >
+            {repositories.map((repository) => {
+              const repoConversations = linkedByRepository.get(repository.id) ?? [];
+              const repoTree = buildConversationTree(repoConversations);
+              return (
+                <div key={repository.id} className="space-y-0.5">
+                  <NavLink
+                    to={`/repositories/${repository.id}`}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium hover:bg-[var(--color-accent)]",
+                        isActive && "bg-[var(--color-accent)]",
+                      )
+                    }
+                  >
+                    <Code2 className="h-3 w-3 shrink-0 text-[var(--color-muted-foreground)]" />
+                    <span className="truncate">{repository.name}</span>
+                    <span className="ml-auto text-[10px] text-[var(--color-muted-foreground)]">
+                      {repoConversations.length}
+                    </span>
+                  </NavLink>
+                  {repoTree.length > 0 ? (
+                    <div className="ml-2 space-y-0.5 border-l border-[var(--color-border)] pl-1">
+                      <p className="px-2 text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
+                        Linked conversations
+                      </p>
+                      {repoTree.map((node) => (
+                        <ConversationTreeNodeView
+                          key={node.conversation.id}
+                          node={node}
+                          activeId={activeConversationId}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </SidebarGroup>
+
+          <SidebarGroup
+            label="Other conversations"
+            emptyLabel="No other conversations"
+            isEmpty={otherTree.length === 0}
+          >
+            {otherTree.map((node) => (
               <ConversationTreeNodeView
                 key={node.conversation.id}
                 node={node}
                 activeId={activeConversationId}
               />
-            ))
-          )}
+            ))}
+          </SidebarGroup>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function SidebarGroup({
+  label,
+  emptyLabel,
+  isEmpty,
+  children,
+}: {
+  label: string;
+  emptyLabel: string;
+  isEmpty: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-0.5">
+      <p className="flex items-center gap-1 px-2 text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
+        {label === "Other conversations" ? (
+          <MessageSquare className="h-2.5 w-2.5" />
+        ) : (
+          <Code2 className="h-2.5 w-2.5" />
+        )}
+        {label}
+      </p>
+      {isEmpty ? (
+        <p className="px-2 py-0.5 text-[11px] text-[var(--color-muted-foreground)]">{emptyLabel}</p>
+      ) : (
+        <div className="space-y-0.5">{children}</div>
+      )}
     </div>
   );
 }

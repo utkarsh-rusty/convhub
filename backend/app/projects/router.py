@@ -10,12 +10,18 @@ from app.conversations.schemas import ConversationResponse
 from app.models.project import Project
 from app.projects.schemas import ProjectCreate, ProjectResponse, ProjectUpdate
 from app.projects.service import ProjectService
+from app.repositories.schemas import RepositoryResponse
+from app.repositories.service import RepositoryService
 
 projects_router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 def get_project_service(db: AsyncSession = Depends(get_db)) -> ProjectService:
     return ProjectService(db=db)
+
+
+def get_repository_service(db: AsyncSession = Depends(get_db)) -> RepositoryService:
+    return RepositoryService(db=db)
 
 
 async def get_project(
@@ -101,6 +107,22 @@ async def delete_project(
     service: ProjectService = Depends(get_project_service),
 ) -> None:
     await service.delete_project(project)
+
+
+@projects_router.get(
+    "/{project_id}/repositories",
+    response_model=list[RepositoryResponse],
+)
+async def list_project_repositories(
+    project: Project = Depends(get_project),
+    include_archived: bool = Query(default=False),
+    service: RepositoryService = Depends(get_repository_service),
+) -> list[RepositoryResponse]:
+    return await service.list_repositories(
+        project.workspace_id,
+        project_id=project.id,
+        include_archived=include_archived,
+    )
 
 
 @projects_router.get(
