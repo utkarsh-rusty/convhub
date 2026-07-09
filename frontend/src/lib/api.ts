@@ -42,6 +42,8 @@ import {
   repositoryResponseSchema,
   repositoryBranchResponseSchema,
   branchMemoryExportResponseSchema,
+  branchSyncHistoryExportResponseSchema,
+  branchSyncRecordSummarySchema,
   conversationSearchResponseSchema,
   conversationStatsResponseSchema,
   conversationTimelineResponseSchema,
@@ -417,6 +419,21 @@ export const repositoryBranchApi = {
   async exportMemory(branchId: string) {
     const { data } = await api.get(`/repository-branches/${branchId}/memory/export`);
     return branchMemoryExportResponseSchema.parse(data);
+  },
+
+  async listHistory(branchId: string) {
+    const { data } = await api.get(`/repository-branches/${branchId}/history`);
+    return branchSyncRecordSummarySchema.array().parse(data);
+  },
+
+  async exportHistory(branchId: string) {
+    const { data } = await api.get(`/repository-branches/${branchId}/history/export`);
+    return branchSyncHistoryExportResponseSchema.parse(data);
+  },
+
+  async getSyncRecord(recordId: string) {
+    const { data } = await api.get(`/branch-sync-records/${recordId}`);
+    return branchSyncRecordSummarySchema.parse(data);
   },
 };
 

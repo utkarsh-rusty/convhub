@@ -195,15 +195,18 @@ class RepositoryService:
         await self.db.refresh(conversation)
 
         from app.branch_memory.service import BranchMemoryService
+        from app.models.enums import BranchSyncType
 
         memory_service = BranchMemoryService(self.db)
         if previous_repository_id is not None and previous_repository_id != repository_id:
             await memory_service.detach_for_conversation(
                 conversation,
                 repository_id=previous_repository_id,
+                working_user_id=ctx.user.id,
             )
         await memory_service.sync_for_conversation(
             conversation,
+            sync_type=BranchSyncType.ATTACH_REPOSITORY,
             working_user_id=ctx.user.id,
         )
         return await ConversationService(self.db).get_conversation(
@@ -233,10 +236,12 @@ class RepositoryService:
         await self.db.refresh(conversation)
 
         from app.branch_memory.service import BranchMemoryService
+        from app.models.enums import BranchSyncType
 
         await BranchMemoryService(self.db).detach_for_conversation(
             conversation,
             repository_id=repository_id,
+            working_user_id=ctx.user.id,
         )
         return await ConversationService(self.db).get_conversation(
             conversation,

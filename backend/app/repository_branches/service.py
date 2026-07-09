@@ -3,10 +3,12 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.branch_memory.service import BranchMemoryService
+from app.models.branch_memory import BranchMemory
+from app.models.branch_sync_record import BranchSyncRecord
 from app.models.repository import Repository
 from app.models.repository_branch import RepositoryBranch
 from app.repository_branches.schemas import (
@@ -114,9 +116,19 @@ class RepositoryBranchService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot delete the default repository branch",
             )
-        if branch.memory is not None:
-            await self.db.delete(branch.memory)
-        await self.db.delete(branch)
+        memory_id = branch.memory.id if branch.memory is not None else None
+        branch_id = branch.id
+        await self.db.execute(
+            update(BranchMemory)
+            .where(BranchMemory.repository_branch_id == branch_id)
+            .values(latest_sync_record_id=None)
+        )
+        if memory_id is not None:
+            await self.db.execute(
+                delete(BranchSyncRecord).where(BranchSyncRecord.branch_memory_id == memory_id)
+            )
+            await self.db.execute(delete(BranchMemory).where(BranchMemory.id == memory_id))
+        await self.db.execute(delete(RepositoryBranch).where(RepositoryBranch.id == branch_id))
         await self.db.commit()
 
     async def _ensure_unique_name(

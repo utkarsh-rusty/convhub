@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer
+from sqlalchemy import ForeignKey, Index, Integer
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,11 +13,8 @@ from app.models.enums import BranchMemorySyncStatus
 from app.models.mixins import TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
-    from app.models.context_package import ContextPackage
-    from app.models.conversation import Conversation
-    from app.models.conversation_commit import ConversationCommit
+    from app.models.branch_sync_record import BranchSyncRecord
     from app.models.repository_branch import RepositoryBranch
-    from app.models.user import User
 
 
 class BranchMemory(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -33,29 +29,9 @@ class BranchMemory(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
         unique=True,
     )
-    current_conversation_id: Mapped[UUID | None] = mapped_column(
+    latest_sync_record_id: Mapped[UUID | None] = mapped_column(
         PG_UUID(as_uuid=True),
-        ForeignKey("conversations.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-    current_convhub_branch_id: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("conversations.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-    current_commit_id: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("conversation_commits.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-    current_context_package_id: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("context_packages.id", ondelete="SET NULL"),
-        nullable=True,
-    )
-    working_user_id: Mapped[UUID | None] = mapped_column(
-        PG_UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="SET NULL"),
+        ForeignKey("branch_sync_records.id", ondelete="SET NULL"),
         nullable=True,
     )
     memory_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
@@ -64,30 +40,18 @@ class BranchMemory(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
         default=BranchMemorySyncStatus.NOT_SYNCED,
     )
-    last_push_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    last_pull_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     repository_branch: Mapped[RepositoryBranch] = relationship(
         back_populates="memory",
         lazy="selectin",
     )
-    current_conversation: Mapped[Conversation | None] = relationship(
-        foreign_keys=[current_conversation_id],
+    latest_sync_record: Mapped[BranchSyncRecord | None] = relationship(
+        foreign_keys=[latest_sync_record_id],
         lazy="selectin",
     )
-    current_convhub_branch: Mapped[Conversation | None] = relationship(
-        foreign_keys=[current_convhub_branch_id],
+    sync_records: Mapped[list[BranchSyncRecord]] = relationship(
+        back_populates="branch_memory",
+        foreign_keys="BranchSyncRecord.branch_memory_id",
         lazy="selectin",
-    )
-    current_commit: Mapped[ConversationCommit | None] = relationship(
-        foreign_keys=[current_commit_id],
-        lazy="selectin",
-    )
-    current_context_package: Mapped[ContextPackage | None] = relationship(
-        foreign_keys=[current_context_package_id],
-        lazy="selectin",
-    )
-    working_user: Mapped[User | None] = relationship(
-        foreign_keys=[working_user_id],
-        lazy="selectin",
+        order_by="BranchSyncRecord.sync_version.desc()",
     )

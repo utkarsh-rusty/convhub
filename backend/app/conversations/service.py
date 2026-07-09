@@ -629,9 +629,11 @@ class ConversationService:
         await self.db.refresh(branch)
         if parent_conversation.repository_id is not None:
             from app.branch_memory.service import BranchMemoryService
+            from app.models.enums import BranchSyncType
 
             await BranchMemoryService(self.db).sync_for_conversation(
                 branch,
+                sync_type=BranchSyncType.LOCAL_COMMIT,
                 working_user_id=ctx.user.id,
                 convhub_branch_id=branch.id,
             )

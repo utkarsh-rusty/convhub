@@ -12,6 +12,9 @@ from app.models.repository_branch import RepositoryBranch
 from app.repository_branches.schemas import (
     BranchMemoryExportResponse,
     BranchMemoryResponse,
+    BranchSyncHistoryExportResponse,
+    BranchSyncRecordResponse,
+    BranchSyncRecordSummary,
     RepositoryBranchCreate,
     RepositoryBranchResponse,
     RepositoryBranchUpdate,
@@ -90,6 +93,28 @@ async def delete_repository_branch(
     service: RepositoryBranchService = Depends(get_repository_branch_service),
 ) -> None:
     await service.delete_inactive_branch(branch)
+
+
+@repository_branches_router.get(
+    "/{repository_branch_id}/history",
+    response_model=list[BranchSyncRecordSummary],
+)
+async def list_repository_branch_history(
+    branch: RepositoryBranch = Depends(get_repository_branch),
+    service: BranchMemoryService = Depends(get_branch_memory_service),
+) -> list[BranchSyncRecordSummary]:
+    return await service.list_history(branch)
+
+
+@repository_branches_router.get(
+    "/{repository_branch_id}/history/export",
+    response_model=BranchSyncHistoryExportResponse,
+)
+async def export_repository_branch_history(
+    branch: RepositoryBranch = Depends(get_repository_branch),
+    service: BranchMemoryService = Depends(get_branch_memory_service),
+) -> BranchSyncHistoryExportResponse:
+    return await service.export_history(branch)
 
 
 @repository_branches_router.get("/{repository_branch_id}/memory", response_model=BranchMemoryResponse)

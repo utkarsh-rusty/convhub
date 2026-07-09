@@ -45,6 +45,16 @@ class BranchMemorySyncStatus(str, enum.Enum):
     CONFLICT = "conflict"
 
 
+class BranchSyncType(str, enum.Enum):
+    LOCAL_COMMIT = "local_commit"
+    RESTORE = "restore"
+    ATTACH_REPOSITORY = "attach_repository"
+    DETACH_REPOSITORY = "detach_repository"
+    PLUGIN_PUSH = "plugin_push"
+    PLUGIN_PULL = "plugin_pull"
+    MANUAL_UPDATE = "manual_update"
+
+
 class CreditTransactionType(str, enum.Enum):
     ALLOCATION = "allocation"
     USAGE = "usage"

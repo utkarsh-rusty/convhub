@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Code2, GitBranch, Link as LinkIcon, Plus } from "lucide-react";
+import { Code2, GitBranch, History, Link as LinkIcon, Plus } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -23,7 +23,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { BranchMemorySummary, RepositoryBranchResponse } from "@/types/api";
+import type {
+  BranchMemorySummary,
+  BranchSyncRecordSummary,
+  RepositoryBranchResponse,
+} from "@/types/api";
 
 function providerLabel(provider: string) {
   switch (provider) {
@@ -52,6 +56,27 @@ function syncStatusLabel(status: string) {
       return "Conflict";
     default:
       return status;
+  }
+}
+
+function syncTypeLabel(syncType: string) {
+  switch (syncType) {
+    case "local_commit":
+      return "Local Commit";
+    case "restore":
+      return "Restore";
+    case "attach_repository":
+      return "Attach Repository";
+    case "detach_repository":
+      return "Detach Repository";
+    case "plugin_push":
+      return "Plugin Push";
+    case "plugin_pull":
+      return "Plugin Pull";
+    case "manual_update":
+      return "Manual Update";
+    default:
+      return syncType;
   }
 }
 
@@ -156,6 +181,23 @@ export function RepositoryPage() {
     onError: (error) => showApiError(error, "Unable to export branch memory"),
   });
 
+  const exportHistoryMutation = useMutation({
+    mutationFn: (branchId: string) => repositoryBranchApi.exportHistory(branchId),
+    onSuccess: (payload) => {
+      const blob = new Blob([JSON.stringify(payload.content, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = payload.filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success("Branch history exported");
+    },
+    onError: (error) => showApiError(error, "Unable to export branch history"),
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-4 p-6">
@@ -243,6 +285,7 @@ export function RepositoryPage() {
                   onArchive={() => archiveBranchMutation.mutate(branch.id)}
                   onRestore={() => restoreBranchMutation.mutate(branch.id)}
                   onExport={() => exportMemoryMutation.mutate(branch.id)}
+                  onExportHistory={() => exportHistoryMutation.mutate(branch.id)}
                 />
               ))}
             </div>
@@ -341,6 +384,7 @@ function BranchMemoryCard({
   onArchive,
   onRestore,
   onExport,
+  onExportHistory,
 }: {
   branch: RepositoryBranchResponse;
   memory?: BranchMemorySummary | null;
@@ -348,7 +392,15 @@ function BranchMemoryCard({
   onArchive: () => void;
   onRestore: () => void;
   onExport: () => void;
+  onExportHistory: () => void;
 }) {
+  const { data: history = [], isLoading: historyLoading } = useQuery({
+    queryKey: ["repository-branch-history", branch.id],
+    queryFn: () => repositoryBranchApi.listHistory(branch.id),
+  });
+
+  const latestRecord = memory?.latest_sync_record ?? history[0] ?? null;
+
   return (
     <div className="rounded-lg border border-[var(--color-border)] p-4">
       <div className="flex items-start justify-between gap-3">
@@ -372,6 +424,9 @@ function BranchMemoryCard({
           </p>
         </div>
         <div className="flex items-center gap-1">
+          <Button type="button" size="sm" variant="ghost" onClick={onExportHistory}>
+            History
+          </Button>
           <Button type="button" size="sm" variant="ghost" onClick={onExport}>
             Export
           </Button>
@@ -428,7 +483,92 @@ function BranchMemoryCard({
           }
         />
         <MemoryField label="Working developer" value={memory?.working_user_name ?? "—"} />
-        <MemoryField label="Memory version" value={String(memory?.memory_version ?? 1)} />
+        <MemoryField label="Memory version" value={String(memory?.memory_version ?? 0)} />
+      </div>
+
+      <div className="mt-4 border-t border-[var(--color-border)] pt-4">
+        <div className="mb-3 flex items-center gap-2">
+          <History className="h-3.5 w-3.5 text-[var(--color-muted-foreground)]" />
+          <h4 className="text-xs font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
+            Latest sync record
+          </h4>
+        </div>
+        {latestRecord ? (
+          <SyncRecordRow record={latestRecord} compact />
+        ) : (
+          <p className="text-xs text-[var(--color-muted-foreground)]">No sync records yet.</p>
+        )}
+      </div>
+
+      <div className="mt-4 border-t border-[var(--color-border)] pt-4">
+        <h4 className="mb-3 text-xs font-medium uppercase tracking-wide text-[var(--color-muted-foreground)]">
+          Timeline
+        </h4>
+        {historyLoading ? (
+          <Skeleton className="h-16 w-full" />
+        ) : history.length === 0 ? (
+          <p className="text-xs text-[var(--color-muted-foreground)]">No history yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {history.map((record) => (
+              <SyncRecordRow key={record.id} record={record} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SyncRecordRow({
+  record,
+  compact = false,
+}: {
+  record: BranchSyncRecordSummary;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={
+        compact
+          ? "rounded-md bg-[var(--color-muted)]/20 px-3 py-2 text-xs"
+          : "rounded-md border border-[var(--color-border)] px-3 py-2 text-xs"
+      }
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-medium text-[var(--color-foreground)]">
+          {syncTypeLabel(record.sync_type)}
+        </span>
+        <span className="text-[var(--color-muted-foreground)]">
+          {formatTimestamp(record.created_at)}
+        </span>
+      </div>
+      <div className={`mt-2 grid gap-1 ${compact ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
+        <span>
+          User: <span className="text-[var(--color-foreground)]">{record.user_name ?? "—"}</span>
+        </span>
+        <span>
+          Conversation:{" "}
+          {record.conversation_id ? (
+            <Link to={`/c/${record.conversation_id}`} className="text-[var(--color-foreground)] hover:underline">
+              {record.conversation_title ?? "Open"}
+            </Link>
+          ) : (
+            "—"
+          )}
+        </span>
+        <span>
+          Commit:{" "}
+          <span className="text-[var(--color-foreground)]">
+            {record.commit_hash ? `#${record.commit_hash}` : "—"}
+          </span>
+        </span>
+        <span>
+          Context package:{" "}
+          <span className="text-[var(--color-foreground)]">
+            {record.context_package_version != null ? `v${record.context_package_version}` : "—"}
+          </span>
+        </span>
       </div>
     </div>
   );

@@ -8,15 +8,53 @@ from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 
+from app.core.config import get_settings
+from app.db.session import create_engine
 from app.main import app
 
 
-@pytest.fixture(autouse=True)
-def disable_demo_mode_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("ENABLE_DEMO_MODE", "false")
-    from app.core.config import get_settings
+async def _truncate_all_tables() -> None:
+    settings = get_settings()
+    engine = create_engine(settings)
+    try:
+        async with engine.begin() as conn:
+            result = await conn.execute(
+                text(
+                    """
+                    SELECT tablename
+                    FROM pg_tables
+                    WHERE schemaname = 'public'
+                      AND tablename != 'alembic_version'
+                    """
+                )
+            )
+            table_names = ", ".join(f'"{row[0]}"' for row in result.fetchall())
+            if table_names:
+                await conn.execute(
+                    text(f"TRUNCATE TABLE {table_names} RESTART IDENTITY CASCADE")
+                )
+    finally:
+        await engine.dispose()
 
+
+@pytest.fixture(autouse=True)
+def reset_runtime_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Reset env-backed settings and realtime singletons before each test."""
+    monkeypatch.setenv("ENABLE_DEMO_MODE", "false")
+    monkeypatch.delenv("DEMO_MODE", raising=False)
+    monkeypatch.delenv("AI_PROVIDER", raising=False)
+    monkeypatch.delenv("APP_ENV", raising=False)
+    get_settings.cache_clear()
+
+    from app.realtime.manager import WebSocketManager, set_ws_manager
+
+    set_ws_manager(WebSocketManager())
+
+    yield
+
+    set_ws_manager(None)
     get_settings.cache_clear()
 
 
@@ -38,6 +76,7 @@ class WorkspaceContext:
 
 @pytest.fixture
 async def client() -> AsyncIterator[AsyncClient]:
+    await _truncate_all_tables()
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)
         async with AsyncClient(

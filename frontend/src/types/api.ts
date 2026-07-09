@@ -12,6 +12,15 @@ export const branchMemorySyncStatusSchema = z.enum([
   "in_progress",
   "conflict",
 ]);
+export const branchSyncTypeSchema = z.enum([
+  "local_commit",
+  "restore",
+  "attach_repository",
+  "detach_repository",
+  "plugin_push",
+  "plugin_pull",
+  "manual_update",
+]);
 export const aiProviderNameSchema = z.enum(["mock", "anthropic", "ollama", "openai", "gemini", "groq"]);
 export type AIProviderName = z.infer<typeof aiProviderNameSchema>;
 
@@ -322,9 +331,29 @@ export const repositoryResponseSchema = z.object({
   connected_conversations: z.array(repositoryConversationSummarySchema).default([]),
 });
 
+export const branchSyncRecordSummarySchema = z.object({
+  id: z.string().uuid(),
+  branch_memory_id: z.string().uuid(),
+  conversation_id: z.string().uuid().nullable().optional(),
+  convhub_branch_id: z.string().uuid().nullable().optional(),
+  commit_id: z.string().uuid().nullable().optional(),
+  context_package_id: z.string().uuid().nullable().optional(),
+  user_id: z.string().uuid().nullable().optional(),
+  user_name: z.string().nullable().optional(),
+  sync_type: branchSyncTypeSchema,
+  sync_version: z.number(),
+  notes: z.string().nullable().optional(),
+  conversation_title: z.string().nullable().optional(),
+  convhub_branch_name: z.string().nullable().optional(),
+  commit_hash: z.string().nullable().optional(),
+  context_package_version: z.number().nullable().optional(),
+  created_at: z.string(),
+});
+
 export const branchMemorySummarySchema = z.object({
   id: z.string().uuid(),
   repository_branch_id: z.string().uuid(),
+  latest_sync_record_id: z.string().uuid().nullable().optional(),
   current_conversation_id: z.string().uuid().nullable().optional(),
   current_convhub_branch_id: z.string().uuid().nullable().optional(),
   current_commit_id: z.string().uuid().nullable().optional(),
@@ -333,12 +362,11 @@ export const branchMemorySummarySchema = z.object({
   working_user_name: z.string().nullable().optional(),
   memory_version: z.number(),
   sync_status: branchMemorySyncStatusSchema,
-  last_push_at: z.string().nullable().optional(),
-  last_pull_at: z.string().nullable().optional(),
   current_conversation_title: z.string().nullable().optional(),
   current_convhub_branch_name: z.string().nullable().optional(),
   current_commit_hash: z.string().nullable().optional(),
   current_context_package_version: z.number().nullable().optional(),
+  latest_sync_record: branchSyncRecordSummarySchema.nullable().optional(),
 });
 
 export const repositoryBranchResponseSchema = z.object({
@@ -353,6 +381,11 @@ export const repositoryBranchResponseSchema = z.object({
 });
 
 export const branchMemoryExportResponseSchema = z.object({
+  filename: z.string(),
+  content: z.record(z.string(), z.unknown()),
+});
+
+export const branchSyncHistoryExportResponseSchema = z.object({
   filename: z.string(),
   content: z.record(z.string(), z.unknown()),
 });
@@ -822,6 +855,8 @@ export type RepositoryConversationSummary = z.infer<typeof repositoryConversatio
 export type RepositoryProvider = z.infer<typeof repositoryProviderSchema>;
 export type RepositoryVisibility = z.infer<typeof repositoryVisibilitySchema>;
 export type BranchMemorySyncStatus = z.infer<typeof branchMemorySyncStatusSchema>;
+export type BranchSyncType = z.infer<typeof branchSyncTypeSchema>;
+export type BranchSyncRecordSummary = z.infer<typeof branchSyncRecordSummarySchema>;
 export type RepositoryBranchResponse = z.infer<typeof repositoryBranchResponseSchema>;
 export type BranchMemorySummary = z.infer<typeof branchMemorySummarySchema>;
 export type ProjectConversationSummary = z.infer<typeof projectConversationSummarySchema>;

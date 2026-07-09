@@ -4,6 +4,7 @@ from app.models.ai_account import AIAccount
 from app.models.ai_request import AIRequest
 from app.models.borrow_record import BorrowRecord
 from app.models.branch_memory import BranchMemory
+from app.models.branch_sync_record import BranchSyncRecord
 from app.models.context_package import ContextPackage
 from app.models.conversation import Conversation
 from app.models.conversation_checkpoint import ConversationCheckpoint
@@ -30,6 +31,7 @@ __all__ = [
     "AIRequest",
     "BorrowRecord",
     "BranchMemory",
+    "BranchSyncRecord",
     "ContextPackage",
     "Conversation",
     "ConversationCheckpoint",
