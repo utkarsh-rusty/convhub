@@ -63,6 +63,13 @@ class BranchSyncType(str, enum.Enum):
     MANUAL_UPDATE = "manual_update"
 
 
+class DeveloperWorkspaceSessionStatus(str, enum.Enum):
+    ACTIVE = "active"
+    IDLE = "idle"
+    DISCONNECTED = "disconnected"
+    CLOSED = "closed"
+
+
 class CreditTransactionType(str, enum.Enum):
     ALLOCATION = "allocation"
     USAGE = "usage"

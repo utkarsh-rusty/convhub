@@ -64,6 +64,8 @@ class SyncPullResponse(BaseModel):
 
 class SyncPushRequest(BaseModel):
     notes: str | None = Field(default=None, max_length=1024)
+    commit_id: UUID | None = None
+    context_package_id: UUID | None = None
 
 
 class SyncPushResponse(BaseModel):

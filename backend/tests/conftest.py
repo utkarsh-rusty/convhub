@@ -2,21 +2,133 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
+from sqlalchemy.engine import make_url
 
 from app.core.config import get_settings
 from app.db.session import create_engine
 from app.main import app
 
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+_DEFAULT_TEST_DATABASE_URL = (
+    "postgresql+asyncpg://postgres:postgres@localhost:5432/convhub_test"
+)
+_PROTECTED_DATABASE_NAMES = frozenset({"convhub", "postgres"})
+
+
+def _rewrite_database_name(database_url: str, database_name: str) -> str:
+    return make_url(database_url).set(database=database_name).render_as_string(
+        hide_password=False
+    )
+
+
+def _database_name(database_url: str) -> str:
+    return make_url(database_url).database or ""
+
+
+def _resolve_test_database_url() -> str:
+    if os.environ.get("TEST_DATABASE_URL"):
+        return os.environ["TEST_DATABASE_URL"]
+
+    env_path = BACKEND_ROOT / ".env"
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
+            if line.startswith("DATABASE_URL="):
+                base = line.split("=", 1)[1].strip().strip('"').strip("'")
+                return _rewrite_database_name(base, "convhub_test")
+    return _DEFAULT_TEST_DATABASE_URL
+
+
+def _ensure_test_database(database_url: str) -> None:
+    """Create the test database if missing, then apply migrations."""
+    db_name = _database_name(database_url)
+    if not db_name:
+        raise RuntimeError("TEST_DATABASE_URL must include a database name")
+    if db_name in _PROTECTED_DATABASE_NAMES:
+        raise RuntimeError(
+            f"Refusing to run tests against protected database '{db_name}'. "
+            "Set TEST_DATABASE_URL to a dedicated database such as convhub_test."
+        )
+
+    admin_url = make_url(database_url).set(database="postgres")
+    # Use a temporary Settings-like object for the admin connection.
+    from app.core.config import Settings
+
+    admin_settings = Settings(database_url=admin_url.render_as_string(hide_password=False))
+    admin_settings = admin_settings.model_copy(update={"debug": False})
+
+    import asyncio
+
+    async def _create_if_missing() -> None:
+        engine = create_engine(admin_settings)
+        try:
+            async with engine.connect() as conn:
+                conn = await conn.execution_options(isolation_level="AUTOCOMMIT")
+                exists = await conn.execute(
+                    text("SELECT 1 FROM pg_database WHERE datname = :name"),
+                    {"name": db_name},
+                )
+                if exists.scalar_one_or_none() is None:
+                    await conn.execute(text(f'CREATE DATABASE "{db_name}"'))
+        finally:
+            await engine.dispose()
+
+    asyncio.run(_create_if_missing())
+
+    env = os.environ.copy()
+    env["DATABASE_URL"] = database_url
+    result = subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        cwd=BACKEND_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            "Failed to migrate test database:\n"
+            f"{result.stdout}\n{result.stderr}"
+        )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _configure_test_database() -> None:
+    """Point the entire test session at a dedicated database."""
+    test_url = _resolve_test_database_url()
+    db_name = _database_name(test_url)
+    if db_name in _PROTECTED_DATABASE_NAMES:
+        raise RuntimeError(
+            f"Refusing to run tests against protected database '{db_name}'. "
+            "Set TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/convhub_test"
+        )
+
+    os.environ["DATABASE_URL"] = test_url
+    os.environ["TEST_DATABASE_URL"] = test_url
+    get_settings.cache_clear()
+    _ensure_test_database(test_url)
+    get_settings.cache_clear()
+
 
 async def _truncate_all_tables() -> None:
     settings = get_settings()
+    db_name = _database_name(settings.sqlalchemy_database_uri)
+    if db_name in _PROTECTED_DATABASE_NAMES:
+        raise RuntimeError(
+            f"Refusing to truncate protected database '{db_name}'. "
+            "Tests must use convhub_test (or another dedicated TEST_DATABASE_URL)."
+        )
+
     engine = create_engine(settings)
     try:
         async with engine.begin() as conn:
@@ -42,6 +154,9 @@ async def _truncate_all_tables() -> None:
 @pytest.fixture(autouse=True)
 def reset_runtime_state(monkeypatch: pytest.MonkeyPatch) -> None:
     """Reset env-backed settings and realtime singletons before each test."""
+    test_url = os.environ.get("TEST_DATABASE_URL") or _resolve_test_database_url()
+    monkeypatch.setenv("DATABASE_URL", test_url)
+    monkeypatch.setenv("TEST_DATABASE_URL", test_url)
     monkeypatch.setenv("ENABLE_DEMO_MODE", "false")
     monkeypatch.delenv("DEMO_MODE", raising=False)
     monkeypatch.delenv("AI_PROVIDER", raising=False)

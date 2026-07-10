@@ -47,6 +47,8 @@ import {
   syncPullResponseSchema,
   syncPushResponseSchema,
   syncStatusResponseSchema,
+  workspaceClientProtocolStatusSchema,
+  workspaceSessionResponseSchema,
   conversationSearchResponseSchema,
   conversationStatsResponseSchema,
   conversationTimelineResponseSchema,
@@ -391,6 +393,16 @@ export const repositoryApi = {
   async createBranch(repositoryId: string, payload: { name: string; is_default?: boolean }) {
     const { data } = await api.post(`/repositories/${repositoryId}/branches`, payload);
     return repositoryBranchResponseSchema.parse(data);
+  },
+
+  async listWorkspaceSessions(repositoryId: string) {
+    const { data } = await api.get(`/repositories/${repositoryId}/workspace-sessions`);
+    return workspaceSessionResponseSchema.array().parse(data);
+  },
+
+  async getWorkspaceClientStatus(repositoryId: string) {
+    const { data } = await api.get(`/repositories/${repositoryId}/workspace-client/status`);
+    return workspaceClientProtocolStatusSchema.parse(data);
   },
 };
 

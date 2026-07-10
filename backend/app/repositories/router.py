@@ -118,5 +118,9 @@ async def list_repository_conversations(
 
 
 from app.repository_branches.router import register_repository_branch_routes
+from app.workspace_client.router import register_repository_workspace_client_routes
+from app.workspace_sessions.router import register_repository_workspace_session_routes
 
 register_repository_branch_routes(repositories_router)
+register_repository_workspace_session_routes(repositories_router)
+register_repository_workspace_client_routes(repositories_router)

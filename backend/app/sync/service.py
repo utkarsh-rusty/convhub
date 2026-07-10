@@ -110,6 +110,34 @@ class SyncService:
         commit = await self._latest_commit_for_conversation(conversation.id)
         package = await self._latest_context_package_for_conversation(conversation.id)
 
+        commit_id = data.commit_id if data.commit_id is not None else (
+            commit.id if commit is not None else None
+        )
+        context_package_id = (
+            data.context_package_id
+            if data.context_package_id is not None
+            else (package.id if package is not None else None)
+        )
+
+        if data.commit_id is not None:
+            commit_result = await self.db.execute(
+                select(ConversationCommit).where(ConversationCommit.id == data.commit_id)
+            )
+            if commit_result.scalar_one_or_none() is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Commit not found",
+                )
+        if data.context_package_id is not None:
+            package_result = await self.db.execute(
+                select(ContextPackage).where(ContextPackage.id == data.context_package_id)
+            )
+            if package_result.scalar_one_or_none() is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Context package not found",
+                )
+
         convhub_branch_id = latest.convhub_branch_id
         if convhub_branch_id is None and conversation.parent_conversation_id is not None:
             convhub_branch_id = conversation.id
@@ -119,8 +147,8 @@ class SyncService:
             sync_type=BranchSyncType.PLUGIN_PUSH,
             conversation_id=conversation.id,
             convhub_branch_id=convhub_branch_id,
-            commit_id=commit.id if commit is not None else None,
-            context_package_id=package.id if package is not None else None,
+            commit_id=commit_id,
+            context_package_id=context_package_id,
             user_id=user_id,
             notes=data.notes,
         )

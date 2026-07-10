@@ -12,6 +12,7 @@ from app.models.conversation_commit import ConversationCommit
 from app.models.conversation_participant import ConversationParticipant
 from app.models.credit_transaction import CreditTransaction
 from app.models.demo_event_log import DemoEventLog
+from app.models.developer_workspace_session import DeveloperWorkspaceSession
 from app.models.invitation import Invitation
 from app.models.lending_preference import LendingPreference
 from app.models.message import Message
@@ -39,6 +40,7 @@ __all__ = [
     "ConversationParticipant",
     "CreditTransaction",
     "DemoEventLog",
+    "DeveloperWorkspaceSession",
     "Invitation",
     "LendingPreference",
     "Message",

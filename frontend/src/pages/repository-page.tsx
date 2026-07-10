@@ -28,6 +28,7 @@ import type {
   BranchMemorySummary,
   BranchSyncRecordSummary,
   RepositoryBranchResponse,
+  WorkspaceSessionResponse,
 } from "@/types/api";
 
 function providerLabel(provider: string) {
@@ -77,6 +78,21 @@ function syncStatusLabel(status: string) {
   }
 }
 
+function sessionStatusLabel(status: string) {
+  switch (status) {
+    case "active":
+      return "Active";
+    case "idle":
+      return "Idle";
+    case "disconnected":
+      return "Disconnected";
+    case "closed":
+      return "Closed";
+    default:
+      return status;
+  }
+}
+
 function syncTypeLabel(syncType: string) {
   switch (syncType) {
     case "local_commit":
@@ -120,6 +136,18 @@ export function RepositoryPage() {
     enabled: Boolean(activeWorkspaceId && repositoryId),
   });
 
+  const { data: workspaceSessions = [], isLoading: sessionsLoading } = useQuery({
+    queryKey: ["workspace-sessions", activeWorkspaceId, repositoryId],
+    queryFn: () => repositoryApi.listWorkspaceSessions(repositoryId!),
+    enabled: Boolean(activeWorkspaceId && repositoryId),
+  });
+
+  const { data: protocolStatus } = useQuery({
+    queryKey: ["workspace-client-status", activeWorkspaceId, repositoryId],
+    queryFn: () => repositoryApi.getWorkspaceClientStatus(repositoryId!),
+    enabled: Boolean(activeWorkspaceId && repositoryId),
+  });
+
   const defaultBranch = branches.find((branch) => branch.is_default) ?? branches[0] ?? null;
 
   const { data: syncStatus, isLoading: syncLoading } = useQuery({
@@ -133,6 +161,8 @@ export function RepositoryPage() {
     void queryClient.invalidateQueries({ queryKey: ["repository-branches", activeWorkspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["conversations", activeWorkspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["sync-status", activeWorkspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["workspace-sessions", activeWorkspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["workspace-client-status", activeWorkspaceId] });
   };
 
   const pushSyncMutation = useMutation({
@@ -376,6 +406,53 @@ export function RepositoryPage() {
                   value={syncStatus?.repository_branch.name ?? defaultBranch.name}
                 />
               </div>
+            </div>
+          )}
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-medium">Plugin Protocol</h2>
+          <div className="rounded-lg border border-[var(--color-border)] p-4">
+            <div className="grid gap-3 text-xs sm:grid-cols-3">
+              <MemoryField
+                label="Plugin Protocol Ready"
+                value={protocolStatus?.plugin_protocol_ready ? "Ready" : "—"}
+              />
+              <MemoryField
+                label="Connected Sessions"
+                value={
+                  protocolStatus?.connected_sessions != null
+                    ? String(protocolStatus.connected_sessions)
+                    : String(workspaceSessions.length)
+                }
+              />
+              <MemoryField
+                label="Current Sync Version"
+                value={
+                  protocolStatus?.current_sync_version != null
+                    ? String(protocolStatus.current_sync_version)
+                    : syncStatus?.sync_version != null
+                      ? String(syncStatus.sync_version)
+                      : "—"
+                }
+              />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-medium">Active Developers</h2>
+          {sessionsLoading ? (
+            <Skeleton className="h-32 w-full" />
+          ) : workspaceSessions.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-[var(--color-border)] px-4 py-8 text-sm text-[var(--color-muted-foreground)]">
+              No active workspace sessions.
+            </p>
+          ) : (
+            <div className="divide-y divide-[var(--color-border)] rounded-lg border border-[var(--color-border)]">
+              {workspaceSessions.map((session) => (
+                <ActiveDeveloperRow key={session.id} session={session} />
+              ))}
             </div>
           )}
         </section>
@@ -694,6 +771,31 @@ function SyncRecordRow({
           </span>
         </span>
       </div>
+    </div>
+  );
+}
+
+function ActiveDeveloperRow({ session }: { session: WorkspaceSessionResponse }) {
+  const clientLabel = [session.client_name, session.client_version].filter(Boolean).join(" ") || "—";
+
+  return (
+    <div className="grid gap-3 px-4 py-3 text-xs sm:grid-cols-2 lg:grid-cols-3">
+      <MemoryField label="Developer" value={session.user_name ?? "Unknown"} />
+      <MemoryField label="Repository branch" value={session.repository_branch_name ?? "—"} />
+      <MemoryField label="Started" value={formatTimestamp(session.started_at)} />
+      <MemoryField label="Last heartbeat" value={formatTimestamp(session.last_heartbeat_at)} />
+      <MemoryField label="Session status" value={sessionStatusLabel(session.status)} />
+      <MemoryField
+        label="Client"
+        value={
+          <span>
+            {clientLabel}
+            {session.platform ? (
+              <span className="text-[var(--color-muted-foreground)]"> · {session.platform}</span>
+            ) : null}
+          </span>
+        }
+      />
     </div>
   );
 }

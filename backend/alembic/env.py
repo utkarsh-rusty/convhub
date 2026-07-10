@@ -14,6 +14,7 @@ from app.models import (  # noqa: F401 — register models with metadata
     Conversation,
     ConversationParticipant,
     CreditTransaction,
+    DeveloperWorkspaceSession,
     Invitation,
     Message,
     Project,

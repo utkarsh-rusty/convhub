@@ -437,6 +437,43 @@ export const syncPushResponseSchema = z.object({
   last_synchronized_at: z.string(),
 });
 
+export const workspaceClientProtocolStatusSchema = z.object({
+  plugin_protocol_ready: z.boolean(),
+  connected_sessions: z.number(),
+  current_sync_version: z.number().nullable().optional(),
+  repository_id: z.string().uuid(),
+});
+
+export const developerWorkspaceSessionStatusSchema = z.enum([
+  "active",
+  "idle",
+  "disconnected",
+  "closed",
+]);
+
+export const workspaceSessionResponseSchema = z.object({
+  id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  project_id: z.string().uuid(),
+  repository_id: z.string().uuid(),
+  repository_branch_id: z.string().uuid(),
+  conversation_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  status: developerWorkspaceSessionStatusSchema,
+  started_at: z.string(),
+  last_heartbeat_at: z.string(),
+  closed_at: z.string().nullable().optional(),
+  client_name: z.string().nullable().optional(),
+  client_version: z.string().nullable().optional(),
+  platform: z.string().nullable().optional(),
+  working_directory: z.string().nullable().optional(),
+  user_name: z.string().nullable().optional(),
+  repository_branch_name: z.string().nullable().optional(),
+  conversation_title: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 export const branchMemorySummarySchema = z.object({
   id: z.string().uuid(),
   repository_branch_id: z.string().uuid(),
@@ -951,6 +988,8 @@ export type BranchSyncState = z.infer<typeof branchSyncStateSchema>;
 export type SyncStatusResponse = z.infer<typeof syncStatusResponseSchema>;
 export type SyncPullResponse = z.infer<typeof syncPullResponseSchema>;
 export type SyncPushResponse = z.infer<typeof syncPushResponseSchema>;
+export type WorkspaceSessionResponse = z.infer<typeof workspaceSessionResponseSchema>;
+export type WorkspaceClientProtocolStatus = z.infer<typeof workspaceClientProtocolStatusSchema>;
 export type BranchMemorySummary = z.infer<typeof branchMemorySummarySchema>;
 export type ProjectConversationSummary = z.infer<typeof projectConversationSummarySchema>;
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
