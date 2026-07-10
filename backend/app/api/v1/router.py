@@ -20,6 +20,7 @@ from app.projects.router import projects_router
 from app.repositories.router import repositories_router
 from app.repository_branches.router import repository_branches_router
 from app.branch_sync_records.router import branch_sync_records_router
+from app.sync.router import sync_router
 from app.workspaces.router import invitations_router, workspaces_router
 
 api_router = APIRouter()
@@ -33,6 +34,7 @@ api_router.include_router(projects_router)
 api_router.include_router(repositories_router)
 api_router.include_router(repository_branches_router)
 api_router.include_router(branch_sync_records_router)
+api_router.include_router(sync_router)
 api_router.include_router(credits_router)
 api_router.include_router(sharing_router)
 api_router.include_router(routing_router)

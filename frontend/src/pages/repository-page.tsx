@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Code2, GitBranch, History, Link as LinkIcon, Plus } from "lucide-react";
+import { Code2, GitBranch, History, Link as LinkIcon, Plus, RefreshCw, Upload } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import {
   repositoryApi,
   repositoryBranchApi,
   showApiError,
+  syncApi,
 } from "@/lib/api";
 import { formatTimestamp } from "@/lib/format";
 import { useWorkspace } from "@/context/workspace-context";
@@ -39,6 +40,23 @@ function providerLabel(provider: string) {
       return "Bitbucket";
     default:
       return "Other";
+  }
+}
+
+function syncStateLabel(state: string) {
+  switch (state) {
+    case "synced":
+      return "Synced";
+    case "ahead":
+      return "Ahead";
+    case "behind":
+      return "Behind";
+    case "conflict":
+      return "Conflict";
+    case "detached":
+      return "Detached";
+    default:
+      return state;
   }
 }
 
@@ -102,11 +120,38 @@ export function RepositoryPage() {
     enabled: Boolean(activeWorkspaceId && repositoryId),
   });
 
+  const defaultBranch = branches.find((branch) => branch.is_default) ?? branches[0] ?? null;
+
+  const { data: syncStatus, isLoading: syncLoading } = useQuery({
+    queryKey: ["sync-status", activeWorkspaceId, defaultBranch?.id],
+    queryFn: () => syncApi.getStatus(defaultBranch!.id),
+    enabled: Boolean(activeWorkspaceId && defaultBranch?.id),
+  });
+
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["repositories", activeWorkspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["repository-branches", activeWorkspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["conversations", activeWorkspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["sync-status", activeWorkspaceId] });
   };
+
+  const pushSyncMutation = useMutation({
+    mutationFn: () => syncApi.push(defaultBranch!.id),
+    onSuccess: () => {
+      toast.success("Sync push registered");
+      invalidate();
+    },
+    onError: (error) => showApiError(error, "Unable to register sync push"),
+  });
+
+  const pullSyncMutation = useMutation({
+    mutationFn: () => syncApi.pull(defaultBranch!.id),
+    onSuccess: () => {
+      toast.success("Sync pull metadata loaded");
+      invalidate();
+    },
+    onError: (error) => showApiError(error, "Unable to load sync pull metadata"),
+  });
 
   const createLinkedConversation = useMutation({
     mutationFn: async () => {
@@ -256,6 +301,85 @@ export function RepositoryPage() {
       </div>
 
       <div className="space-y-8 px-6 py-6">
+        <section>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-medium">Sync</h2>
+            {defaultBranch ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={pushSyncMutation.isPending || !defaultBranch}
+                  onClick={() => pushSyncMutation.mutate()}
+                >
+                  <Upload className="mr-1.5 h-3.5 w-3.5" />
+                  {pushSyncMutation.isPending ? "Pushing..." : "Push"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={pullSyncMutation.isPending || !defaultBranch}
+                  onClick={() => pullSyncMutation.mutate()}
+                >
+                  <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                  {pullSyncMutation.isPending ? "Pulling..." : "Pull"}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+
+          {!defaultBranch ? (
+            <p className="rounded-lg border border-dashed border-[var(--color-border)] px-4 py-8 text-sm text-[var(--color-muted-foreground)]">
+              Create a repository branch to view synchronization status.
+            </p>
+          ) : syncLoading ? (
+            <Skeleton className="h-32 w-full" />
+          ) : (
+            <div className="rounded-lg border border-[var(--color-border)] p-4">
+              <div className="grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-3">
+                <MemoryField
+                  label="Sync state"
+                  value={syncStateLabel(syncStatus?.sync_state ?? "detached")}
+                />
+                <MemoryField
+                  label="Branch version"
+                  value={syncStatus?.sync_version != null ? String(syncStatus.sync_version) : "—"}
+                />
+                <MemoryField
+                  label="Last sync"
+                  value={
+                    syncStatus?.last_synchronized_at
+                      ? formatTimestamp(syncStatus.last_synchronized_at)
+                      : "—"
+                  }
+                />
+                <MemoryField
+                  label="Latest commit"
+                  value={
+                    syncStatus?.latest_commit
+                      ? `#${syncStatus.latest_commit.commit_hash}`
+                      : "Not Available Yet"
+                  }
+                />
+                <MemoryField
+                  label="Latest context package"
+                  value={
+                    syncStatus?.latest_context_package
+                      ? `v${syncStatus.latest_context_package.version}`
+                      : "Not Available Yet"
+                  }
+                />
+                <MemoryField
+                  label="Repository branch"
+                  value={syncStatus?.repository_branch.name ?? defaultBranch.name}
+                />
+              </div>
+            </div>
+          )}
+        </section>
+
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-sm font-medium">Branches</h2>

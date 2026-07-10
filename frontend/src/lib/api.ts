@@ -44,6 +44,9 @@ import {
   branchMemoryExportResponseSchema,
   branchSyncHistoryExportResponseSchema,
   branchSyncRecordSummarySchema,
+  syncPullResponseSchema,
+  syncPushResponseSchema,
+  syncStatusResponseSchema,
   conversationSearchResponseSchema,
   conversationStatsResponseSchema,
   conversationTimelineResponseSchema,
@@ -434,6 +437,29 @@ export const repositoryBranchApi = {
   async getSyncRecord(recordId: string) {
     const { data } = await api.get(`/branch-sync-records/${recordId}`);
     return branchSyncRecordSummarySchema.parse(data);
+  },
+};
+
+export const syncApi = {
+  async getStatus(repositoryBranchId: string) {
+    const { data } = await api.get("/sync/status", {
+      params: { repository_branch_id: repositoryBranchId },
+    });
+    return syncStatusResponseSchema.parse(data);
+  },
+
+  async pull(repositoryBranchId: string) {
+    const { data } = await api.get("/sync/pull", {
+      params: { repository_branch_id: repositoryBranchId },
+    });
+    return syncPullResponseSchema.parse(data);
+  },
+
+  async push(repositoryBranchId: string, payload: { notes?: string } = {}) {
+    const { data } = await api.post("/sync/push", payload, {
+      params: { repository_branch_id: repositoryBranchId },
+    });
+    return syncPushResponseSchema.parse(data);
   },
 };
 

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, Index, Integer
+from sqlalchemy import DateTime, ForeignKey, Index, Integer
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -35,6 +36,8 @@ class BranchMemory(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=True,
     )
     memory_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    current_sync_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     sync_status: Mapped[BranchMemorySyncStatus] = mapped_column(
         pg_enum(BranchMemorySyncStatus, name="branch_memory_sync_status"),
         nullable=False,

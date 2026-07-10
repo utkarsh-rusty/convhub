@@ -45,6 +45,14 @@ class BranchMemorySyncStatus(str, enum.Enum):
     CONFLICT = "conflict"
 
 
+class BranchSyncState(str, enum.Enum):
+    SYNCED = "synced"
+    AHEAD = "ahead"
+    BEHIND = "behind"
+    CONFLICT = "conflict"
+    DETACHED = "detached"
+
+
 class BranchSyncType(str, enum.Enum):
     LOCAL_COMMIT = "local_commit"
     RESTORE = "restore"

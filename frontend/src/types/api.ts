@@ -350,6 +350,93 @@ export const branchSyncRecordSummarySchema = z.object({
   created_at: z.string(),
 });
 
+export const branchSyncStateSchema = z.enum([
+  "synced",
+  "ahead",
+  "behind",
+  "conflict",
+  "detached",
+]);
+
+export const syncCommitSummarySchema = z.object({
+  id: z.string().uuid(),
+  commit_hash: z.string(),
+  title: z.string(),
+  created_at: z.string(),
+});
+
+export const syncContextPackageSummarySchema = z.object({
+  id: z.string().uuid(),
+  commit_id: z.string().uuid(),
+  commit_hash: z.string(),
+  version: z.number(),
+  generated_at: z.string(),
+});
+
+export const syncStatusResponseSchema = z.object({
+  repository: z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+    provider: repositoryProviderSchema,
+    owner: z.string(),
+    repository_name: z.string(),
+    remote_url: z.string(),
+    default_branch: z.string(),
+    visibility: repositoryVisibilitySchema,
+  }),
+  repository_branch: z.object({
+    id: z.string().uuid(),
+    repository_id: z.string().uuid(),
+    name: z.string(),
+    is_default: z.boolean(),
+    is_active: z.boolean(),
+  }),
+  sync_version: z.number(),
+  sync_state: branchSyncStateSchema,
+  latest_commit: syncCommitSummarySchema.nullable().optional(),
+  latest_context_package: syncContextPackageSummarySchema.nullable().optional(),
+  latest_sync_record: branchSyncRecordSummarySchema.nullable().optional(),
+  last_synchronized_at: z.string().nullable().optional(),
+});
+
+export const syncPullResponseSchema = z.object({
+  branch_memory: z.object({
+    id: z.string().uuid(),
+    repository_branch_id: z.string().uuid(),
+    repository_id: z.string().uuid(),
+    repository_branch_name: z.string(),
+    latest_sync_record_id: z.string().uuid().nullable().optional(),
+    current_conversation_id: z.string().uuid().nullable().optional(),
+    current_convhub_branch_id: z.string().uuid().nullable().optional(),
+    current_commit_id: z.string().uuid().nullable().optional(),
+    current_context_package_id: z.string().uuid().nullable().optional(),
+    working_user_id: z.string().uuid().nullable().optional(),
+    working_user_name: z.string().nullable().optional(),
+    memory_version: z.number(),
+    current_sync_version: z.number(),
+    last_sync_at: z.string().nullable().optional(),
+    sync_status: branchMemorySyncStatusSchema,
+    current_conversation_title: z.string().nullable().optional(),
+    current_convhub_branch_name: z.string().nullable().optional(),
+    current_commit_hash: z.string().nullable().optional(),
+    current_context_package_version: z.number().nullable().optional(),
+    latest_sync_record: branchSyncRecordSummarySchema.nullable().optional(),
+    created_at: z.string(),
+    updated_at: z.string(),
+  }),
+  latest_commit: syncCommitSummarySchema.nullable().optional(),
+  latest_context_package: syncContextPackageSummarySchema.nullable().optional(),
+  latest_sync_record: branchSyncRecordSummarySchema.nullable().optional(),
+  branch_sync_version: z.number(),
+});
+
+export const syncPushResponseSchema = z.object({
+  sync_version: z.number(),
+  sync_state: branchSyncStateSchema,
+  latest_sync_record: branchSyncRecordSummarySchema,
+  last_synchronized_at: z.string(),
+});
+
 export const branchMemorySummarySchema = z.object({
   id: z.string().uuid(),
   repository_branch_id: z.string().uuid(),
@@ -361,6 +448,8 @@ export const branchMemorySummarySchema = z.object({
   working_user_id: z.string().uuid().nullable().optional(),
   working_user_name: z.string().nullable().optional(),
   memory_version: z.number(),
+  current_sync_version: z.number(),
+  last_sync_at: z.string().nullable().optional(),
   sync_status: branchMemorySyncStatusSchema,
   current_conversation_title: z.string().nullable().optional(),
   current_convhub_branch_name: z.string().nullable().optional(),
@@ -858,6 +947,10 @@ export type BranchMemorySyncStatus = z.infer<typeof branchMemorySyncStatusSchema
 export type BranchSyncType = z.infer<typeof branchSyncTypeSchema>;
 export type BranchSyncRecordSummary = z.infer<typeof branchSyncRecordSummarySchema>;
 export type RepositoryBranchResponse = z.infer<typeof repositoryBranchResponseSchema>;
+export type BranchSyncState = z.infer<typeof branchSyncStateSchema>;
+export type SyncStatusResponse = z.infer<typeof syncStatusResponseSchema>;
+export type SyncPullResponse = z.infer<typeof syncPullResponseSchema>;
+export type SyncPushResponse = z.infer<typeof syncPushResponseSchema>;
 export type BranchMemorySummary = z.infer<typeof branchMemorySummarySchema>;
 export type ProjectConversationSummary = z.infer<typeof projectConversationSummarySchema>;
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;

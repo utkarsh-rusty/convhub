@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -41,6 +42,7 @@ class BranchMemoryService:
         memory = BranchMemory(
             repository_branch_id=repository_branch.id,
             memory_version=0,
+            current_sync_version=0,
             sync_status=BranchMemorySyncStatus.NOT_SYNCED,
         )
         self.db.add(memory)
@@ -323,6 +325,7 @@ class BranchMemoryService:
             )
 
         memory.memory_version += 1
+        memory.current_sync_version += 1
         record = BranchSyncRecord(
             branch_memory_id=memory.id,
             conversation_id=state_conversation_id,
@@ -338,6 +341,8 @@ class BranchMemoryService:
         await self.db.flush()
         memory.latest_sync_record_id = record.id
         memory.sync_status = BranchMemorySyncStatus.NOT_SYNCED
+        if sync_type == BranchSyncType.PLUGIN_PUSH:
+            memory.last_sync_at = datetime.now(UTC)
         return record
 
     async def _load_memory(self, repository_branch_id: UUID) -> BranchMemory:
@@ -519,6 +524,8 @@ class BranchMemoryService:
                 None if detached else latest_summary.user_name if latest_summary else None
             ),
             memory_version=memory.memory_version,
+            current_sync_version=memory.current_sync_version,
+            last_sync_at=memory.last_sync_at,
             sync_status=memory.sync_status,
             current_conversation_title=(
                 None
@@ -601,6 +608,8 @@ class BranchMemoryService:
             working_user_id=None if detached else (latest.user_id if latest else None),
             working_user_name=latest_summary.user_name if latest_summary is not None else None,
             memory_version=memory.memory_version,
+            current_sync_version=memory.current_sync_version,
+            last_sync_at=memory.last_sync_at,
             sync_status=memory.sync_status,
             current_conversation_title=(
                 None if detached else (latest_summary.conversation_title if latest_summary else None)

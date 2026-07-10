@@ -47,6 +47,8 @@ class BranchMemorySummary(BaseModel):
     working_user_id: UUID | None = None
     working_user_name: str | None = None
     memory_version: int
+    current_sync_version: int
+    last_sync_at: datetime | None = None
     sync_status: BranchMemorySyncStatus
     current_conversation_title: str | None = None
     current_convhub_branch_name: str | None = None
@@ -83,6 +85,8 @@ class BranchMemoryResponse(BaseModel):
     working_user_id: UUID | None = None
     working_user_name: str | None = None
     memory_version: int
+    current_sync_version: int
+    last_sync_at: datetime | None = None
     sync_status: BranchMemorySyncStatus
     current_conversation_title: str | None = None
     current_convhub_branch_name: str | None = None
