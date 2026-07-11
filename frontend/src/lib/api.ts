@@ -492,6 +492,14 @@ export const repositoryBranchApi = {
     return pullPackageJsonExportResponseSchema.parse(data);
   },
 
+  async getClaudeHandoff(branchId: string) {
+    const { data } = await api.get(`/repository-branches/${branchId}/handoff/claude`, {
+      responseType: "text",
+      transformResponse: [(body) => body],
+    });
+    return typeof data === "string" ? data : String(data ?? "");
+  },
+
   async listHistory(branchId: string) {
     const { data } = await api.get(`/repository-branches/${branchId}/history`);
     return branchSyncRecordSummarySchema.array().parse(data);

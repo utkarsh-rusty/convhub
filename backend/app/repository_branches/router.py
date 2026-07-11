@@ -1,14 +1,21 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.adapters.claude.service import ClaudeHandoffService
 from app.api.deps import get_db
 from app.branch_memory.service import BranchMemoryService
 from app.conversations.deps import WorkspaceContext, get_workspace_context
 from app.models.repository import Repository
 from app.models.repository_branch import RepositoryBranch
+from app.pull_packages.schemas import (
+    PullPackageExportResponse,
+    PullPackageJsonExportResponse,
+    PullPackageResponse,
+)
+from app.pull_packages.service import PullPackageService
 from app.repository_branches.schemas import (
     BranchMemoryExportResponse,
     BranchMemoryResponse,
@@ -26,12 +33,6 @@ from app.repository_memory.schemas import (
     RepositoryMemoryResponse,
 )
 from app.repository_memory.service import RepositoryMemoryService
-from app.pull_packages.schemas import (
-    PullPackageExportResponse,
-    PullPackageJsonExportResponse,
-    PullPackageResponse,
-)
-from app.pull_packages.service import PullPackageService
 from app.repositories.router import get_repository
 
 repository_branches_router = APIRouter(prefix="/repository-branches", tags=["repository-branches"])
@@ -156,6 +157,10 @@ def get_pull_package_service(db: AsyncSession = Depends(get_db)) -> PullPackageS
     return PullPackageService(db=db)
 
 
+def get_claude_handoff_service(db: AsyncSession = Depends(get_db)) -> ClaudeHandoffService:
+    return ClaudeHandoffService(db=db)
+
+
 @repository_branches_router.get(
     "/{repository_branch_id}/repository-memory",
     response_model=RepositoryMemoryResponse,
@@ -220,6 +225,30 @@ async def export_pull_package_json(
     service: PullPackageService = Depends(get_pull_package_service),
 ) -> PullPackageJsonExportResponse:
     return await service.export_json(branch)
+
+
+@repository_branches_router.get(
+    "/{repository_branch_id}/handoff/claude",
+    response_class=Response,
+    responses={
+        200: {
+            "content": {"text/markdown": {"schema": {"type": "string"}}},
+            "description": "Claude handoff Markdown document",
+        }
+    },
+)
+async def get_claude_handoff(
+    branch: RepositoryBranch = Depends(get_repository_branch),
+    service: ClaudeHandoffService = Depends(get_claude_handoff_service),
+) -> Response:
+    content = await service.render_for_repository_branch(branch)
+    return Response(
+        content=content,
+        media_type="text/markdown; charset=utf-8",
+        headers={
+            "Content-Disposition": f'inline; filename="claude-handoff-{branch.name}.md"',
+        },
+    )
 
 
 def register_repository_branch_routes(repositories_router: APIRouter) -> None:

@@ -151,6 +151,7 @@ export function RepositoryPage() {
   const [renameValue, setRenameValue] = useState("");
   const [memoryView, setMemoryView] = useState<"markdown" | "json" | null>(null);
   const [pullPackageView, setPullPackageView] = useState<"markdown" | "json" | null>(null);
+  const [claudeHandoffPreview, setClaudeHandoffPreview] = useState<string | null>(null);
   const [selectedExternalAISessionId, setSelectedExternalAISessionId] = useState<string | null>(
     null,
   );
@@ -386,6 +387,24 @@ export function RepositoryPage() {
       toast.success("Pull package JSON exported");
     },
     onError: (error) => showApiError(error, "Unable to export pull package JSON"),
+  });
+
+  const downloadClaudeHandoffMutation = useMutation({
+    mutationFn: (branchId: string) => repositoryBranchApi.getClaudeHandoff(branchId),
+    onSuccess: (content) => {
+      const branchName = defaultBranch?.name ?? "branch";
+      downloadTextFile(`claude-handoff-${branchName}.md`, content, "text/markdown");
+      toast.success("Claude handoff downloaded");
+    },
+    onError: (error) => showApiError(error, "Unable to download Claude handoff"),
+  });
+
+  const previewClaudeHandoffMutation = useMutation({
+    mutationFn: (branchId: string) => repositoryBranchApi.getClaudeHandoff(branchId),
+    onSuccess: (content) => {
+      setClaudeHandoffPreview(content);
+    },
+    onError: (error) => showApiError(error, "Unable to preview Claude handoff"),
   });
 
   if (isLoading) {
@@ -700,6 +719,24 @@ export function RepositoryPage() {
                 >
                   Export Markdown
                 </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!defaultBranch || previewClaudeHandoffMutation.isPending}
+                  onClick={() => previewClaudeHandoffMutation.mutate(defaultBranch.id)}
+                >
+                  Preview Claude Handoff
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!defaultBranch || downloadClaudeHandoffMutation.isPending}
+                  onClick={() => downloadClaudeHandoffMutation.mutate(defaultBranch.id)}
+                >
+                  Download Claude Handoff
+                </Button>
               </div>
             </div>
           )}
@@ -1009,6 +1046,29 @@ export function RepositoryPage() {
           </pre>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setPullPackageView(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={claudeHandoffPreview !== null}
+        onOpenChange={(open) => !open && setClaudeHandoffPreview(null)}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Claude Handoff</DialogTitle>
+            <DialogDescription>
+              Paste-ready Markdown for a fresh Claude Code session on{" "}
+              {defaultBranch?.name ?? "this branch"}.
+            </DialogDescription>
+          </DialogHeader>
+          <pre className="max-h-[60vh] overflow-auto rounded-md border border-[var(--color-border)] bg-[var(--color-muted)]/30 p-3 text-xs whitespace-pre-wrap">
+            {claudeHandoffPreview ?? ""}
+          </pre>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setClaudeHandoffPreview(null)}>
               Close
             </Button>
           </DialogFooter>
