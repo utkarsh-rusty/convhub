@@ -35,6 +35,7 @@ def test_install_and_uninstall_hooks(tmp_path: Path) -> None:
         **os.environ,
         "CLAUDE_SETTINGS_PATH": str(settings_path),
         "CONVHUB_HOME": str(tmp_path / "convhub"),
+        "CONVHUB_BIN_DIR": str(tmp_path / "bin"),
         "PYTHON_BIN": sys.executable,
     }
     install = subprocess.run(
@@ -46,6 +47,7 @@ def test_install_and_uninstall_hooks(tmp_path: Path) -> None:
         text=True,
     )
     assert "Installed ConvHub Claude hooks" in install.stdout
+    assert (tmp_path / "bin" / "convhub").is_symlink() or (tmp_path / "bin" / "convhub").exists()
 
     settings = json.loads(settings_path.read_text(encoding="utf-8"))
     for event in ("SessionStart", "PostToolUse", "Stop", "PreCompact", "SessionEnd"):

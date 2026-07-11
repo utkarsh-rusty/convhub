@@ -29,5 +29,5 @@ Introduce **Projects** as a first-class domain object between Workspace and Conv
 ### Deferred
 
 - Project-specific permissions
-- Git repository linkage
+- Remote Git automation (repository **metadata** linkage is implemented — see [coding-workspaces.md](coding-workspaces.md))
 - Project-level knowledge graphs

@@ -4,11 +4,11 @@
 
 Accepted — Sprint 19 · **Implemented** (generation + export)
 
-Context Restore is **Implemented** (Sprint 20). Import and IDE consumers remain **Planned** / **Research**.
+Context Restore is **Implemented** (Sprint 20). Claude Handoff / Pull Package consumers related coding-memory artifacts are **Implemented**. Package import and additional IDE adapters remain **Planned** / **Research**.
 
 ## Context
 
-Conversation commits mark intentional milestones, but future tools (restore, Git sync, VS Code, IDE adapters, merge) need a stable, portable snapshot of project memory at that commit.
+Conversation commits mark intentional milestones, but tools (restore, handoff, future Git sync / VS Code / merge) need a stable, portable snapshot of project memory at that commit.
 
 ## Decision
 

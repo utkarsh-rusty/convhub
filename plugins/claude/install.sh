@@ -72,11 +72,20 @@ print("Configure ~/.convhub/config.json before starting Claude Code.")
 PY
 
 chmod +x \
+  "$PLUGIN_ROOT/convhub" \
   "$PLUGIN_ROOT/hooks/session_start.py" \
   "$PLUGIN_ROOT/hooks/post_tool_use.py" \
   "$PLUGIN_ROOT/hooks/stop.py" \
   "$PLUGIN_ROOT/hooks/pre_compact.py" \
   "$PLUGIN_ROOT/hooks/session_end.py"
+
+BIN_DIR="${CONVHUB_BIN_DIR:-$HOME/.local/bin}"
+mkdir -p "$BIN_DIR"
+ln -sfn "$PLUGIN_ROOT/convhub" "$BIN_DIR/convhub"
+echo "Linked CLI: $BIN_DIR/convhub"
+if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+  echo "Note: add $BIN_DIR to your PATH to run 'convhub push' / 'convhub pull'."
+fi
 
 CONFIG_PATH="${CONVHUB_HOME:-$HOME/.convhub}/config.json"
 if [[ ! -f "$CONFIG_PATH" ]]; then

@@ -39,14 +39,16 @@ export function HeroSection() {
             </span>
           </div>
           <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight md:text-5xl lg:text-6xl">
-            Git for AI-native Project Memory
+            Continue your teammate&apos;s AI coding session.
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-[var(--color-muted-foreground)]">
-            Shared AI conversations with ownership-first routing, branching, commits, and realtime
-            collaboration — while everyone keeps their own providers.
+            ConvHub brings Git-style collaboration to AI-assisted software development — shared
+            conversations, project memory, and Claude Code handoff with{" "}
+            <span className="font-medium text-[var(--color-foreground)]">convhub push</span> and{" "}
+            <span className="font-medium text-[var(--color-foreground)]">convhub pull</span>.
           </p>
           <p className="mt-4 text-sm font-medium text-[var(--color-foreground)]">
-            Git versions code. ConvHub versions project knowledge.
+            Git versions code. ConvHub moves the AI context your teammate needs next.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">

@@ -1,12 +1,15 @@
 import {
+  ArrowLeftRight,
   Coins,
   FolderKanban,
   GitBranch,
   GitCommit,
+  HardDrive,
   Network,
+  Package,
   Radio,
-  Server,
   Sparkles,
+  Terminal,
   Users,
 } from "lucide-react";
 
@@ -15,21 +18,77 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const CATEGORIES = [
   {
-    title: "Workspace collaboration",
+    title: "AI Collaboration",
     icon: Users,
     features: [
       "Shared workspaces and invitations",
-      "Conversation participants and ownership",
-      "Live presence and typing indicators",
+      "Realtime streaming and presence",
+      "Why: stop reconstructing context from Slack and Git alone",
     ],
   },
   {
-    title: "Projects",
+    title: "Workspaces & Projects",
     icon: FolderKanban,
     features: [
-      "Permanent home for project memory",
+      "Durable home for conversations and memory",
       "Default Project per workspace",
-      "Repo-style project overview pages",
+      "Why: collaboration needs a container, not a chat URL",
+    ],
+  },
+  {
+    title: "Conversation Branching",
+    icon: GitBranch,
+    features: [
+      "Branch from any message",
+      "Independent lineage without rewriting the main thread",
+      "Why: ideas fork — memory should fork with them",
+    ],
+  },
+  {
+    title: "Commits & Context Packages",
+    icon: GitCommit,
+    features: [
+      "Manual commits with Git-like hashes",
+      "Immutable Context Packages per commit",
+      "Restore into a new working conversation",
+      "Why: milestones should be findable and reusable",
+    ],
+  },
+  {
+    title: "Repository Memory",
+    icon: HardDrive,
+    features: [
+      "Deterministic project-state memory per repo branch",
+      "Composed from ConvHub data — not LLM summaries",
+      "Why: the next developer needs the current picture",
+    ],
+  },
+  {
+    title: "Coding Workspaces",
+    icon: Package,
+    features: [
+      "Link repositories and branches",
+      "Sync metadata and active developers",
+      "Why: AI work sits next to code",
+    ],
+  },
+  {
+    title: "Claude Code Integration",
+    icon: Terminal,
+    features: [
+      "Official Claude Code hooks for transcript deltas",
+      "convhub push and convhub pull",
+      "Why: handoff should be a command, not a scavenger hunt",
+    ],
+  },
+  {
+    title: "AI Handoff & Restore",
+    icon: ArrowLeftRight,
+    features: [
+      "Paste-ready Claude Handoff Markdown",
+      "Pull Package compose and export",
+      "Context Restore from packages",
+      "Why: a new session needs a deterministic brief",
     ],
   },
   {
@@ -37,37 +96,18 @@ const CATEGORIES = [
     icon: Sparkles,
     features: [
       "Routes through the sender's own providers first",
-      "Multi-provider accounts per user",
+      "Borrow when needed, with clear metadata",
       "Anthropic, OpenAI, Gemini, Groq, and Ollama",
     ],
     providers: ["OpenAI", "Anthropic", "Gemini", "Groq", "Ollama"] as const,
   },
   {
-    title: "Borrowing engine",
+    title: "Budgets & providers",
     icon: Coins,
     features: [
-      "Borrow providers from conversation participants",
-      "Lending preferences and share limits",
-      "Transparent borrowed execution metadata",
-    ],
-  },
-  {
-    title: "Conversation branching",
-    icon: GitBranch,
-    features: [
-      "Branch from any message",
-      "Independent branch ownership",
-      "Lineage and read-only branch viewing",
-    ],
-  },
-  {
-    title: "Conversation commits",
-    icon: GitCommit,
-    features: [
-      "Manual commits with Git-like hashes",
-      "Automatic checkpoints after assistant replies",
-      "Context Packages generated per commit",
-      "Restore packages into new working conversations",
+      "Workspace budgets and credit ledger",
+      "Connect and own your AI accounts",
+      "No vendor lock-in",
     ],
   },
   {
@@ -88,24 +128,6 @@ const CATEGORIES = [
       "Instant message sync for participants",
     ],
   },
-  {
-    title: "Budget management",
-    icon: Coins,
-    features: [
-      "Workspace budgets and credit ledger",
-      "Borrow limits and lending preferences",
-      "Routing policies and account ownership",
-    ],
-  },
-  {
-    title: "Provider management",
-    icon: Server,
-    features: [
-      "Connect and own your AI accounts",
-      "Provider health and priority",
-      "No vendor lock-in",
-    ],
-  },
 ] as const;
 
 export function FeaturesSection() {
@@ -114,10 +136,10 @@ export function FeaturesSection() {
       <div className="mx-auto max-w-6xl">
         <div>
           <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
-            Features available today
+            What ships in MVP v1
           </h2>
           <p className="mt-4 max-w-2xl text-[var(--color-muted-foreground)]">
-            Only implemented capabilities. Roadmap items live in the Vision section below.
+            Capabilities grouped by outcome. Roadmap items live in the Vision section below.
           </p>
         </div>
 

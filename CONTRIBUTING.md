@@ -2,7 +2,7 @@
 
 Thank you for helping improve ConvHub!
 
-ConvHub is **Git for AI-native Project Memory** — a collaborative system that versions conversations, commits, and branches while each person keeps ownership of their own AI providers. The project is in **early beta**; contributions to code, documentation, and issue triage are welcome.
+ConvHub brings Git-style collaboration to AI-assisted software development: shared conversations, versioned project memory, and Claude Code handoff (`convhub push` / `convhub pull`) — while each person keeps ownership of their own AI providers. The project is in **early beta**; contributions to code, documentation, and issue triage are welcome.
 
 ## Local setup
 
@@ -11,6 +11,7 @@ ConvHub is **Git for AI-native Project Memory** — a collaborative system that 
 3. Start services: `docker compose up --build`.
 4. Run migrations: `docker compose exec backend alembic upgrade head`.
 5. Frontend: `cd frontend && npm install && npm run dev`.
+6. Optional Claude plugin: see [plugins/claude/README.md](plugins/claude/README.md).
 
 ## Branch naming
 
@@ -33,13 +34,21 @@ docs: refresh product positioning
 
 ```bash
 cd backend
-python -m pytest
+PYTHONPATH=. python -m pytest -q
 ```
 
-With coverage:
+Plugin:
 
 ```bash
-python -m pytest --cov=app
+cd plugins/claude
+python -m pytest tests -q
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm run lint && npm run build
 ```
 
 ## Code formatting
@@ -69,7 +78,10 @@ npm run build
 
 ## Documentation
 
-Positioning should describe ConvHub as **Git for AI-native Project Memory**, not as an AI gateway or a generic chat app. Clearly separate **Implemented**, **Planned**, and **Research**. See [README.md](README.md) and [docs/](docs/) for the canonical messaging.
+- Describe **implemented** MVP behavior accurately (through Sprint 36).
+- Separate **Complete**, **Planned**, and **Research** — never mark future work as shipped.
+- Keep deep technical material under [docs/](docs/); keep the root README scannable in under three minutes.
+- Canonical messaging: [README.md](README.md), [roadmap.md](roadmap.md), [docs/index.md](docs/index.md).
 
 ## Questions
 

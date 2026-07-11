@@ -4,36 +4,36 @@ const STEPS = [
     body: "Start a team workspace for shared conversations, providers, and budgets.",
   },
   {
-    title: "Open a project",
-    body: "Projects are the permanent home for conversations, commits, and context packages.",
+    title: "Create a project",
+    body: "Projects are the permanent home for conversations, repositories, and memory.",
   },
   {
-    title: "Invite team members",
-    body: "Add collaborators with workspace roles and conversation participation.",
+    title: "Invite developers",
+    body: "Add collaborators with workspace roles so everyone can pick up the same thread.",
   },
   {
-    title: "Connect AI providers",
-    body: "Each person connects their own accounts — Claude, OpenAI, Gemini, Groq, or Ollama.",
+    title: "Developer A works",
+    body: "Collaborate in ConvHub and/or Claude Code. Connect providers you own.",
   },
   {
-    title: "Start shared conversations",
-    body: "Chat together in one thread with realtime updates and ownership-first routing.",
+    title: "convhub push",
+    body: "Upload transcript deltas and refresh Repository Memory, Pull Package, and handoff.",
   },
   {
-    title: "Branch conversations",
-    body: "Fork from any message to explore an idea without changing the main thread.",
+    title: "Developer B: git pull",
+    body: "Pull the latest code as usual. ConvHub does not replace Git.",
   },
   {
-    title: "Commit important milestones",
-    body: "Save intentional commits with Git-like hashes so key moments are easy to find.",
+    title: "convhub pull",
+    body: "Download a paste-ready Claude Handoff document for the repository branch.",
   },
   {
-    title: "Restore from a checkpoint",
-    body: "Open an immutable Context Package and restore it into a new working conversation.",
+    title: "Paste into Claude Code",
+    body: "Open a new Claude Code session and paste the handoff. Continue seamlessly.",
   },
   {
-    title: "Continue collaborating",
-    body: "Keep working with budgets, borrowing, branch visualization, and live presence.",
+    title: "Branch, commit, restore",
+    body: "Optionally branch conversations, commit milestones, and restore Context Packages.",
   },
 ] as const;
 
@@ -43,7 +43,7 @@ export function HowItWorksSection() {
       <div className="mx-auto max-w-6xl">
         <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">How it works</h2>
         <p className="mt-4 max-w-2xl text-[var(--color-muted-foreground)]">
-          The workflow available in ConvHub today — every step is implemented.
+          From workspace setup to Claude Code handoff — every step below ships in MVP v1.
         </p>
 
         <ol className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

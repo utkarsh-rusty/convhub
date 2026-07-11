@@ -1,21 +1,23 @@
 # ConvHub Roadmap
 
-**Git for AI-native Project Memory.**
+**Git changed how developers collaborate on code.  
+ConvHub changes how developers collaborate with AI.**
 
 Every item is categorized. Future work is never described as shipped.
 
 | Status | Meaning |
 |--------|---------|
-| **Implemented** | Available in the current codebase |
-| **In Progress** | Actively being built right now |
-| **Planned** | Intended for a named release; not built yet |
+| **Complete** | Shipped in MVP v1 (through Sprint 36) |
+| **Planned** | Intended; not built yet |
 | **Research** | Exploratory; design may change |
 
 ---
 
-## Implemented — v1.0
+## Complete — MVP v1 (through Sprint 36)
 
-**Status: Implemented**
+**Status: Complete**
+
+### Collaboration core
 
 - Authentication and workspaces
 - First-class Projects (Default Project per workspace)
@@ -27,60 +29,48 @@ Every item is categorized. Future work is never described as shipped.
 - Realtime collaboration (WebSockets, streaming, presence)
 - Conversation branching
 - Conversation commits and checkpoints
-- Context Packages (immutable exportable artifacts per commit)
-- Context Restore / Project Checkpoints (new working conversations from packages)
+- Context Packages (immutable artifacts per commit)
+- Context Restore / Project Checkpoints
 - Branch manager, commit graph, and overview visualization
 - Open-source MIT distribution
 
+### Coding workspaces & AI handoff
+
+- Coding repositories and repository branches (metadata linkage)
+- Repository sync metadata and active developers
+- Repository Memory (deterministic composition)
+- External AI Sessions and transcript chunk upload
+- Transcript Snapshots (rebuild on upload; export)
+- Pull Package (JSON / Markdown compose + export)
+- Claude Handoff adapter (`GET .../handoff/claude`)
+- Claude Code plugin (official hooks)
+- `convhub push` / `convhub pull` CLI workflow
+
 ---
 
-## In Progress
-
-**Status: In Progress**
-
-_Nothing currently marked in progress. Active work will be listed here when a release track is underway._
-
----
-
-## Planned — v1.1 Project Memory consumers
+## Planned — next consumers
 
 **Status: Planned**
 
 - Decision Tracking (fills package placeholders)
 - Timeline of project knowledge events
 - Richer Project Memory UX on top of packages
+- Optional AI summaries (LLM digests — not required for handoff today)
 
 ---
 
-## Planned — v1.2 Git linkage
+## Future — IDE & providers
 
 **Status: Planned**
 
-- Git metadata on projects
-- Git repository linkage
-- Map conversations and commits to repos/branches (metadata only)
-
----
-
-## Planned — v1.3 VS Code Extension
-
-**Status: Planned**
-
-- VS Code extension
-- Push Context from the IDE
-- Pull Context into the IDE
-- Git synchronization with ConvHub project memory
-
----
-
-## Planned — v1.4 IDE adapters
-
-**Status: Planned**
-
-- Claude Code adapter
-- Cursor adapter
-- Codex adapter
-- Continue adapter
+| Area | Direction |
+|------|-----------|
+| **Codex adapter** | Handoff / session sync for Codex |
+| **Gemini adapter** | Handoff / session sync for Gemini tooling |
+| **Cursor adapter** | In-editor / Cursor-native handoff |
+| **VS Code Extension** | Push / pull context from the IDE |
+| **Git automation** | Remote Git operations beyond ConvHub repository metadata |
+| **Enterprise** | SSO, stronger multi-tenant ops, rate limits at scale |
 
 ---
 
@@ -93,3 +83,7 @@ _Nothing currently marked in progress. Active work will be listed here when a re
 - Knowledge Graph
 - Cross-repository Memory
 - AI Merge Assistant
+
+---
+
+See also [README.md](README.md) and [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md).

@@ -1,7 +1,10 @@
 const COMING_SOON = [
   "VS Code extension",
-  "Git integration",
+  "Codex / Gemini / Cursor adapters",
+  "Git automation",
+  "Optional AI summaries",
   "Decision Tracking",
+  "Enterprise hardening",
   "Knowledge Graph",
   "Conversation Merge",
 ] as const;
@@ -12,7 +15,8 @@ export function FutureSection() {
       <div className="mx-auto max-w-6xl">
         <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Designed for the future</h2>
         <p className="mt-4 max-w-2xl text-[var(--color-muted-foreground)]">
-          The foundation is live. These capabilities are on the roadmap and are{" "}
+          MVP v1 is live — including Claude Code handoff. These capabilities are on the roadmap and
+          are{" "}
           <span className="font-medium text-[var(--color-foreground)]">not implemented yet</span>.
         </p>
 

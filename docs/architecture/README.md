@@ -1,6 +1,6 @@
 # Architecture documentation
 
-ConvHub is **Git for AI-native Project Memory**. These documents describe how the system is structured and which parts are implemented versus planned.
+These documents describe how ConvHub is structured and which parts are implemented versus planned. Product positioning lives in the root [README.md](../../README.md).
 
 ## Architecture Index
 
@@ -9,6 +9,7 @@ ConvHub is **Git for AI-native Project Memory**. These documents describe how th
 | [Architecture overview](architecture-overview.md) | Implemented |
 | [Projects](projects.md) | **Implemented** |
 | [Project Memory](project-memory.md) | Primitives + Context Packages **Implemented** |
+| [Coding Workspaces](coding-workspaces.md) | **Implemented** |
 | [Context Packages](context-packages.md) | **Implemented** (import planned) |
 | [Context Restore](context-restore.md) | **Implemented** |
 | [Conversation Model](conversation-model.md) | Implemented |
@@ -17,7 +18,7 @@ ConvHub is **Git for AI-native Project Memory**. These documents describe how th
 | [Ownership Routing](ADR-010-ownership-first-routing.md) | Implemented |
 | [Borrowing](ADR-009-resource-sharing.md) | Implemented |
 | [Realtime](realtime-events.md) | Implemented |
-| [Git Integration](git-integration.md) | Planned |
+| [Git Integration](git-integration.md) | Metadata **Implemented**; automation Planned |
 | [VS Code Extension](vscode-extension.md) | Planned |
 
 ## Flow diagrams (implemented)
@@ -35,6 +36,7 @@ ConvHub is **Git for AI-native Project Memory**. These documents describe how th
 | AI account ownership | [ai-account-ownership.md](ai-account-ownership.md) |
 | Commits | [commit-model.md](commit-model.md), [ADR-011-conversation-commits.md](ADR-011-conversation-commits.md) |
 | Branches | [branch-model.md](branch-model.md) |
+| Coding workspaces | [coding-workspaces.md](coding-workspaces.md) |
 
 ## Architecture Decision Records (ADRs)
 

@@ -13,20 +13,26 @@ const TODAY = [
   "Branch visualization",
   "Realtime collaboration",
   "Budget management",
+  "Coding workspaces & Repository Memory",
+  "External AI Sessions & Transcript Snapshots",
+  "Pull Package & Claude Handoff",
+  "Claude Code plugin (convhub push / pull)",
   "Open source",
 ] as const;
 
 const NEXT = [
   "Decision Tracking",
   "Richer project memory timeline",
+  "Optional AI summaries",
 ] as const;
 
 const FUTURE = [
-  "Git Integration",
+  "Codex adapter",
+  "Gemini adapter",
+  "Cursor adapter",
   "VS Code Extension",
-  "Claude Code Adapter",
-  "Cursor Adapter",
-  "Codex Adapter",
+  "Git automation",
+  "Enterprise hardening",
 ] as const;
 
 const RESEARCH = [
@@ -106,16 +112,16 @@ export function VisionSection() {
           Where ConvHub is going
         </h2>
         <p className="mt-4 max-w-3xl text-lg text-[var(--color-muted-foreground)]">
-          Git versions code. ConvHub versions project knowledge.
+          Git versions code. ConvHub moves the AI context your teammate needs next.
         </p>
         <p className="mt-3 max-w-3xl text-sm text-[var(--color-muted-foreground)]">
-          The long-term direction is clear. Only the{" "}
-          <span className="font-medium text-[var(--color-foreground)]">Today</span> column is
-          available in the product now. Everything else is roadmap — not shipped.
+          MVP v1 through Sprint 36 is in the{" "}
+          <span className="font-medium text-[var(--color-foreground)]">Today</span> column.
+          Everything else is roadmap — not shipped.
         </p>
 
         <div className="mt-12 grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-          <Column title="Today" label="Implemented" items={TODAY} tone="implemented" />
+          <Column title="Today" label="Complete" items={TODAY} tone="implemented" />
           <Column title="Next" label="Planned" items={NEXT} tone="planned" />
           <Column title="Future" label="Planned" items={FUTURE} tone="future" />
           <Column title="Research" label="Research" items={RESEARCH} tone="research" />

@@ -1,6 +1,6 @@
 # Architecture Overview
 
-ConvHub is **Git for AI-native Project Memory** — a collaborative system that versions conversations, commits, and branches while each participant keeps ownership of their own AI providers.
+ConvHub is a collaborative system for AI-assisted software development: teams share conversations and project memory while each participant keeps ownership of their own AI providers. Coding workspaces add repository-linked memory and Claude Code handoff.
 
 ## High-level layers (implemented)
 
@@ -14,11 +14,13 @@ AI Providers
 
 | Layer | Status | Role |
 |-------|--------|------|
-| Developer | **Implemented** | Works in workspaces, conversations, commits, and branches |
-| ConvHub | **Implemented** | Memory primitives, routing, borrowing, budgets, realtime |
+| Developer | **Implemented** | Works in workspaces, conversations, coding repos, commits, branches, and Claude plugin |
+| ConvHub | **Implemented** | Memory primitives, routing, borrowing, budgets, realtime, repository memory, handoff |
 | AI Providers | **Implemented** | Claude, OpenAI, Gemini, Groq, Ollama, Mock |
 
-**Planned (not implemented):** Git repository linkage — see [git-integration.md](git-integration.md).
+**Also implemented:** repository metadata linkage, Repository Memory, External AI Sessions, Pull Package, Claude Handoff, Claude Code plugin (`convhub push` / `convhub pull`).
+
+**Still planned:** remote Git automation and additional IDE adapters — see [git-integration.md](git-integration.md) and [roadmap.md](../../roadmap.md).
 
 ## Request flow (implemented)
 
@@ -66,19 +68,41 @@ Conversation
   ├── Messages
   ├── Checkpoints (automatic)
   ├── Commits (manual)
+  │     └── Context Packages
   └── Branches
+
+Repository Branch
+  ├── Repository Memory
+  ├── External AI Sessions → Transcript Snapshots
+  ├── Pull Package
+  └── Claude Handoff
+```
+
+## Coding handoff flow (implemented)
+
+```
+Claude Code (hooks)
+        ↓
+External AI Session + transcript deltas
+        ↓
+Repository Memory / Pull Package
+        ↓
+convhub push  →  verify artifacts
+convhub pull  →  Claude Handoff Markdown
+        ↓
+Paste into a new Claude Code session
 ```
 
 ## Planned / Research (not implemented)
 
 | Component | Status |
 |-----------|--------|
-| Context Packages | Planned |
-| Context Restore | Planned |
-| Git Integration | Planned |
+| Decision Tracking / richer memory timeline | Planned |
+| Optional AI summaries | Planned |
 | VS Code Extension | Planned |
-| IDE adapters | Planned |
+| Codex / Gemini / Cursor adapters | Planned |
+| Remote Git automation | Planned |
 | Conversation Merge | Research |
 | Knowledge Graph | Research |
 
-See [project-memory.md](project-memory.md) and [roadmap.md](../../roadmap.md).
+See [coding-workspaces.md](coding-workspaces.md), [project-memory.md](project-memory.md), and [roadmap.md](../../roadmap.md).

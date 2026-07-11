@@ -4,13 +4,14 @@ const LAYERS = [
   {
     title: "Developer",
     icon: Code2,
-    summary: "Creates workspaces, invites teammates, connects providers, chats, branches, and commits.",
+    summary:
+      "Works in ConvHub and Claude Code. Runs git push / pull for code, and convhub push / pull for AI context.",
   },
   {
     title: "ConvHub",
     icon: Layers,
     summary:
-      "Projects, shared conversations, ownership-first routing, borrowing, budgets, commits, branches, and realtime.",
+      "Projects, conversations, coding repos, Repository Memory, Pull Package, Claude Handoff, routing, and realtime.",
   },
   {
     title: "AI Providers",
@@ -25,8 +26,8 @@ export function ArchitectureSection() {
       <div className="mx-auto max-w-6xl">
         <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Architecture today</h2>
         <p className="mt-4 max-w-2xl text-[var(--color-muted-foreground)]">
-          Three layers that ship in the current product, with Projects as the permanent home for
-          project memory. Git repository linkage is planned and is not part of this diagram.
+          Three layers that ship in MVP v1. Repository metadata and Claude handoff are included;
+          remote Git automation remains planned.
         </p>
 
         <div className="mt-12 flex flex-col items-stretch gap-3 md:mx-auto md:max-w-xl">
@@ -63,11 +64,13 @@ export function ArchitectureSection() {
           <br />
           &nbsp;&nbsp;↓
           <br />
-          Conversations
+          Conversations / Repositories
           <br />
           &nbsp;&nbsp;↓
           <br />
-          Branches → Commits → Context Packages
+          Commits → Context Packages
+          <br />
+          Repo Memory → Pull Package → Claude Handoff
         </div>
       </div>
     </section>

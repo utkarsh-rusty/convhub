@@ -83,7 +83,7 @@ export function LandingFooter() {
     { href: SITE_LINKS.architecture, label: "Architecture" },
     { href: SITE_LINKS.contributing, label: "Contributing" },
     { href: SITE_LINKS.license, label: "License" },
-    { href: SITE_LINKS.roadmap, label: "Roadmap (planned)" },
+    { href: SITE_LINKS.roadmap, label: "Roadmap" },
   ] as const;
 
   return (
@@ -95,7 +95,7 @@ export function LandingFooter() {
             Built in public. MIT licensed. Contributions welcome.
           </p>
           <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">
-            Git for AI-native Project Memory.
+            Continue your teammate&apos;s AI coding session.
           </p>
           <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">v{APP_VERSION}</p>
         </div>

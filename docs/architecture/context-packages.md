@@ -2,9 +2,10 @@
 
 ## Status
 
-**Implemented** (Sprint 19) — generation, storage, export.
+**Implemented** (Sprint 19) — generation, storage, export.  
+**Context Restore** is also **Implemented** (Sprint 20).
 
-Future consumers are **Planned** / **Research** and are not built yet.
+Claude Handoff and Pull Package consume related project/coding memory (Sprint 33–34). Additional IDE consumers remain **Planned** / **Research**.
 
 ## Overview
 
@@ -15,7 +16,7 @@ Conversation Commit
         ↓
 Context Package (generated, immutable)
         ↓
-Export JSON
+Export JSON  /  Context Restore
 ```
 
 Every successful commit creates one package in the same database transaction. If package generation fails, the commit is rolled back.
@@ -32,15 +33,17 @@ Every successful commit creates one package in the same database transaction. If
   - `GET /conversations/{id}/context-packages`
   - `GET /context-packages/{id}/export`
 - UI: View Context Package from commit details, export JSON
+- Context Restore into a new working conversation
 
-## Planned consumers (not implemented)
+## Consumers
 
 | Consumer | Status |
 |----------|--------|
 | Context Restore | **Implemented** |
-| Git Integration | Planned |
+| Pull Package / Claude Handoff | **Implemented** (composes related artifacts) |
 | VS Code Extension | Planned |
-| Claude Code / Cursor / Codex adapters | Planned |
+| Cursor / Codex / Gemini adapters | Planned |
+| Remote Git automation | Planned |
 | Conversation Merge | Research |
 | Knowledge Graph | Research |
 

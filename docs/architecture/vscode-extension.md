@@ -2,11 +2,11 @@
 
 ## Status
 
-**Planned** (v1.3) — not implemented.
+**Planned** — not implemented.
 
 ## Intent
 
-A VS Code extension will let developers push and pull ConvHub project memory from the editor, alongside Git.
+A VS Code extension will let developers push and pull ConvHub project memory from the editor, alongside Git — similar to today’s Claude Code CLI workflow (`convhub push` / `convhub pull`).
 
 ## Planned capabilities
 
@@ -14,12 +14,17 @@ A VS Code extension will let developers push and pull ConvHub project memory fro
 - Pull Context into the IDE
 - Git synchronization with ConvHub
 
-## Related (also planned)
+## Related
 
-- Claude Code, Cursor, Codex, and Continue adapters (v1.4)
+| Adapter | Status |
+|---------|--------|
+| Claude Code plugin | **Implemented** — see [coding-workspaces.md](coding-workspaces.md) |
+| Cursor adapter | Planned |
+| Codex adapter | Planned |
+| Gemini adapter | Planned |
 
 ## Not implemented
 
-No extension package or marketplace listing exists yet.
+No VS Code extension package or marketplace listing exists yet.
 
 See [roadmap.md](../../roadmap.md).

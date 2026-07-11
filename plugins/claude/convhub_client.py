@@ -1,4 +1,4 @@
-"""HTTP client for existing ConvHub External AI Session APIs."""
+"""HTTP client for existing ConvHub APIs used by the Claude plugin."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ class ConvHubClient:
         conversation = conversation_id or self.config.conversation_id
         if conversation:
             payload["conversation_id"] = conversation
-        return self._request("POST", "/external-ai-sessions/connect", payload)
+        return self._request_json("POST", "/external-ai-sessions/connect", payload)
 
     def upload_chunk(
         self,
@@ -56,7 +56,7 @@ class ConvHubClient:
         end_offset: int,
         raw_content: str,
     ) -> dict[str, Any]:
-        return self._request(
+        return self._request_json(
             "POST",
             "/external-ai-sessions/upload",
             {
@@ -69,30 +69,78 @@ class ConvHubClient:
         )
 
     def disconnect(self, session_id: str) -> dict[str, Any]:
-        return self._request(
+        return self._request_json(
             "POST",
             "/external-ai-sessions/disconnect",
             {"session_id": session_id},
         )
 
-    def _request(self, method: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
-        url = f"{self.api_base}{path}"
-        data = json.dumps(payload).encode("utf-8")
-        request = urllib.request.Request(
-            url,
-            data=data,
-            method=method,
-            headers={
-                "Authorization": f"Bearer {self.config.api_token}",
-                "X-Workspace-ID": self.config.workspace_id,
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
+    def get_session(self, session_id: str) -> dict[str, Any]:
+        return self._request_json("GET", f"/external-ai-sessions/{session_id}")
+
+    def get_snapshot(self, session_id: str) -> dict[str, Any]:
+        return self._request_json("GET", f"/external-ai-sessions/{session_id}/snapshot")
+
+    def get_repository_memory(self, repository_branch_id: str | None = None) -> dict[str, Any]:
+        branch_id = repository_branch_id or self.config.repository_branch_id
+        return self._request_json("GET", f"/repository-branches/{branch_id}/repository-memory")
+
+    def get_pull_package(self, repository_branch_id: str | None = None) -> dict[str, Any]:
+        branch_id = repository_branch_id or self.config.repository_branch_id
+        return self._request_json("GET", f"/repository-branches/{branch_id}/pull-package")
+
+    def get_claude_handoff(self, repository_branch_id: str | None = None) -> str:
+        branch_id = repository_branch_id or self.config.repository_branch_id
+        return self._request_text("GET", f"/repository-branches/{branch_id}/handoff/claude")
+
+    def _headers(self, *, accept: str = "application/json") -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.config.api_token}",
+            "X-Workspace-ID": self.config.workspace_id,
+            "Accept": accept,
+        }
+
+    def _request_json(
+        self,
+        method: str,
+        path: str,
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        body = self._request_bytes(
+            method,
+            path,
+            payload=payload,
+            accept="application/json",
         )
+        return json.loads(body.decode("utf-8")) if body else {}
+
+    def _request_text(self, method: str, path: str) -> str:
+        body = self._request_bytes(
+            method,
+            path,
+            payload=None,
+            accept="text/markdown, text/plain, */*",
+        )
+        return body.decode("utf-8")
+
+    def _request_bytes(
+        self,
+        method: str,
+        path: str,
+        *,
+        payload: dict[str, Any] | None,
+        accept: str,
+    ) -> bytes:
+        url = f"{self.api_base}{path}"
+        data = None
+        headers = self._headers(accept=accept)
+        if payload is not None:
+            data = json.dumps(payload).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+        request = urllib.request.Request(url, data=data, method=method, headers=headers)
         try:
-            with urllib.request.urlopen(request, timeout=30) as response:
-                body = response.read().decode("utf-8")
-                return json.loads(body) if body else {}
+            with urllib.request.urlopen(request, timeout=60) as response:
+                return response.read()
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
             raise ConvHubClientError(

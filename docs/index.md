@@ -1,17 +1,20 @@
 # ConvHub Documentation
 
-**Git for AI-native Project Memory.**
+**Git changed how developers collaborate on code. ConvHub changes how developers collaborate with AI.**
 
-Git versions code. ConvHub versions knowledge — conversations, commits, branches, and AI collaboration history — while every developer keeps ownership of their providers.
+Git versions code. ConvHub versions AI collaboration context and project memory — while every developer keeps ownership of their providers.
 
 ## Start here
 
 | Document | Description |
 |----------|-------------|
-| [README](../README.md) | Product overview, features, getting started |
+| [README](../README.md) | Product overview, features, plugin guide, FAQ |
 | [Architecture overview](architecture/architecture-overview.md) | End-to-end system flow |
-| [Roadmap](../roadmap.md) | Versioned product roadmap |
-| [Contributing](../CONTRIBUTING.md) | How to contribute (early beta) |
+| [Coding workspaces](architecture/coding-workspaces.md) | Repos, memory, Claude handoff |
+| [Claude plugin](../plugins/claude/README.md) | Hooks + `convhub push` / `pull` |
+| [Roadmap](../roadmap.md) | MVP complete through Sprint 36 + future |
+| [Known limitations](../KNOWN_LIMITATIONS.md) | Beta caveats |
+| [Contributing](../CONTRIBUTING.md) | How to contribute |
 
 ## Architecture
 
@@ -21,6 +24,7 @@ Git versions code. ConvHub versions knowledge — conversations, commits, branch
 | Overview | [architecture-overview.md](architecture/architecture-overview.md) | Implemented |
 | Projects | [projects.md](architecture/projects.md) | Implemented |
 | Project Memory | [project-memory.md](architecture/project-memory.md) | Primitives + packages implemented |
+| Coding Workspaces | [coding-workspaces.md](architecture/coding-workspaces.md) | Implemented |
 | Context Packages | [context-packages.md](architecture/context-packages.md) | Implemented |
 | Context Restore | [context-restore.md](architecture/context-restore.md) | Implemented |
 | Conversation Model | [conversation-model.md](architecture/conversation-model.md) | Implemented |
@@ -29,7 +33,7 @@ Git versions code. ConvHub versions knowledge — conversations, commits, branch
 | Ownership Routing | [ADR-010](architecture/ADR-010-ownership-first-routing.md) | Implemented |
 | Borrowing | [ADR-009](architecture/ADR-009-resource-sharing.md) | Implemented |
 | Realtime | [realtime-events.md](architecture/realtime-events.md) | Implemented |
-| Git Integration | [git-integration.md](architecture/git-integration.md) | Planned |
+| Git Integration | [git-integration.md](architecture/git-integration.md) | Metadata implemented; automation planned |
 | VS Code Extension | [vscode-extension.md](architecture/vscode-extension.md) | Planned |
 
 ## Architecture Decision Records (ADRs)

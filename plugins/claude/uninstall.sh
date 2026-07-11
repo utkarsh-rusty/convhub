@@ -52,4 +52,13 @@ settings_path.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8"
 print(f"Removed ConvHub Claude hooks from {settings_path}" if changed else "No ConvHub hooks found.")
 PY
 
+BIN_DIR="${CONVHUB_BIN_DIR:-$HOME/.local/bin}"
+if [[ -L "$BIN_DIR/convhub" ]]; then
+  TARGET="$(readlink "$BIN_DIR/convhub" || true)"
+  if [[ "$TARGET" == *"/plugins/claude/convhub" ]]; then
+    rm -f "$BIN_DIR/convhub"
+    echo "Removed CLI symlink: $BIN_DIR/convhub"
+  fi
+fi
+
 echo "Done."

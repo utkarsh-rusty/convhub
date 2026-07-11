@@ -2,29 +2,30 @@ import { Check, CircleDashed, FlaskConical } from "lucide-react";
 
 const VERSIONS = [
   {
-    version: "v1.0",
+    version: "MVP v1",
     status: "Implemented" as const,
     items: [
-      "Collaborative workspace",
-      "Ownership-first routing",
-      "Borrowing engine",
-      "Branching & commits",
-      "Branch visualization",
+      "Collaborative workspaces & projects",
+      "Ownership-first routing & borrowing",
+      "Branching, commits, Context Packages & restore",
+      "Coding workspaces & Repository Memory",
+      "Claude Code plugin (convhub push / pull)",
       "Realtime collaboration",
     ],
   },
   {
-    version: "v1.1–v1.4",
+    version: "Next / Future",
     status: "Planned" as const,
     items: [
-      "Project memory & context packages",
-      "Git metadata & linkage",
+      "Decision Tracking & richer memory UX",
+      "Optional AI summaries",
       "VS Code extension",
-      "IDE adapters",
+      "Codex / Gemini / Cursor adapters",
+      "Git automation & enterprise",
     ],
   },
   {
-    version: "v2.0",
+    version: "Research",
     status: "Research" as const,
     items: [
       "Semantic context restore",
@@ -51,8 +52,8 @@ export function RoadmapSection() {
       <div className="mx-auto max-w-6xl">
         <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">Roadmap</h2>
         <p className="mt-4 max-w-2xl text-[var(--color-muted-foreground)]">
-          Built in public. v1.0 is live. Later versions are planned or research — never described as
-          shipped.
+          Built in public. MVP v1 through Sprint 36 is complete. Later work is planned or research —
+          never described as shipped.
         </p>
 
         <div className="mt-12 grid gap-6 lg:grid-cols-3">
