@@ -586,6 +586,35 @@ export const repositoryMemoryJsonExportResponseSchema = z.object({
   content: z.record(z.string(), z.unknown()),
 });
 
+export const pullPackageResponseSchema = z.object({
+  repository_branch_id: z.string().uuid(),
+  package_version: z.number(),
+  generated_at: z.string(),
+  workspace: z.record(z.string(), z.unknown()),
+  project: z.record(z.string(), z.unknown()),
+  repository: z.record(z.string(), z.unknown()),
+  repository_branch: z.record(z.string(), z.unknown()),
+  repository_memory: z.record(z.string(), z.unknown()).nullable().optional(),
+  transcript_snapshot: z.record(z.string(), z.unknown()).nullable().optional(),
+  latest_context_package: z.record(z.string(), z.unknown()).nullable().optional(),
+  latest_commit: z.record(z.string(), z.unknown()).nullable().optional(),
+  sync: z.record(z.string(), z.unknown()),
+  active_developer: z.record(z.string(), z.unknown()).nullable().optional(),
+  markdown_content: z.string(),
+  json_content: z.record(z.string(), z.unknown()),
+});
+
+export const pullPackageExportResponseSchema = z.object({
+  filename: z.string(),
+  content: z.string(),
+  content_type: z.string().optional(),
+});
+
+export const pullPackageJsonExportResponseSchema = z.object({
+  filename: z.string(),
+  content: z.record(z.string(), z.unknown()),
+});
+
 export const branchSyncHistoryExportResponseSchema = z.object({
   filename: z.string(),
   content: z.record(z.string(), z.unknown()),
@@ -1076,6 +1105,9 @@ export type RepositoryMemoryExportResponse = z.infer<typeof repositoryMemoryExpo
 export type RepositoryMemoryJsonExportResponse = z.infer<
   typeof repositoryMemoryJsonExportResponseSchema
 >;
+export type PullPackageResponse = z.infer<typeof pullPackageResponseSchema>;
+export type PullPackageExportResponse = z.infer<typeof pullPackageExportResponseSchema>;
+export type PullPackageJsonExportResponse = z.infer<typeof pullPackageJsonExportResponseSchema>;
 export type ProjectConversationSummary = z.infer<typeof projectConversationSummarySchema>;
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
 export type ConversationLineageResponse = z.infer<typeof conversationLineageResponseSchema>;

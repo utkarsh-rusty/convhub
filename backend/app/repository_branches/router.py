@@ -26,6 +26,12 @@ from app.repository_memory.schemas import (
     RepositoryMemoryResponse,
 )
 from app.repository_memory.service import RepositoryMemoryService
+from app.pull_packages.schemas import (
+    PullPackageExportResponse,
+    PullPackageJsonExportResponse,
+    PullPackageResponse,
+)
+from app.pull_packages.service import PullPackageService
 from app.repositories.router import get_repository
 
 repository_branches_router = APIRouter(prefix="/repository-branches", tags=["repository-branches"])
@@ -146,6 +152,10 @@ def get_repository_memory_service(db: AsyncSession = Depends(get_db)) -> Reposit
     return RepositoryMemoryService(db=db)
 
 
+def get_pull_package_service(db: AsyncSession = Depends(get_db)) -> PullPackageService:
+    return PullPackageService(db=db)
+
+
 @repository_branches_router.get(
     "/{repository_branch_id}/repository-memory",
     response_model=RepositoryMemoryResponse,
@@ -176,6 +186,39 @@ async def export_repository_memory_json(
     branch: RepositoryBranch = Depends(get_repository_branch),
     service: RepositoryMemoryService = Depends(get_repository_memory_service),
 ) -> RepositoryMemoryJsonExportResponse:
+    return await service.export_json(branch)
+
+
+@repository_branches_router.get(
+    "/{repository_branch_id}/pull-package",
+    response_model=PullPackageResponse,
+)
+async def get_pull_package(
+    branch: RepositoryBranch = Depends(get_repository_branch),
+    service: PullPackageService = Depends(get_pull_package_service),
+) -> PullPackageResponse:
+    return await service.get_package(branch)
+
+
+@repository_branches_router.get(
+    "/{repository_branch_id}/pull-package/export",
+    response_model=PullPackageExportResponse,
+)
+async def export_pull_package_markdown(
+    branch: RepositoryBranch = Depends(get_repository_branch),
+    service: PullPackageService = Depends(get_pull_package_service),
+) -> PullPackageExportResponse:
+    return await service.export_markdown(branch)
+
+
+@repository_branches_router.get(
+    "/{repository_branch_id}/pull-package/json",
+    response_model=PullPackageJsonExportResponse,
+)
+async def export_pull_package_json(
+    branch: RepositoryBranch = Depends(get_repository_branch),
+    service: PullPackageService = Depends(get_pull_package_service),
+) -> PullPackageJsonExportResponse:
     return await service.export_json(branch)
 
 

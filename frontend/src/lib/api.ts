@@ -45,6 +45,9 @@ import {
   repositoryMemoryResponseSchema,
   repositoryMemoryExportResponseSchema,
   repositoryMemoryJsonExportResponseSchema,
+  pullPackageResponseSchema,
+  pullPackageExportResponseSchema,
+  pullPackageJsonExportResponseSchema,
   branchSyncHistoryExportResponseSchema,
   branchSyncRecordSummarySchema,
   syncPullResponseSchema,
@@ -472,6 +475,21 @@ export const repositoryBranchApi = {
   async exportRepositoryMemoryJson(branchId: string) {
     const { data } = await api.get(`/repository-branches/${branchId}/repository-memory/json`);
     return repositoryMemoryJsonExportResponseSchema.parse(data);
+  },
+
+  async getPullPackage(branchId: string) {
+    const { data } = await api.get(`/repository-branches/${branchId}/pull-package`);
+    return pullPackageResponseSchema.parse(data);
+  },
+
+  async exportPullPackageMarkdown(branchId: string) {
+    const { data } = await api.get(`/repository-branches/${branchId}/pull-package/export`);
+    return pullPackageExportResponseSchema.parse(data);
+  },
+
+  async exportPullPackageJson(branchId: string) {
+    const { data } = await api.get(`/repository-branches/${branchId}/pull-package/json`);
+    return pullPackageJsonExportResponseSchema.parse(data);
   },
 
   async listHistory(branchId: string) {

@@ -150,6 +150,7 @@ export function RepositoryPage() {
   const [renameBranch, setRenameBranch] = useState<RepositoryBranchResponse | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [memoryView, setMemoryView] = useState<"markdown" | "json" | null>(null);
+  const [pullPackageView, setPullPackageView] = useState<"markdown" | "json" | null>(null);
   const [selectedExternalAISessionId, setSelectedExternalAISessionId] = useState<string | null>(
     null,
   );
@@ -207,6 +208,12 @@ export function RepositoryPage() {
     enabled: Boolean(activeWorkspaceId && defaultBranch?.id),
   });
 
+  const { data: pullPackage, isLoading: pullPackageLoading } = useQuery({
+    queryKey: ["pull-package", activeWorkspaceId, defaultBranch?.id],
+    queryFn: () => repositoryBranchApi.getPullPackage(defaultBranch!.id),
+    enabled: Boolean(activeWorkspaceId && defaultBranch?.id),
+  });
+
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["repositories", activeWorkspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["repository-branches", activeWorkspaceId] });
@@ -217,6 +224,7 @@ export function RepositoryPage() {
     void queryClient.invalidateQueries({ queryKey: ["transcript-snapshot", activeWorkspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["workspace-client-status", activeWorkspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["repository-memory", activeWorkspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["pull-package", activeWorkspaceId] });
   };
 
   const pushSyncMutation = useMutation({
@@ -356,6 +364,28 @@ export function RepositoryPage() {
       toast.success("Transcript snapshot exported");
     },
     onError: (error) => showApiError(error, "Unable to export transcript snapshot"),
+  });
+
+  const exportPullPackageMarkdownMutation = useMutation({
+    mutationFn: (branchId: string) => repositoryBranchApi.exportPullPackageMarkdown(branchId),
+    onSuccess: (payload) => {
+      downloadTextFile(payload.filename, payload.content, payload.content_type ?? "text/markdown");
+      toast.success("Pull package markdown exported");
+    },
+    onError: (error) => showApiError(error, "Unable to export pull package markdown"),
+  });
+
+  const exportPullPackageJsonMutation = useMutation({
+    mutationFn: (branchId: string) => repositoryBranchApi.exportPullPackageJson(branchId),
+    onSuccess: (payload) => {
+      downloadTextFile(
+        payload.filename,
+        JSON.stringify(payload.content, null, 2),
+        "application/json",
+      );
+      toast.success("Pull package JSON exported");
+    },
+    onError: (error) => showApiError(error, "Unable to export pull package JSON"),
   });
 
   if (isLoading) {
@@ -579,6 +609,96 @@ export function RepositoryPage() {
                   onClick={() => exportRepositoryMemoryJsonMutation.mutate(defaultBranch.id)}
                 >
                   Export JSON
+                </Button>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-medium">Pull Package</h2>
+          {!defaultBranch ? (
+            <p className="rounded-lg border border-dashed border-[var(--color-border)] px-4 py-8 text-sm text-[var(--color-muted-foreground)]">
+              Create a repository branch to generate a pull package.
+            </p>
+          ) : pullPackageLoading ? (
+            <Skeleton className="h-32 w-full" />
+          ) : (
+            <div className="rounded-lg border border-[var(--color-border)] p-4">
+              <div className="mb-4 grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
+                <MemoryField
+                  label="Package version"
+                  value={
+                    pullPackage?.package_version != null
+                      ? String(pullPackage.package_version)
+                      : "—"
+                  }
+                />
+                <MemoryField
+                  label="Generated at"
+                  value={
+                    pullPackage?.generated_at
+                      ? formatTimestamp(pullPackage.generated_at)
+                      : "—"
+                  }
+                />
+                <MemoryField
+                  label="Latest commit"
+                  value={
+                    pullPackage?.latest_commit &&
+                    typeof pullPackage.latest_commit === "object" &&
+                    "commit_hash" in pullPackage.latest_commit
+                      ? `#${String(pullPackage.latest_commit.commit_hash)}`
+                      : "Not Available Yet"
+                  }
+                />
+                <MemoryField
+                  label="Latest context package"
+                  value={
+                    pullPackage?.latest_context_package &&
+                    typeof pullPackage.latest_context_package === "object" &&
+                    "version" in pullPackage.latest_context_package
+                      ? `v${String(pullPackage.latest_context_package.version)}`
+                      : "Not Available Yet"
+                  }
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!pullPackage}
+                  onClick={() => setPullPackageView("json")}
+                >
+                  View JSON
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!pullPackage}
+                  onClick={() => setPullPackageView("markdown")}
+                >
+                  View Markdown
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!defaultBranch || exportPullPackageJsonMutation.isPending}
+                  onClick={() => exportPullPackageJsonMutation.mutate(defaultBranch.id)}
+                >
+                  Export JSON
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!defaultBranch || exportPullPackageMarkdownMutation.isPending}
+                  onClick={() => exportPullPackageMarkdownMutation.mutate(defaultBranch.id)}
+                >
+                  Export Markdown
                 </Button>
               </div>
             </div>
@@ -863,6 +983,32 @@ export function RepositoryPage() {
           </pre>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setMemoryView(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={pullPackageView !== null}
+        onOpenChange={(open) => !open && setPullPackageView(null)}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {pullPackageView === "json" ? "Pull Package JSON" : "Pull Package Markdown"}
+            </DialogTitle>
+            <DialogDescription>
+              Composed pull package for {defaultBranch?.name ?? "this branch"}.
+            </DialogDescription>
+          </DialogHeader>
+          <pre className="max-h-[60vh] overflow-auto rounded-md border border-[var(--color-border)] bg-[var(--color-muted)]/30 p-3 text-xs whitespace-pre-wrap">
+            {pullPackageView === "json"
+              ? JSON.stringify(pullPackage?.json_content ?? {}, null, 2)
+              : (pullPackage?.markdown_content ?? "")}
+          </pre>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setPullPackageView(null)}>
               Close
             </Button>
           </DialogFooter>
