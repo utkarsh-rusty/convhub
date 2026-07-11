@@ -21,6 +21,7 @@ from app.repositories.router import repositories_router
 from app.repository_branches.router import repository_branches_router
 from app.branch_sync_records.router import branch_sync_records_router
 from app.sync.router import sync_router
+from app.external_ai_sessions.router import external_ai_sessions_router
 from app.workspace_client.router import workspace_client_router
 from app.workspace_sessions.router import workspace_sessions_router
 from app.workspaces.router import invitations_router, workspaces_router
@@ -39,6 +40,7 @@ api_router.include_router(branch_sync_records_router)
 api_router.include_router(sync_router)
 api_router.include_router(workspace_sessions_router)
 api_router.include_router(workspace_client_router)
+api_router.include_router(external_ai_sessions_router)
 api_router.include_router(credits_router)
 api_router.include_router(sharing_router)
 api_router.include_router(routing_router)

@@ -42,6 +42,9 @@ import {
   repositoryResponseSchema,
   repositoryBranchResponseSchema,
   branchMemoryExportResponseSchema,
+  repositoryMemoryResponseSchema,
+  repositoryMemoryExportResponseSchema,
+  repositoryMemoryJsonExportResponseSchema,
   branchSyncHistoryExportResponseSchema,
   branchSyncRecordSummarySchema,
   syncPullResponseSchema,
@@ -49,6 +52,9 @@ import {
   syncStatusResponseSchema,
   workspaceClientProtocolStatusSchema,
   workspaceSessionResponseSchema,
+  externalAISessionResponseSchema,
+  transcriptSnapshotResponseSchema,
+  transcriptSnapshotExportResponseSchema,
   conversationSearchResponseSchema,
   conversationStatsResponseSchema,
   conversationTimelineResponseSchema,
@@ -400,9 +406,26 @@ export const repositoryApi = {
     return workspaceSessionResponseSchema.array().parse(data);
   },
 
+  async listExternalAISessions(repositoryId: string) {
+    const { data } = await api.get(`/repositories/${repositoryId}/external-ai-sessions`);
+    return externalAISessionResponseSchema.array().parse(data);
+  },
+
   async getWorkspaceClientStatus(repositoryId: string) {
     const { data } = await api.get(`/repositories/${repositoryId}/workspace-client/status`);
     return workspaceClientProtocolStatusSchema.parse(data);
+  },
+};
+
+export const externalAISessionApi = {
+  async getSnapshot(sessionId: string) {
+    const { data } = await api.get(`/external-ai-sessions/${sessionId}/snapshot`);
+    return transcriptSnapshotResponseSchema.parse(data);
+  },
+
+  async exportSnapshotMarkdown(sessionId: string) {
+    const { data } = await api.get(`/external-ai-sessions/${sessionId}/snapshot/export`);
+    return transcriptSnapshotExportResponseSchema.parse(data);
   },
 };
 
@@ -434,6 +457,21 @@ export const repositoryBranchApi = {
   async exportMemory(branchId: string) {
     const { data } = await api.get(`/repository-branches/${branchId}/memory/export`);
     return branchMemoryExportResponseSchema.parse(data);
+  },
+
+  async getRepositoryMemory(branchId: string) {
+    const { data } = await api.get(`/repository-branches/${branchId}/repository-memory`);
+    return repositoryMemoryResponseSchema.parse(data);
+  },
+
+  async exportRepositoryMemoryMarkdown(branchId: string) {
+    const { data } = await api.get(`/repository-branches/${branchId}/repository-memory/export`);
+    return repositoryMemoryExportResponseSchema.parse(data);
+  },
+
+  async exportRepositoryMemoryJson(branchId: string) {
+    const { data } = await api.get(`/repository-branches/${branchId}/repository-memory/json`);
+    return repositoryMemoryJsonExportResponseSchema.parse(data);
   },
 
   async listHistory(branchId: string) {

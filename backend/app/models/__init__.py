@@ -13,6 +13,7 @@ from app.models.conversation_participant import ConversationParticipant
 from app.models.credit_transaction import CreditTransaction
 from app.models.demo_event_log import DemoEventLog
 from app.models.developer_workspace_session import DeveloperWorkspaceSession
+from app.models.external_ai_session import ExternalAISession
 from app.models.invitation import Invitation
 from app.models.lending_preference import LendingPreference
 from app.models.message import Message
@@ -20,6 +21,9 @@ from app.models.project import Project
 from app.models.refresh_token import RefreshToken
 from app.models.repository import Repository
 from app.models.repository_branch import RepositoryBranch
+from app.models.repository_memory import RepositoryMemory
+from app.models.transcript_chunk import TranscriptChunk
+from app.models.transcript_snapshot import TranscriptSnapshot
 from app.models.user import User
 from app.models.user_budget import UserBudget
 from app.models.workspace import Workspace
@@ -41,6 +45,7 @@ __all__ = [
     "CreditTransaction",
     "DemoEventLog",
     "DeveloperWorkspaceSession",
+    "ExternalAISession",
     "Invitation",
     "LendingPreference",
     "Message",
@@ -48,6 +53,9 @@ __all__ = [
     "RefreshToken",
     "Repository",
     "RepositoryBranch",
+    "RepositoryMemory",
+    "TranscriptChunk",
+    "TranscriptSnapshot",
     "User",
     "UserBudget",
     "Workspace",

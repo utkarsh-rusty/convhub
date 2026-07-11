@@ -117,6 +117,7 @@ async def list_repository_conversations(
     return await service.list_repository_conversations(repository, ctx.user.id)
 
 
+from app.external_ai_sessions.router import register_repository_external_ai_session_routes
 from app.repository_branches.router import register_repository_branch_routes
 from app.workspace_client.router import register_repository_workspace_client_routes
 from app.workspace_sessions.router import register_repository_workspace_session_routes
@@ -124,3 +125,4 @@ from app.workspace_sessions.router import register_repository_workspace_session_
 register_repository_branch_routes(repositories_router)
 register_repository_workspace_session_routes(repositories_router)
 register_repository_workspace_client_routes(repositories_router)
+register_repository_external_ai_session_routes(repositories_router)

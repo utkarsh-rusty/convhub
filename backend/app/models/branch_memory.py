@@ -55,6 +55,6 @@ class BranchMemory(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     sync_records: Mapped[list[BranchSyncRecord]] = relationship(
         back_populates="branch_memory",
         foreign_keys="BranchSyncRecord.branch_memory_id",
-        lazy="selectin",
+        lazy="noload",
         order_by="BranchSyncRecord.sync_version.desc()",
     )

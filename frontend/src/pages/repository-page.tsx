@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import {
   conversationApi,
+  externalAISessionApi,
   repositoryApi,
   repositoryBranchApi,
   showApiError,
@@ -27,9 +28,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type {
   BranchMemorySummary,
   BranchSyncRecordSummary,
+  ExternalAISessionResponse,
   RepositoryBranchResponse,
   WorkspaceSessionResponse,
 } from "@/types/api";
+function downloadTextFile(filename: string, content: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
 
 function providerLabel(provider: string) {
   switch (provider) {
@@ -93,6 +104,21 @@ function sessionStatusLabel(status: string) {
   }
 }
 
+function externalAIProviderLabel(provider: string) {
+  switch (provider) {
+    case "claude_code":
+      return "Claude Code";
+    case "codex":
+      return "Codex";
+    case "gemini_cli":
+      return "Gemini CLI";
+    case "cursor":
+      return "Cursor";
+    default:
+      return provider;
+  }
+}
+
 function syncTypeLabel(syncType: string) {
   switch (syncType) {
     case "local_commit":
@@ -123,6 +149,10 @@ export function RepositoryPage() {
   const [newBranchName, setNewBranchName] = useState("");
   const [renameBranch, setRenameBranch] = useState<RepositoryBranchResponse | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [memoryView, setMemoryView] = useState<"markdown" | "json" | null>(null);
+  const [selectedExternalAISessionId, setSelectedExternalAISessionId] = useState<string | null>(
+    null,
+  );
 
   const { data: repository, isLoading, isError } = useQuery({
     queryKey: ["repositories", activeWorkspaceId, repositoryId],
@@ -142,6 +172,21 @@ export function RepositoryPage() {
     enabled: Boolean(activeWorkspaceId && repositoryId),
   });
 
+  const { data: externalAISessions = [], isLoading: externalAISessionsLoading } = useQuery({
+    queryKey: ["external-ai-sessions", activeWorkspaceId, repositoryId],
+    queryFn: () => repositoryApi.listExternalAISessions(repositoryId!),
+    enabled: Boolean(activeWorkspaceId && repositoryId),
+  });
+
+  const selectedExternalAISession =
+    externalAISessions.find((session) => session.id === selectedExternalAISessionId) ?? null;
+
+  const { data: transcriptSnapshot, isLoading: transcriptSnapshotLoading } = useQuery({
+    queryKey: ["transcript-snapshot", activeWorkspaceId, selectedExternalAISessionId],
+    queryFn: () => externalAISessionApi.getSnapshot(selectedExternalAISessionId!),
+    enabled: Boolean(activeWorkspaceId && selectedExternalAISessionId),
+  });
+
   const { data: protocolStatus } = useQuery({
     queryKey: ["workspace-client-status", activeWorkspaceId, repositoryId],
     queryFn: () => repositoryApi.getWorkspaceClientStatus(repositoryId!),
@@ -156,13 +201,22 @@ export function RepositoryPage() {
     enabled: Boolean(activeWorkspaceId && defaultBranch?.id),
   });
 
+  const { data: repositoryMemory, isLoading: repositoryMemoryLoading } = useQuery({
+    queryKey: ["repository-memory", activeWorkspaceId, defaultBranch?.id],
+    queryFn: () => repositoryBranchApi.getRepositoryMemory(defaultBranch!.id),
+    enabled: Boolean(activeWorkspaceId && defaultBranch?.id),
+  });
+
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["repositories", activeWorkspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["repository-branches", activeWorkspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["conversations", activeWorkspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["sync-status", activeWorkspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["workspace-sessions", activeWorkspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["external-ai-sessions", activeWorkspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["transcript-snapshot", activeWorkspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["workspace-client-status", activeWorkspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["repository-memory", activeWorkspaceId] });
   };
 
   const pushSyncMutation = useMutation({
@@ -271,6 +325,37 @@ export function RepositoryPage() {
       toast.success("Branch history exported");
     },
     onError: (error) => showApiError(error, "Unable to export branch history"),
+  });
+
+  const exportRepositoryMemoryMarkdownMutation = useMutation({
+    mutationFn: (branchId: string) => repositoryBranchApi.exportRepositoryMemoryMarkdown(branchId),
+    onSuccess: (payload) => {
+      downloadTextFile(payload.filename, payload.content, payload.content_type ?? "text/markdown");
+      toast.success("Repository memory markdown exported");
+    },
+    onError: (error) => showApiError(error, "Unable to export repository memory markdown"),
+  });
+
+  const exportRepositoryMemoryJsonMutation = useMutation({
+    mutationFn: (branchId: string) => repositoryBranchApi.exportRepositoryMemoryJson(branchId),
+    onSuccess: (payload) => {
+      downloadTextFile(
+        payload.filename,
+        JSON.stringify(payload.content, null, 2),
+        "application/json",
+      );
+      toast.success("Repository memory JSON exported");
+    },
+    onError: (error) => showApiError(error, "Unable to export repository memory JSON"),
+  });
+
+  const exportTranscriptSnapshotMutation = useMutation({
+    mutationFn: (sessionId: string) => externalAISessionApi.exportSnapshotMarkdown(sessionId),
+    onSuccess: (payload) => {
+      downloadTextFile(payload.filename, payload.content, payload.content_type ?? "text/markdown");
+      toast.success("Transcript snapshot exported");
+    },
+    onError: (error) => showApiError(error, "Unable to export transcript snapshot"),
   });
 
   if (isLoading) {
@@ -411,6 +496,96 @@ export function RepositoryPage() {
         </section>
 
         <section>
+          <h2 className="mb-3 text-sm font-medium">Repository Memory</h2>
+          {!defaultBranch ? (
+            <p className="rounded-lg border border-dashed border-[var(--color-border)] px-4 py-8 text-sm text-[var(--color-muted-foreground)]">
+              Create a repository branch to generate repository memory.
+            </p>
+          ) : repositoryMemoryLoading ? (
+            <Skeleton className="h-32 w-full" />
+          ) : (
+            <div className="rounded-lg border border-[var(--color-border)] p-4">
+              <div className="mb-4 grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-4">
+                <MemoryField
+                  label="Memory version"
+                  value={
+                    repositoryMemory?.memory_version != null
+                      ? String(repositoryMemory.memory_version)
+                      : "—"
+                  }
+                />
+                <MemoryField
+                  label="Generated"
+                  value={
+                    repositoryMemory?.generated_at
+                      ? formatTimestamp(repositoryMemory.generated_at)
+                      : "—"
+                  }
+                />
+                <MemoryField
+                  label="Latest commit"
+                  value={
+                    repositoryMemory?.latest_commit_hash
+                      ? `#${repositoryMemory.latest_commit_hash}`
+                      : "Not Available Yet"
+                  }
+                />
+                <MemoryField
+                  label="Latest package"
+                  value={
+                    repositoryMemory?.latest_context_package_version != null
+                      ? `v${repositoryMemory.latest_context_package_version}`
+                      : "Not Available Yet"
+                  }
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!repositoryMemory}
+                  onClick={() => setMemoryView("markdown")}
+                >
+                  View Markdown
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!repositoryMemory}
+                  onClick={() => setMemoryView("json")}
+                >
+                  View JSON
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={
+                    !defaultBranch || exportRepositoryMemoryMarkdownMutation.isPending
+                  }
+                  onClick={() =>
+                    exportRepositoryMemoryMarkdownMutation.mutate(defaultBranch.id)
+                  }
+                >
+                  Export Markdown
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!defaultBranch || exportRepositoryMemoryJsonMutation.isPending}
+                  onClick={() => exportRepositoryMemoryJsonMutation.mutate(defaultBranch.id)}
+                >
+                  Export JSON
+                </Button>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section>
           <h2 className="mb-3 text-sm font-medium">Plugin Protocol</h2>
           <div className="rounded-lg border border-[var(--color-border)] p-4">
             <div className="grid gap-3 text-xs sm:grid-cols-3">
@@ -453,6 +628,102 @@ export function RepositoryPage() {
               {workspaceSessions.map((session) => (
                 <ActiveDeveloperRow key={session.id} session={session} />
               ))}
+            </div>
+          )}
+        </section>
+
+        <section>
+          <h2 className="mb-3 text-sm font-medium">External AI Sessions</h2>
+          {externalAISessionsLoading ? (
+            <Skeleton className="h-32 w-full" />
+          ) : externalAISessions.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-[var(--color-border)] px-4 py-8 text-sm text-[var(--color-muted-foreground)]">
+              No external AI sessions yet.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              <div className="divide-y divide-[var(--color-border)] rounded-lg border border-[var(--color-border)]">
+                {externalAISessions.map((session) => (
+                  <button
+                    key={session.id}
+                    type="button"
+                    className={`w-full text-left transition-colors ${
+                      selectedExternalAISessionId === session.id
+                        ? "bg-[var(--color-muted)]/30"
+                        : "hover:bg-[var(--color-muted)]/15"
+                    }`}
+                    onClick={() =>
+                      setSelectedExternalAISessionId((current) =>
+                        current === session.id ? null : session.id,
+                      )
+                    }
+                  >
+                    <ExternalAISessionRow session={session} />
+                  </button>
+                ))}
+              </div>
+
+              {selectedExternalAISession ? (
+                <div className="rounded-lg border border-[var(--color-border)] p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-medium">Transcript Snapshot</h3>
+                    <p className="text-xs text-[var(--color-muted-foreground)]">
+                      {externalAIProviderLabel(selectedExternalAISession.provider)} ·{" "}
+                      {selectedExternalAISession.developer_name ?? "Unknown"}
+                    </p>
+                  </div>
+                  {transcriptSnapshotLoading ? (
+                    <Skeleton className="h-24 w-full" />
+                  ) : (
+                    <>
+                      <div className="mb-4 grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-3">
+                        <MemoryField
+                          label="Snapshot version"
+                          value={
+                            transcriptSnapshot?.snapshot_version != null
+                              ? String(transcriptSnapshot.snapshot_version)
+                              : "—"
+                          }
+                        />
+                        <MemoryField
+                          label="Character count"
+                          value={
+                            transcriptSnapshot?.character_count != null
+                              ? String(transcriptSnapshot.character_count)
+                              : "—"
+                          }
+                        />
+                        <MemoryField
+                          label="Last generated"
+                          value={
+                            transcriptSnapshot?.updated_at
+                              ? formatTimestamp(transcriptSnapshot.updated_at)
+                              : "—"
+                          }
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={
+                          !selectedExternalAISessionId ||
+                          exportTranscriptSnapshotMutation.isPending
+                        }
+                        onClick={() =>
+                          exportTranscriptSnapshotMutation.mutate(selectedExternalAISessionId!)
+                        }
+                      >
+                        Download Markdown
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-[var(--color-muted-foreground)]">
+                  Select a session to view transcript snapshot metadata.
+                </p>
+              )}
             </div>
           )}
         </section>
@@ -570,6 +841,29 @@ export function RepositoryPage() {
               onClick={() => renameBranchMutation.mutate()}
             >
               {renameBranchMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={memoryView !== null} onOpenChange={(open) => !open && setMemoryView(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {memoryView === "json" ? "Repository Memory JSON" : "Repository Memory Markdown"}
+            </DialogTitle>
+            <DialogDescription>
+              Deterministic repository memory for {defaultBranch?.name ?? "this branch"}.
+            </DialogDescription>
+          </DialogHeader>
+          <pre className="max-h-[60vh] overflow-auto rounded-md border border-[var(--color-border)] bg-[var(--color-muted)]/30 p-3 text-xs whitespace-pre-wrap">
+            {memoryView === "json"
+              ? JSON.stringify(repositoryMemory?.json_content ?? {}, null, 2)
+              : (repositoryMemory?.markdown_content ?? "")}
+          </pre>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setMemoryView(null)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -796,6 +1090,25 @@ function ActiveDeveloperRow({ session }: { session: WorkspaceSessionResponse }) 
           </span>
         }
       />
+    </div>
+  );
+}
+
+function ExternalAISessionRow({ session }: { session: ExternalAISessionResponse }) {
+  return (
+    <div className="grid gap-3 px-4 py-3 text-xs sm:grid-cols-2 lg:grid-cols-3">
+      <MemoryField label="Provider" value={externalAIProviderLabel(session.provider)} />
+      <MemoryField label="Developer" value={session.developer_name ?? "Unknown"} />
+      <MemoryField label="Branch" value={session.repository_branch_name ?? "—"} />
+      <MemoryField label="Status" value={sessionStatusLabel(session.status)} />
+      <MemoryField label="Started" value={formatTimestamp(session.started_at)} />
+      <MemoryField
+        label="Last activity"
+        value={
+          session.last_activity_at ? formatTimestamp(session.last_activity_at) : "—"
+        }
+      />
+      <MemoryField label="Chunk count" value={String(session.chunk_count)} />
     </div>
   );
 }

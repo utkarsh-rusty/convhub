@@ -70,6 +70,18 @@ class DeveloperWorkspaceSessionStatus(str, enum.Enum):
     CLOSED = "closed"
 
 
+class ExternalAIProvider(str, enum.Enum):
+    CLAUDE_CODE = "claude_code"
+    CODEX = "codex"
+    GEMINI_CLI = "gemini_cli"
+    CURSOR = "cursor"
+
+
+class ExternalAISessionStatus(str, enum.Enum):
+    ACTIVE = "active"
+    CLOSED = "closed"
+
+
 class CreditTransactionType(str, enum.Enum):
     ALLOCATION = "allocation"
     USAGE = "usage"

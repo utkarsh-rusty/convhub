@@ -69,9 +69,9 @@ class Repository(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     conversations: Mapped[list[Conversation]] = relationship(
         back_populates="repository",
-        lazy="selectin",
+        lazy="noload",
     )
     branches: Mapped[list["RepositoryBranch"]] = relationship(
         back_populates="repository",
-        lazy="selectin",
+        lazy="noload",
     )

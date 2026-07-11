@@ -65,6 +65,7 @@ class RepositoryBranchService:
         await BranchMemoryService(self.db).create_for_branch(branch)
         await self.db.commit()
         await self.db.refresh(branch)
+        await BranchMemoryService(self.db)._rebuild_repository_memory(branch.id)
         return self._to_response(branch)
 
     async def rename_branch(
@@ -181,6 +182,7 @@ class RepositoryBranchService:
         await BranchMemoryService(self.db).create_for_branch(branch)
         await self.db.commit()
         await self.db.refresh(branch)
+        await BranchMemoryService(self.db)._rebuild_repository_memory(branch.id)
         return branch
 
     def _to_response(self, branch: RepositoryBranch) -> RepositoryBranchResponse:

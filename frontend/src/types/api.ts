@@ -474,6 +474,52 @@ export const workspaceSessionResponseSchema = z.object({
   updated_at: z.string(),
 });
 
+export const externalAIProviderSchema = z.enum([
+  "claude_code",
+  "codex",
+  "gemini_cli",
+  "cursor",
+]);
+
+export const externalAISessionStatusSchema = z.enum(["active", "closed"]);
+
+export const externalAISessionResponseSchema = z.object({
+  id: z.string().uuid(),
+  provider: externalAIProviderSchema,
+  repository_id: z.string().uuid(),
+  repository_branch_id: z.string().uuid(),
+  conversation_id: z.string().uuid().nullable().optional(),
+  workspace_user_id: z.string().uuid(),
+  machine_identifier: z.string(),
+  started_at: z.string(),
+  ended_at: z.string().nullable().optional(),
+  last_synced_offset: z.number(),
+  status: externalAISessionStatusSchema,
+  chunk_count: z.number(),
+  last_activity_at: z.string().nullable().optional(),
+  developer_name: z.string().nullable().optional(),
+  repository_branch_name: z.string().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const transcriptSnapshotResponseSchema = z.object({
+  id: z.string().uuid(),
+  external_ai_session_id: z.string().uuid(),
+  snapshot_version: z.number(),
+  character_count: z.number(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const transcriptSnapshotExportResponseSchema = z.object({
+  filename: z.string(),
+  content: z.string(),
+  content_type: z.string(),
+  snapshot_version: z.number(),
+  character_count: z.number(),
+});
+
 export const branchMemorySummarySchema = z.object({
   id: z.string().uuid(),
   repository_branch_id: z.string().uuid(),
@@ -507,6 +553,35 @@ export const repositoryBranchResponseSchema = z.object({
 });
 
 export const branchMemoryExportResponseSchema = z.object({
+  filename: z.string(),
+  content: z.record(z.string(), z.unknown()),
+});
+
+export const repositoryMemoryResponseSchema = z.object({
+  id: z.string().uuid(),
+  repository_branch_id: z.string().uuid(),
+  repository_id: z.string().uuid(),
+  repository_branch_name: z.string(),
+  memory_version: z.number(),
+  latest_commit_id: z.string().uuid().nullable().optional(),
+  latest_commit_hash: z.string().nullable().optional(),
+  latest_context_package_id: z.string().uuid().nullable().optional(),
+  latest_context_package_version: z.number().nullable().optional(),
+  latest_workspace_session_id: z.string().uuid().nullable().optional(),
+  generated_at: z.string(),
+  markdown_content: z.string(),
+  json_content: z.record(z.string(), z.unknown()),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const repositoryMemoryExportResponseSchema = z.object({
+  filename: z.string(),
+  content: z.string(),
+  content_type: z.string().optional(),
+});
+
+export const repositoryMemoryJsonExportResponseSchema = z.object({
   filename: z.string(),
   content: z.record(z.string(), z.unknown()),
 });
@@ -990,7 +1065,17 @@ export type SyncPullResponse = z.infer<typeof syncPullResponseSchema>;
 export type SyncPushResponse = z.infer<typeof syncPushResponseSchema>;
 export type WorkspaceSessionResponse = z.infer<typeof workspaceSessionResponseSchema>;
 export type WorkspaceClientProtocolStatus = z.infer<typeof workspaceClientProtocolStatusSchema>;
+export type ExternalAISessionResponse = z.infer<typeof externalAISessionResponseSchema>;
+export type TranscriptSnapshotResponse = z.infer<typeof transcriptSnapshotResponseSchema>;
+export type TranscriptSnapshotExportResponse = z.infer<
+  typeof transcriptSnapshotExportResponseSchema
+>;
 export type BranchMemorySummary = z.infer<typeof branchMemorySummarySchema>;
+export type RepositoryMemoryResponse = z.infer<typeof repositoryMemoryResponseSchema>;
+export type RepositoryMemoryExportResponse = z.infer<typeof repositoryMemoryExportResponseSchema>;
+export type RepositoryMemoryJsonExportResponse = z.infer<
+  typeof repositoryMemoryJsonExportResponseSchema
+>;
 export type ProjectConversationSummary = z.infer<typeof projectConversationSummarySchema>;
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
 export type ConversationLineageResponse = z.infer<typeof conversationLineageResponseSchema>;

@@ -20,6 +20,12 @@ from app.repository_branches.schemas import (
     RepositoryBranchUpdate,
 )
 from app.repository_branches.service import RepositoryBranchService
+from app.repository_memory.schemas import (
+    RepositoryMemoryExportResponse,
+    RepositoryMemoryJsonExportResponse,
+    RepositoryMemoryResponse,
+)
+from app.repository_memory.service import RepositoryMemoryService
 from app.repositories.router import get_repository
 
 repository_branches_router = APIRouter(prefix="/repository-branches", tags=["repository-branches"])
@@ -134,6 +140,43 @@ async def export_repository_branch_memory(
     service: BranchMemoryService = Depends(get_branch_memory_service),
 ) -> BranchMemoryExportResponse:
     return await service.export_memory(branch)
+
+
+def get_repository_memory_service(db: AsyncSession = Depends(get_db)) -> RepositoryMemoryService:
+    return RepositoryMemoryService(db=db)
+
+
+@repository_branches_router.get(
+    "/{repository_branch_id}/repository-memory",
+    response_model=RepositoryMemoryResponse,
+)
+async def get_repository_memory(
+    branch: RepositoryBranch = Depends(get_repository_branch),
+    service: RepositoryMemoryService = Depends(get_repository_memory_service),
+) -> RepositoryMemoryResponse:
+    return await service.get_memory(branch)
+
+
+@repository_branches_router.get(
+    "/{repository_branch_id}/repository-memory/export",
+    response_model=RepositoryMemoryExportResponse,
+)
+async def export_repository_memory_markdown(
+    branch: RepositoryBranch = Depends(get_repository_branch),
+    service: RepositoryMemoryService = Depends(get_repository_memory_service),
+) -> RepositoryMemoryExportResponse:
+    return await service.export_markdown(branch)
+
+
+@repository_branches_router.get(
+    "/{repository_branch_id}/repository-memory/json",
+    response_model=RepositoryMemoryJsonExportResponse,
+)
+async def export_repository_memory_json(
+    branch: RepositoryBranch = Depends(get_repository_branch),
+    service: RepositoryMemoryService = Depends(get_repository_memory_service),
+) -> RepositoryMemoryJsonExportResponse:
+    return await service.export_json(branch)
 
 
 def register_repository_branch_routes(repositories_router: APIRouter) -> None:

@@ -78,25 +78,25 @@ class BranchSyncRecord(UUIDPrimaryKeyMixin, Base):
     branch_memory: Mapped[BranchMemory] = relationship(
         back_populates="sync_records",
         foreign_keys=[branch_memory_id],
-        lazy="selectin",
+        lazy="noload",
     )
     conversation: Mapped[Conversation | None] = relationship(
         foreign_keys=[conversation_id],
-        lazy="selectin",
+        lazy="noload",
     )
     convhub_branch: Mapped[Conversation | None] = relationship(
         foreign_keys=[convhub_branch_id],
-        lazy="selectin",
+        lazy="noload",
     )
     commit: Mapped[ConversationCommit | None] = relationship(
         foreign_keys=[commit_id],
-        lazy="selectin",
+        lazy="noload",
     )
     context_package: Mapped[ContextPackage | None] = relationship(
         foreign_keys=[context_package_id],
-        lazy="selectin",
+        lazy="noload",
     )
     user: Mapped[User | None] = relationship(
         foreign_keys=[user_id],
-        lazy="selectin",
+        lazy="noload",
     )

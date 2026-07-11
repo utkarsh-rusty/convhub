@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -23,6 +24,8 @@ from app.repository_branches.schemas import (
     BranchSyncRecordResponse,
     BranchSyncRecordSummary,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class BranchMemoryService:
@@ -220,6 +223,7 @@ class BranchMemoryService:
             user_id=working_user_id,
         )
         await self.db.commit()
+        await self._rebuild_repository_memory(repository_branch.id)
 
     async def detach_for_conversation(
         self,
@@ -241,6 +245,7 @@ class BranchMemoryService:
         if not memories:
             return
 
+        rebuilt_branch_ids: list[UUID] = []
         for memory in memories:
             latest = memory.latest_sync_record
             if latest is None or latest.conversation_id != root.id:
@@ -252,7 +257,10 @@ class BranchMemoryService:
                 user_id=working_user_id,
                 notes="Repository detached from conversation",
             )
+            rebuilt_branch_ids.append(memory.repository_branch_id)
         await self.db.commit()
+        for branch_id in rebuilt_branch_ids:
+            await self._rebuild_repository_memory(branch_id)
 
     async def sync_for_restore(
         self,
@@ -287,6 +295,7 @@ class BranchMemoryService:
             user_id=working_user_id,
         )
         await self.db.commit()
+        await self._rebuild_repository_memory(repository_branch.id)
 
     async def _append_sync_record(
         self,
@@ -357,6 +366,21 @@ class BranchMemoryService:
             )
         return memory
 
+    async def _rebuild_repository_memory(self, repository_branch_id: UUID) -> None:
+        from app.repository_memory.service import RepositoryMemoryService
+
+        try:
+            await RepositoryMemoryService(self.db).build_repository_memory(
+                repository_branch_id,
+                commit=True,
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "Failed to rebuild repository memory for branch %s",
+                repository_branch_id,
+            )
+            await self.db.rollback()
+
     async def _load_or_create_memory(self, repository_branch_id: UUID) -> BranchMemory:
         result = await self.db.execute(
             select(BranchMemory).where(BranchMemory.repository_branch_id == repository_branch_id)
@@ -409,6 +433,7 @@ class BranchMemoryService:
         await self.create_for_branch(branch)
         await self.db.commit()
         await self.db.refresh(branch)
+        await self._rebuild_repository_memory(branch.id)
         return branch
 
     async def _resolve_root_conversation(self, conversation: Conversation) -> Conversation:
@@ -432,30 +457,44 @@ class BranchMemoryService:
         package_version = None
         user_name = None
 
-        if record.conversation is not None:
-            conversation_title = record.conversation.title
-        if record.convhub_branch is not None:
-            convhub_branch_name = record.convhub_branch.branch_name or record.convhub_branch.title
-        if record.commit is not None:
-            commit_hash = record.commit.commit_hash
-        elif record.commit_id is not None:
-            commit_result = await self.db.execute(
-                select(ConversationCommit.commit_hash).where(
-                    ConversationCommit.id == record.commit_id
+        if record.conversation_id is not None:
+            conversation_title = (
+                await self.db.execute(
+                    select(Conversation.title).where(Conversation.id == record.conversation_id)
                 )
-            )
-            commit_hash = commit_result.scalar_one_or_none()
-        if record.context_package is not None:
-            package_version = record.context_package.version
-        elif record.context_package_id is not None:
-            package_result = await self.db.execute(
-                select(ContextPackage.version).where(
-                    ContextPackage.id == record.context_package_id
+            ).scalar_one_or_none()
+        if record.convhub_branch_id is not None:
+            branch_row = (
+                await self.db.execute(
+                    select(Conversation.branch_name, Conversation.title).where(
+                        Conversation.id == record.convhub_branch_id
+                    )
                 )
-            )
-            package_version = package_result.scalar_one_or_none()
-        if record.user is not None:
-            user_name = record.user.name
+            ).one_or_none()
+            if branch_row is not None:
+                convhub_branch_name = branch_row.branch_name or branch_row.title
+        if record.commit_id is not None:
+            commit_hash = (
+                await self.db.execute(
+                    select(ConversationCommit.commit_hash).where(
+                        ConversationCommit.id == record.commit_id
+                    )
+                )
+            ).scalar_one_or_none()
+        if record.context_package_id is not None:
+            package_version = (
+                await self.db.execute(
+                    select(ContextPackage.version).where(
+                        ContextPackage.id == record.context_package_id
+                    )
+                )
+            ).scalar_one_or_none()
+        if record.user_id is not None:
+            from app.models.user import User
+
+            user_name = (
+                await self.db.execute(select(User.name).where(User.id == record.user_id))
+            ).scalar_one_or_none()
 
         return BranchSyncRecordSummary(
             id=record.id,
@@ -561,17 +600,7 @@ class BranchMemoryService:
         latest = memory.latest_sync_record
         latest_summary = None
         if latest is not None:
-            conversation_title = (
-                latest.conversation.title if latest.conversation is not None else None
-            )
-            convhub_branch_name = None
-            if latest.convhub_branch is not None:
-                convhub_branch_name = latest.convhub_branch.branch_name or latest.convhub_branch.title
-            commit_hash = latest.commit.commit_hash if latest.commit is not None else None
-            package_version = (
-                latest.context_package.version if latest.context_package is not None else None
-            )
-            user_name = latest.user.name if latest.user is not None else None
+            # Related objects are noload; summary uses record columns only.
             latest_summary = BranchSyncRecordSummary(
                 id=latest.id,
                 branch_memory_id=latest.branch_memory_id,
@@ -580,14 +609,14 @@ class BranchMemoryService:
                 commit_id=latest.commit_id,
                 context_package_id=latest.context_package_id,
                 user_id=latest.user_id,
-                user_name=user_name,
+                user_name=None,
                 sync_type=latest.sync_type,
                 sync_version=latest.sync_version,
                 notes=latest.notes,
-                conversation_title=conversation_title,
-                convhub_branch_name=convhub_branch_name,
-                commit_hash=commit_hash,
-                context_package_version=package_version,
+                conversation_title=None,
+                convhub_branch_name=None,
+                commit_hash=None,
+                context_package_version=None,
                 created_at=latest.created_at,
             )
 
@@ -606,24 +635,14 @@ class BranchMemoryService:
                 None if detached else (latest.context_package_id if latest else None)
             ),
             working_user_id=None if detached else (latest.user_id if latest else None),
-            working_user_name=latest_summary.user_name if latest_summary is not None else None,
+            working_user_name=None,
             memory_version=memory.memory_version,
             current_sync_version=memory.current_sync_version,
             last_sync_at=memory.last_sync_at,
             sync_status=memory.sync_status,
-            current_conversation_title=(
-                None if detached else (latest_summary.conversation_title if latest_summary else None)
-            ),
-            current_convhub_branch_name=(
-                None if detached else (latest_summary.convhub_branch_name if latest_summary else None)
-            ),
-            current_commit_hash=(
-                None if detached else (latest_summary.commit_hash if latest_summary else None)
-            ),
-            current_context_package_version=(
-                None
-                if detached
-                else (latest_summary.context_package_version if latest_summary else None)
-            ),
+            current_conversation_title=None,
+            current_convhub_branch_name=None,
+            current_commit_hash=None,
+            current_context_package_version=None,
             latest_sync_record=latest_summary,
         )
