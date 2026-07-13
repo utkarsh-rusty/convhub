@@ -153,8 +153,6 @@ Inside ConvHub, the same team can also branch conversations, commit milestones, 
 | ![Repository](docs/images/repository.png) | *(placeholder)* Repository page — memory, pull package, Claude handoff |
 | ![Handoff](docs/images/handoff.png) | *(placeholder)* Claude Handoff preview / downloaded markdown |
 
-If a file is missing, add it under [`docs/images/`](docs/images/README.md) using the filename above.
-
 ---
 
 ## Installation
